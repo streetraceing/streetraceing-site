@@ -1,2 +1,6 @@
 @import "tailwindcss";
 @import "@heroui/styles";
+
+.font-petit-formal {
+  font-family: var(--font-petit-formal), cursive;
+}
