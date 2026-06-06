@@ -1,8 +1,8 @@
-import "./globals.css";
+import './globals.css';
 
-import { Providers } from "@/app/providers";
-import type { Metadata } from "next";
-import { geistMono, geistSans } from "@/app/fonts";
+import { Providers } from '@/app/providers';
+import type { Metadata } from 'next';
+import { geistMono, geistSans } from '@/app/fonts';
 
 export const metadata: Metadata = {
   title: "streetraceing's website",
