@@ -1,9 +1,9 @@
-import meta from '@/package.json';
-
 import { Container } from '@/components/Container';
-import { Link, Separator } from '@heroui/react';
-import { phrases } from '@/components/header/Phrases';
-import { useMemo } from 'react';
+import { footerPhrases } from '@/config/phrases';
+import { siteConfig } from '@/config/site';
+import { Link, Separator, Typography } from '@heroui/react';
+
+export const dynamic = 'force-dynamic';
 
 type Config = {
   links: {
@@ -23,21 +23,24 @@ export function Footer() {
         label: 'ВКонтакте',
         href: 'https://vk.ru/streetraceing',
       },
+      {
+        label: 'Github',
+        href: 'https://github.com/streetraceing',
+      },
     ],
   };
 
-  const phrase = useMemo(
-    () => phrases[Math.floor(Math.random() * phrases.length)],
-    [],
-  );
+  const phrase =
+    footerPhrases.ru[Math.floor(Math.random() * footerPhrases.ru.length)];
 
   return (
     <footer className="relative border-t border-white/10 bg-background overflow-hidden">
       <Container className="relative py-8 gap-6 flex flex-col justify-between md:flex-row">
         <div className="flex flex-col gap-4">
-          <span className="text-sm text-muted text-left">
-            © {new Date().getFullYear()} - <a className="italic">{meta.name}</a>
-          </span>
+          <Typography.Paragraph className="text-sm text-muted text-left">
+            © {new Date().getFullYear()} -{' '}
+            <a className="italic">{siteConfig.name}</a>
+          </Typography.Paragraph>
 
           <div className="flex flex-wrap gap-4 text-sm">
             {config.links.map((link) => (
@@ -53,11 +56,11 @@ export function Footer() {
             life is good ❤️
           </span>
 
-          <Separator className="my-2 md:w-3/4 md:ml-auto" />
+          <Separator className="my-2" />
 
-          <span className="wrap-break-word mx-auto md:mx-[unset] line-clamp-7">
+          <Typography.Paragraph className="wrap-break-word mx-auto md:mx-[unset] line-clamp-7">
             {phrase}
-          </span>
+          </Typography.Paragraph>
         </div>
       </Container>
     </footer>

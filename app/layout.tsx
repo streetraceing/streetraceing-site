@@ -1,13 +1,13 @@
 import './globals.css';
 
-import meta from '@/package.json';
-
 import { geistMono, geistSans, petitFormal } from '@/app/fonts';
 import { Providers } from '@/app/providers';
+import { siteConfig } from '@/config/site';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: meta.name,
+  title: siteConfig.name,
+  description: siteConfig.description,
 };
 
 export default function RootLayout({

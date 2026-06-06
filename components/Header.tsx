@@ -1,9 +1,8 @@
 'use client';
 
-import meta from '@/package.json';
-
 import { Container } from '@/components/Container';
-import { Button, Link, Separator, Typography } from '@heroui/react';
+import { siteConfig } from '@/config/site';
+import { Button, Link, Typography } from '@heroui/react';
 import { Home, LucideIcon, Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
@@ -42,9 +41,13 @@ export function Header() {
               alt="logo"
               width={40}
               height={40}
+              preload
+              loading="eager"
               className="rounded-full w-6 h-6"
             />
-            <span className="truncate">{meta.name}</span>
+            <Typography.Paragraph className="truncate">
+              {siteConfig.name}
+            </Typography.Paragraph>
           </Link>
 
           <nav className="hidden md:flex min-w-0 gap-4 justify-self-start">
@@ -55,7 +58,9 @@ export function Header() {
                 key={link.href}
               >
                 <link.icon className="size-5 shrink-0 text-muted" />
-                <span className="truncate">{link.label}</span>
+                <Typography.Paragraph className="truncate">
+                  {link.label}
+                </Typography.Paragraph>
               </Link>
             ))}
           </nav>
@@ -80,7 +85,7 @@ export function Header() {
               {config.links.map((link) => (
                 <Link key={link.href} href={link.href} className="no-underline">
                   <link.icon className="size-5 mr-2 text-muted" />
-                  <span className="truncate">{link.label}</span>
+                  <Typography.Paragraph className="truncate">{link.label}</Typography.Paragraph>
                 </Link>
               ))}
             </Container>
