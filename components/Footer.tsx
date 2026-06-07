@@ -31,7 +31,7 @@ export function Footer() {
   };
 
   const phrase =
-    footerPhrases.ru[Math.floor(Math.random() * footerPhrases.ru.length)];
+    footerPhrases.ru[Math.floor(Math.random() * footerPhrases.ru.length)]; // eslint-disable-line react-hooks/purity
 
   return (
     <footer className="relative border-t border-white/10 bg-background overflow-hidden">

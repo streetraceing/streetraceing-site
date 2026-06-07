@@ -85,7 +85,9 @@ export function Header() {
               {config.links.map((link) => (
                 <Link key={link.href} href={link.href} className="no-underline">
                   <link.icon className="size-5 mr-2 text-muted" />
-                  <Typography.Paragraph className="truncate">{link.label}</Typography.Paragraph>
+                  <Typography.Paragraph className="truncate">
+                    {link.label}
+                  </Typography.Paragraph>
                 </Link>
               ))}
             </Container>
