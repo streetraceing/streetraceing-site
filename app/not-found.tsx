@@ -1,7 +1,7 @@
-import { Container } from '@/components/Container';
-import { Footer } from '@/components/Footer';
-import { Header } from '@/components/Header';
-import { Page } from '@/components/Page';
+import { Container } from '@/components/layout/Container';
+import { Footer } from '@/components/layout/Footer';
+import { Header } from '@/components/layout/Header';
+import { Page } from '@/components/layout/Page';
 import { Separator, Typography } from '@heroui/react';
 
 export default function NotFound() {
