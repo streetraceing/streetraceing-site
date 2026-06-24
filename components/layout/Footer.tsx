@@ -32,7 +32,7 @@ export function Footer() {
           </div>
         </div>
 
-        <Separator className='md:hidden bg-border' />
+        <Separator className="md:hidden bg-border" />
 
         <div className="flex flex-col justify-between min-w-0 md:max-w-[50%] md:text-right mx-0">
           <span className="font-petit-formal whitespace-nowrap mx-auto md:mx-[unset]">

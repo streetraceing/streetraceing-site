@@ -33,13 +33,13 @@ export function ProfileAvatar() {
                 <Modal.Icon className="bg-default text-foreground">
                   <FaSpotify className="size-5" />
                 </Modal.Icon>
-                <Modal.Heading>Аватарка аккуратно взята из одной песни</Modal.Heading>
+                <Modal.Heading>
+                  Аватарка аккуратно взята из одной песни
+                </Modal.Heading>
               </Modal.Header>
             </Modal.Header>
-            <Modal.Body className='flex gap-4 flex-col'>
-              <p>
-                Вот ссылочка на нее в спотике
-              </p>
+            <Modal.Body className="flex gap-4 flex-col">
+              <p>Вот ссылочка на нее в спотике</p>
               <div className="overflow-hidden rounded-2xl transform-gpu block border-0">
                 <iframe
                   data-testid="embed-iframe"

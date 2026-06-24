@@ -113,7 +113,7 @@ export const footerConfig: FooterConfig = {
     {
       icon: FaVk,
       label: 'ВКонтакте',
-      href: 'https://vk.ru/streetraceing',
+      href: 'https://vk.com/streetraceing',
     },
     {
       icon: FaGithub,
