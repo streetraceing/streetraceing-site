@@ -2,7 +2,7 @@
 
 import { Container } from '@/components/layout/Container';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
-import { headerConfig, siteConfig } from '@/utils/site';
+import { headerConfig, siteConfig } from '@/utils/config';
 import { Button, Link, Typography } from '@heroui/react';
 import { Menu, X } from 'lucide-react';
 import Image from 'next/image';
@@ -16,7 +16,7 @@ export function Header() {
       <div className="relative">
         <Container className="h-16 grid grid-cols-[auto_1fr] md:grid-cols-[auto_1fr_auto] items-center gap-4">
           <Link
-            href="/#bio-section"
+            href="/"
             className="flex items-center gap-2 font-semibold text-lg no-underline min-w-0 justify-self-start"
           >
             <Image

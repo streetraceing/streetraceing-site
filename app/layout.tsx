@@ -2,7 +2,7 @@ import './globals.css';
 
 import { geistMono, geistSans, petitFormal } from '@/app/fonts';
 import { Providers } from '@/app/providers';
-import { siteConfig } from '@/utils/site';
+import { siteConfig } from '@/utils/config';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {

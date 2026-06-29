@@ -1,4 +1,4 @@
-import { Size } from '@/utils/site';
+import { Size } from '@/utils/config';
 import { ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 

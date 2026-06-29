@@ -4,11 +4,9 @@ import { Header } from '@/components/layout/Header';
 import { Page } from '@/components/layout/Page';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { projectSizeClasses } from '@/utils';
-import { mainPageConfig } from '@/utils/site';
-import { Button, cn, Modal, Typography } from '@heroui/react';
-import { Rocket } from 'lucide-react';
+import { mainPageConfig } from '@/utils/config';
+import { cn, Modal, Typography } from '@heroui/react';
 import Link from 'next/link';
-import { FaGithub } from 'react-icons/fa6';
 
 export default function HomePage() {
   return (
@@ -18,7 +16,7 @@ export default function HomePage() {
           Ээ даже хз что сюда писать и размещать но похъ
         </Typography.Paragraph>
         <section
-          id="bio-section"
+          id="bio"
           className="scroll-mt-16 flex flex-col gap-4 pt-4 border-t"
         >
           <Typography.Heading level={3}>
@@ -28,13 +26,17 @@ export default function HomePage() {
           <div className="flex gap-4 h-fit flex-col md:flex-row md:h-48">
             <ProfileAvatar />
             <div className="flex flex-col">
-              <Typography.Heading level={3}>Если кратко то</Typography.Heading>
-              <Typography.Paragraph>Зовут Андрей, 18 лет</Typography.Paragraph>
+              <Typography.Paragraph>
+                Зовут Андрей, 18 лет, люблю программирование, дизайн и лигу легенд. В основном играю в игры и учусь в университете, немного увлекаюсь рисованием .-. <br />
+                Программировать начал с лет 10, создавая дискорд ботов с discordjs, а после уже и пошли программы с tauri, вебсайты, бэкенды и тд. Я себя идентифицирую как фуллстак :) <br />
+                Умею работать с git, docker, бдшками, линуском (ну так по мелочи). Из языков я знаю javascript, java, учу c#, влюблен в rust (кек). <br /> 
+              </Typography.Paragraph>
             </div>
           </div>
         </section>
+
         <section
-          id="project-section"
+          id="projects"
           className="scroll-mt-16 flex flex-col gap-4 pt-4 border-t"
         >
           <Typography.Heading level={3}>
@@ -51,23 +53,17 @@ export default function HomePage() {
                     )}
                   >
                     <div className="flex flex-col gap-2">
-                      <Typography.Heading level={4}>
+                      <Typography.Heading
+                        className="flex gap-2 items-center"
+                        level={4}
+                      >
+                        {project.icon && <project.icon className="size-5" />}
                         {project.name}
                       </Typography.Heading>
                       <Typography.Paragraph className="text-muted">
-                        {project.description}
+                        {project.shortDescription}
                       </Typography.Paragraph>
                     </div>
-
-                    {project.links.github && (
-                      <Link
-                        href={project.links.github}
-                        className="button button--primary button--md"
-                      >
-                        <FaGithub />
-                        Github
-                      </Link>
-                    )}
                   </div>
                 </Modal.Trigger>
                 <Modal.Backdrop>
@@ -75,22 +71,46 @@ export default function HomePage() {
                     <Modal.Dialog className="sm:max-w-90">
                       <Modal.CloseTrigger />
                       <Modal.Header>
-                        <Modal.Icon className="bg-default text-foreground">
-                          <Rocket className="size-5" />
-                        </Modal.Icon>
-                        <Modal.Heading>Welcome to HeroUI</Modal.Heading>
+                        {project.icon && (
+                          <Modal.Icon className="bg-default text-foreground">
+                            <project.icon className="size-5" />
+                          </Modal.Icon>
+                        )}
+                        <Modal.Heading>{project.name}</Modal.Heading>
                       </Modal.Header>
-                      <Modal.Body>
-                        <p>
-                          A beautiful, fast, and modern React UI library for
-                          building accessible and customizable web applications
-                          with ease.
-                        </p>
-                      </Modal.Body>
-                      <Modal.Footer>
-                        <Button className="w-full" slot="close">
-                          Continue
-                        </Button>
+                      <Modal.Body>{project.longDescription}</Modal.Body>
+                      <Modal.Footer className="flex flex-col">
+                        {project.links.map((link) => (
+                          <Link
+                            key={link.url}
+                            href={link.url}
+                            className="button button--primary button--md w-full"
+                          >
+                            <link.icon />
+                            {link.label}
+                          </Link>
+                        ))}
+
+                        {project.relatedLinks.length > 0 &&
+                          project.links.length > 0 && (
+                            <Typography.Paragraph
+                              size="xs"
+                              className="text-muted-foreground"
+                            >
+                              связанное
+                            </Typography.Paragraph>
+                          )}
+
+                        {project.relatedLinks.map((link) => (
+                          <Link
+                            key={link.url}
+                            href={link.url}
+                            className="button button--tertiary button--md w-full"
+                          >
+                            <link.icon />
+                            {link.label}
+                          </Link>
+                        ))}
                       </Modal.Footer>
                     </Modal.Dialog>
                   </Modal.Container>
@@ -101,7 +121,7 @@ export default function HomePage() {
         </section>
 
         <section
-          id="tool-section"
+          id="tools"
           className="scroll-mt-16 flex flex-col gap-4 pt-4 border-t"
         >
           <Typography.Heading level={3}>

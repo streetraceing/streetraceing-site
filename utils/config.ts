@@ -19,19 +19,33 @@ export const siteConfig = {
 
 export type Size = 'sm' | 'md' | 'lg';
 
+export type AnyIcon = LucideIcon | IconType;
+
 export type MainPageConfig = {
   projects: {
     name: string;
     size: Size;
-    description: string;
+    shortDescription: string;
+    longDescription: string;
     colors: string[];
+
     links: {
-      github?: string;
-    };
+      url: string;
+      icon: AnyIcon;
+      label: string;
+    }[];
+
+    relatedLinks: {
+      url: string;
+      icon: AnyIcon;
+      label: string;
+    }[];
+
+    icon?: AnyIcon;
   }[];
   tools: {
     size: Size;
-    icon?: LucideIcon;
+    icon?: AnyIcon;
     name: string;
     description: string;
     url: string;
@@ -42,13 +56,26 @@ export const mainPageConfig: MainPageConfig = {
   projects: [
     {
       name: 'Luminous',
-      description:
+      icon: FaSpotify,
+      shortDescription: 'Лёгкая динамическая тема для Spicetify',
+      longDescription:
         'Красивая тема для Spotify (используя spicetify) с динамическим фоном, который устанавливается отталкиваясь от текущей песни',
       size: 'lg',
       colors: ['#040503', '#767a7b', '#684f36'],
-      links: {
-        github: 'https://github.com/streetraceing/luminous',
-      },
+      links: [
+        {
+          url: 'https://github.com/streetraceing/luminous',
+          icon: FaGithub,
+          label: 'Github',
+        },
+      ],
+      relatedLinks: [
+        {
+          url: 'https://spicetify.app/',
+          icon: FaSpotify,
+          label: 'Spicetify',
+        },
+      ],
     },
   ],
   tools: [
@@ -67,7 +94,7 @@ export const mainPageConfig: MainPageConfig = {
 
 export type HeaderConfig = {
   links: {
-    icon: LucideIcon;
+    icon: AnyIcon;
     label: string;
     href?: string;
   }[];
@@ -77,18 +104,18 @@ export const headerConfig: HeaderConfig = {
   links: [
     {
       icon: Home,
-      label: 'Домой',
-      href: '/',
+      label: 'Биография',
+      href: '/#bio',
     },
     {
       icon: FolderOpen,
       label: 'Проекты',
-      href: '/#project-section',
+      href: '/#projects',
     },
     {
       icon: Hammer,
       label: 'Инструменты',
-      href: '/#tool-section',
+      href: '/#tools',
     },
   ],
 };
@@ -99,7 +126,7 @@ export type FooterConfig = {
   links: {
     label: string;
     href?: string;
-    icon?: IconType;
+    icon?: AnyIcon;
   }[];
 };
 

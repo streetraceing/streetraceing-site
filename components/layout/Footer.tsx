@@ -1,6 +1,6 @@
 import { Container } from '@/components/layout/Container';
 import { footerPhrases } from '@/utils/phrases';
-import { footerConfig, siteConfig } from '@/utils/site';
+import { footerConfig, siteConfig } from '@/utils/config';
 import { Link, Separator, Typography } from '@heroui/react';
 
 export const dynamic = 'force-dynamic';
@@ -34,14 +34,14 @@ export function Footer() {
 
         <Separator className="md:hidden bg-border" />
 
-        <div className="flex flex-col justify-between min-w-0 md:max-w-[50%] md:text-right mx-0">
+        <div className="flex flex-col justify-between min-w-0 md:max-w-[50%] md:text-right mx-0 px-4 md:px-0">
           <span className="font-petit-formal whitespace-nowrap mx-auto md:mx-[unset]">
             life is good ❤️
           </span>
 
           <Separator className="my-2 w-1/8 mx-auto md:mx-unset md:w-full" />
 
-          <Typography.Paragraph className="wrap-break-word mx-auto md:mx-[unset] flex line-clamp-7">
+          <Typography.Paragraph className="wrap-break-word mx-auto md:mx-[unset] flex line-clamp-7 text-center">
             {phrase}
           </Typography.Paragraph>
         </div>
