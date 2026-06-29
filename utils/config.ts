@@ -96,7 +96,7 @@ export type HeaderConfig = {
   links: {
     icon: AnyIcon;
     label: string;
-    href?: string;
+    href: string;
   }[];
 };
 
@@ -125,7 +125,7 @@ export const headerConfig: HeaderConfig = {
 export type FooterConfig = {
   links: {
     label: string;
-    href?: string;
+    href: string;
     icon?: AnyIcon;
   }[];
 };

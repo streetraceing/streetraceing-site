@@ -28,7 +28,7 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
   if (!mounted) {
     if (variant === 'group') {
       return (
-        <ButtonGroup variant="outline" fullWidth>
+        <ButtonGroup variant="tertiary" fullWidth>
           <Button isDisabled>
             <Monitor className="size-4" />
             <ButtonGroup.Separator />
@@ -50,14 +50,14 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
       );
     }
 
-    return <Button isIconOnly isDisabled variant="outline" />;
+    return <Button isIconOnly isDisabled variant="tertiary" />;
   }
 
   if (variant === 'group') {
     return (
-      <ButtonGroup variant="outline" fullWidth>
+      <ButtonGroup variant="tertiary" fullWidth>
         <Button
-          variant={theme === 'system' ? 'primary' : 'outline'}
+          variant={theme === 'system' ? 'primary' : 'tertiary'}
           onPress={() => setTheme('system')}
         >
           <Monitor className="size-4" />
@@ -66,7 +66,7 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
         </Button>
 
         <Button
-          variant={theme === 'light' ? 'primary' : 'outline'}
+          variant={theme === 'light' ? 'primary' : 'tertiary'}
           onPress={() => setTheme('light')}
         >
           <Sun className="size-4" />
@@ -75,7 +75,7 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
         </Button>
 
         <Button
-          variant={theme === 'dark' ? 'primary' : 'outline'}
+          variant={theme === 'dark' ? 'primary' : 'tertiary'}
           onPress={() => setTheme('dark')}
         >
           <Moon className="size-4" />

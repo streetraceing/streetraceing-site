@@ -1,11 +1,14 @@
 import { Container } from '@/components/layout/Container';
-import { footerPhrases } from '@/utils/phrases';
+import { footerPhrases } from '@/utils/footerPhrases';
 import { footerConfig, siteConfig } from '@/utils/config';
-import { Link, Separator, Typography } from '@heroui/react';
+import { cn, linkVariants, Separator, Typography } from '@heroui/react';
+import NextLink from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
 export function Footer() {
+  const linkSlots = linkVariants();
+
   const phrase =
     footerPhrases.ru[Math.floor(Math.random() * footerPhrases.ru.length)]; // eslint-disable-line react-hooks/purity
 
@@ -20,14 +23,17 @@ export function Footer() {
 
           <div className="flex flex-wrap gap-4 text-sm justify-center md:justify-start">
             {footerConfig.links.map((link) => (
-              <Link
+              <NextLink
                 key={link.href}
                 href={link.href}
-                className="no-underline hover:text-accent"
+                className={cn(
+                  linkSlots.base(),
+                  'no-underline hover:text-accent',
+                )}
               >
                 {link.icon && <link.icon className="size-4 mr-1" />}
                 {link.label}
-              </Link>
+              </NextLink>
             ))}
           </div>
         </div>
