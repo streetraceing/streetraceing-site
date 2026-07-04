@@ -15,6 +15,7 @@ export default function HomePage() {
         <Typography.Paragraph>
           Ээ даже хз что сюда писать и размещать но похъ
         </Typography.Paragraph>
+        
         <section
           id="bio"
           className="scroll-mt-16 flex flex-col gap-4 pt-4 border-t"
