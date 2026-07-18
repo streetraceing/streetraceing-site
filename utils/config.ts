@@ -83,7 +83,7 @@ export const mainPageConfig: MainPageConfig = {
       name: 'Tiny url',
       description:
         'Сокращатель ссылок и не только, через этот домен этого сайта',
-      url: '/tiny-url',
+      url: 'tiny-url',
       size: 'lg',
       icon: ExternalLink,
     },
