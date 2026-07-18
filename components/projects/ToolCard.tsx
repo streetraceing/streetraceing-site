@@ -13,8 +13,8 @@ export function ToolCard({ tool }: ToolCardProps) {
     <Card
       className={
         tool.status === 'planned'
-          ? 'h-full border border-dashed opacity-80'
-          : 'h-full border transition-transform hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg'
+          ? 'h-full border-2 border-dashed opacity-80'
+          : 'h-full border-2 transition-colors hover:border-accent/60'
       }
     >
       <Card.Header className="gap-3">

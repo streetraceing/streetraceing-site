@@ -16,12 +16,14 @@ export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Modal>
       <Modal.Trigger className="h-full w-full text-left">
-        <Card
-          className="h-full border border-t-2 transition-transform hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg"
-          style={{
-            borderTopColor: project.colors[1] ?? project.colors[0],
-          }}
-        >
+        <Card className="relative h-full overflow-hidden border-2 border-t-0 transition-colors hover:border-accent/60">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-0.5"
+            style={{
+              backgroundImage: `linear-gradient(90deg, ${project.colors.join(', ')})`,
+            }}
+          />
           <Card.Header className="gap-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
