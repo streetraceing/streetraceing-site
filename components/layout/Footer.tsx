@@ -47,7 +47,7 @@ export function Footer() {
 
           <Separator className="my-2 w-1/8 mx-auto md:mx-unset md:w-full" />
 
-          <Typography.Paragraph className="wrap-break-word mx-auto md:mx-[unset] flex line-clamp-7 text-center">
+          <Typography.Paragraph className="wrap-break-word mx-auto md:mx-[unset] flex line-clamp-7 text-center md:text-right">
             {phrase}
           </Typography.Paragraph>
         </div>

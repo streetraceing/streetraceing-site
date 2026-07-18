@@ -1,6 +1,8 @@
 import {
+  index,
   integer,
   pgTable,
+  text,
   timestamp,
   uniqueIndex,
   uuid,
@@ -12,11 +14,15 @@ export const shortUrls = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     code: varchar('code', { length: 12 }).notNull(),
-    destinationUrl: varchar('destination_url', { length: 2048 }).notNull(),
+    content: text('destination_url').notNull(),
+    ownerToken: varchar('owner_token', { length: 64 }).notNull().default(''),
     visitCount: integer('visit_count').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (table) => [uniqueIndex('short_urls_code_unique').on(table.code)],
+  (table) => [
+    uniqueIndex('short_urls_code_unique').on(table.code),
+    index('short_urls_owner_token_idx').on(table.ownerToken),
+  ],
 );
