@@ -11,6 +11,7 @@
     "prepare": "husky",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:prod": "vercel env run -e production -- drizzle-kit migrate",
     "db:studio": "drizzle-kit studio --port 7777"
   },
   "lint-staged": {
@@ -45,6 +46,7 @@
     "lint-staged": "^17.1.0",
     "prettier": "3.8.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vercel": "^56.3.2"
   }
 }
