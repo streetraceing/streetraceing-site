@@ -12,6 +12,7 @@ const eslintConfig = defineConfig([
     '.next/**',
     'out/**',
     'build/**',
+    '.heroui-docs/**',
     'tailwind.config.mjs',
     'next-env.d.ts',
   ]),

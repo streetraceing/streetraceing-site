@@ -3,7 +3,7 @@
 import { Button, ButtonGroup, Tooltip } from '@heroui/react';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 type ThemeSwitcherProps = {
   variant?: 'cycle' | 'group';
@@ -17,13 +17,15 @@ const themeName: Record<Theme, string> = {
   dark: 'Тёмная',
 };
 
+const subscribeToNothing = () => () => {};
+
 export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    subscribeToNothing,
+    () => true,
+    () => false,
+  );
 
   if (!mounted) {
     if (variant === 'group') {
