@@ -5,7 +5,6 @@ import { Page } from '@/components/layout/Page';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { ToolCard } from '@/components/projects/ToolCard';
-import { projectSizeClasses } from '@/utils';
 import { mainPageConfig } from '@/utils/config';
 import { Typography } from '@heroui/react';
 
@@ -52,14 +51,9 @@ export default function HomePage() {
             А вот мои проекты ({mainPageConfig.projects.length}) кста
           </Typography.Heading>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-4">
             {mainPageConfig.projects.map((project) => (
-              <div
-                key={project.slug}
-                className={projectSizeClasses[project.size]}
-              >
-                <ProjectCard project={project} />
-              </div>
+              <ProjectCard key={project.slug} project={project} />
             ))}
           </div>
         </section>
@@ -72,11 +66,9 @@ export default function HomePage() {
             Инструменты ({mainPageConfig.tools.length}) чиста для удобства
           </Typography.Heading>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-4">
             {mainPageConfig.tools.map((tool) => (
-              <div key={tool.slug} className={projectSizeClasses[tool.size]}>
-                <ToolCard tool={tool} />
-              </div>
+              <ToolCard key={tool.slug} tool={tool} />
             ))}
           </div>
         </section>

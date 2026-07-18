@@ -1,12 +1,5 @@
-import { Size } from '@/utils/config';
 import { ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-
-export const projectSizeClasses: Record<Size, string> = {
-  sm: 'md:col-span-1 md:row-span-1',
-  md: 'md:col-span-2 md:row-span-1',
-  lg: 'md:col-span-3 md:row-span-1',
-} as const;
 
 export function createBackgroundGradient(...colors: string[]) {
   const stops = colors.map((color, index) => {

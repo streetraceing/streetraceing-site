@@ -1,4 +1,5 @@
 import {
+  Bot,
   Braces,
   ExternalLink,
   FileText,
@@ -21,8 +22,6 @@ export const siteConfig = {
 
 // main page config
 
-export type Size = 'sm' | 'md' | 'lg';
-
 export type AnyIcon = LucideIcon | IconType;
 
 export type ProjectStatus =
@@ -30,7 +29,12 @@ export type ProjectStatus =
   | 'released'
   | 'private'
   | 'closed-source'
-  | 'open-source';
+  | 'open-source'
+  | 'maintained'
+  | 'archived'
+  | 'paused'
+  | 'planned'
+  | 'beta';
 
 export type ProjectLink = {
   url: string;
@@ -53,7 +57,6 @@ export type ProjectDevLogEntry = {
 export type ProjectConfig = {
   slug: string;
   name: string;
-  size: Size;
   shortDescription: string;
   longDescription: string;
   colors: string[];
@@ -72,7 +75,6 @@ export type ToolStatus = 'available' | 'planned';
 
 export type ToolConfig = {
   slug: string;
-  size: Size;
   icon?: AnyIcon;
   name: string;
   description: string;
@@ -94,9 +96,8 @@ export const mainPageConfig: MainPageConfig = {
       shortDescription: 'Лёгкая динамическая тема для Spicetify',
       longDescription:
         'Красивая тема для Spotify через Spicetify с динамическим фоном, который подстраивается под текущий трек.',
-      size: 'lg',
       colors: ['#040503', '#767a7b', '#684f36'],
-      status: ['released', 'open-source'],
+      status: ['released', 'maintained', 'open-source'],
       progress: 100,
       technologies: ['Spicetify', 'JavaScript', 'CSS'],
       highlights: [
@@ -126,9 +127,8 @@ export const mainPageConfig: MainPageConfig = {
         'Telegram-бот для быстрого скачивания видео из TikTok по ссылке.',
       longDescription:
         'Простой и удобный Telegram-бот: отправляешь ссылку на ролик из TikTok — получаешь видео для сохранения. Исходный код проекта закрыт.',
-      size: 'md',
       colors: ['#0b1120', '#1394a6', '#22c55e'],
-      status: ['released', 'closed-source'],
+      status: ['released', 'maintained', 'closed-source'],
       progress: 100,
       technologies: ['Telegram', 'TikTok', 'TypeScript'],
       highlights: [
@@ -152,15 +152,40 @@ export const mainPageConfig: MainPageConfig = {
         'Приватный AI-сервис для естественной переписки через личный Telegram-аккаунт.',
       longDescription:
         'TypeScript-сервис, который работает через MTProto и @mtcute от имени авторизованного Telegram-аккаунта. Он хранит контекст в PostgreSQL и использует несколько AI-провайдеров для анализа, принятия решений и генерации ответов — чтобы переписка ощущалась живой и последовательной.',
-      size: 'lg',
       colors: ['#21133e', '#a855f7', '#f472b6'],
-      status: ['in-development', 'private', 'closed-source'],
+      status: ['in-development', 'maintained', 'private', 'closed-source'],
       progress: 70,
       technologies: ['TypeScript', 'MTProto', '@mtcute', 'PostgreSQL', 'AI'],
       highlights: [
         'Работает не через Bot API, а от имени личного аккаунта',
         'Сохраняет контекст диалогов в PostgreSQL',
         'Объединяет несколько AI-провайдеров для разных этапов ответа',
+      ],
+      links: [],
+      relatedLinks: [],
+    },
+    {
+      slug: 'symmetry',
+      name: 'Symmetry',
+      icon: Bot,
+      shortDescription:
+        'Будущее open-source расширение VS Code с бесплатным AI-агентом для разработки.',
+      longDescription:
+        'Symmetry — будущий бесплатный AI-агент в формате расширения для VS Code. Он сможет работать с локальными моделями и бесплатными AI-сервисами, например Ollama, Mistral или Cloudflare AI, чтобы помогать с кодом прямо в редакторе.',
+      colors: ['#0b1f3a', '#2563eb', '#38bdf8'],
+      status: ['in-development', 'maintained', 'open-source'],
+      progress: 0,
+      technologies: [
+        'VS Code',
+        'TypeScript',
+        'Ollama',
+        'Mistral',
+        'Cloudflare AI',
+      ],
+      highlights: [
+        'Локальные модели через Ollama без обязательной оплаты',
+        'Подключение бесплатных AI-провайдеров как альтернатива локальной модели',
+        'Агентный интерфейс для помощи с кодом прямо в VS Code',
       ],
       links: [],
       relatedLinks: [],
@@ -172,7 +197,6 @@ export const mainPageConfig: MainPageConfig = {
       name: 'Tiny data',
       description:
         'Сохраняй ссылку, текст или другие данные и получай короткий адрес.',
-      size: 'lg',
       icon: ExternalLink,
       status: 'available',
       tags: ['PostgreSQL', 'Cookies', 'Текст'],
@@ -182,7 +206,6 @@ export const mainPageConfig: MainPageConfig = {
       name: 'JSON Viewer',
       description:
         'Проверка, форматирование и удобный просмотр JSON без лишних сервисов.',
-      size: 'md',
       icon: Braces,
       status: 'planned',
       tags: ['JSON', 'Форматирование'],
@@ -191,7 +214,6 @@ export const mainPageConfig: MainPageConfig = {
       slug: 'uuid-generator',
       name: 'UUID Generator',
       description: 'Генератор UUID для тестовых данных, API и баз данных.',
-      size: 'md',
       icon: KeyRound,
       status: 'planned',
       tags: ['UUID', 'Dev'],
@@ -201,7 +223,6 @@ export const mainPageConfig: MainPageConfig = {
       name: 'Text tools',
       description:
         'Набор маленьких операций с текстом: счётчик, очистка и преобразования.',
-      size: 'md',
       icon: FileText,
       status: 'planned',
       tags: ['Текст', 'Утилиты'],

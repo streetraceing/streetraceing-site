@@ -8,6 +8,11 @@ const projectStatusMeta = {
   private: { label: 'Приватный', color: 'warning' },
   'closed-source': { label: 'Закрытый код', color: 'default' },
   'open-source': { label: 'Open source', color: 'success' },
+  maintained: { label: 'Поддерживается', color: 'accent' },
+  archived: { label: 'В архиве', color: 'default' },
+  paused: { label: 'На паузе', color: 'warning' },
+  planned: { label: 'Запланирован', color: 'default' },
+  beta: { label: 'Beta', color: 'warning' },
 } as const;
 
 type ProjectStatusChipsProps = {
