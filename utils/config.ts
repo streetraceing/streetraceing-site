@@ -1,6 +1,7 @@
 import {
   Bot,
   Braces,
+  Code2,
   ExternalLink,
   FileText,
   FolderOpen,
@@ -96,7 +97,7 @@ export const mainPageConfig: MainPageConfig = {
       shortDescription: 'Лёгкая динамическая тема для Spicetify',
       longDescription:
         'Красивая тема для Spotify через Spicetify с динамическим фоном, который подстраивается под текущий трек.',
-      colors: ['#040503', '#767a7b', '#684f36'],
+      colors: ['#73724E', '#767a7b', '#684f36'],
       status: ['released', 'maintained', 'open-source'],
       progress: 100,
       technologies: ['Spicetify', 'JavaScript', 'CSS'],
@@ -127,7 +128,7 @@ export const mainPageConfig: MainPageConfig = {
         'Telegram-бот для быстрого скачивания видео из TikTok по ссылке.',
       longDescription:
         'Простой и удобный Telegram-бот: отправляешь ссылку на ролик из TikTok — получаешь видео для сохранения. Исходный код проекта закрыт.',
-      colors: ['#0b1120', '#1394a6', '#22c55e'],
+      colors: ['#1C2C54', '#1394a6', '#22c55e'],
       status: ['released', 'maintained', 'closed-source'],
       progress: 100,
       technologies: ['Telegram', 'TikTok', 'TypeScript'],
@@ -207,16 +208,16 @@ export const mainPageConfig: MainPageConfig = {
       description:
         'Проверка, форматирование и удобный просмотр JSON без лишних сервисов.',
       icon: Braces,
-      status: 'planned',
-      tags: ['JSON', 'Форматирование'],
+      status: 'available',
+      tags: ['JSON', 'Форматирование', 'Клиент'],
     },
     {
       slug: 'uuid-generator',
       name: 'UUID Generator',
       description: 'Генератор UUID для тестовых данных, API и баз данных.',
       icon: KeyRound,
-      status: 'planned',
-      tags: ['UUID', 'Dev'],
+      status: 'available',
+      tags: ['UUID', 'Dev', 'Клиент'],
     },
     {
       slug: 'text-tools',
@@ -224,8 +225,17 @@ export const mainPageConfig: MainPageConfig = {
       description:
         'Набор маленьких операций с текстом: счётчик, очистка и преобразования.',
       icon: FileText,
-      status: 'planned',
-      tags: ['Текст', 'Утилиты'],
+      status: 'available',
+      tags: ['Текст', 'Утилиты', 'Клиент'],
+    },
+    {
+      slug: 'base64',
+      name: 'Base64',
+      description:
+        'Кодирование и декодирование текста в Base64 прямо в браузере.',
+      icon: Code2,
+      status: 'available',
+      tags: ['Base64', 'Код', 'Клиент'],
     },
   ],
 };
