@@ -144,7 +144,7 @@ export function TinyUrlForm() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <Form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <TextField
           isRequired
@@ -199,24 +199,25 @@ export function TinyUrlForm() {
       ) : null}
 
       {createdItem ? (
-        <Alert status="success">
+        <Alert status="success" className="bg-surface-secondary">
           <Alert.Indicator />
-          <Alert.Content>
+          <Alert.Content className="min-w-0">
             <Alert.Title>Данные сохранены</Alert.Title>
             <Alert.Description>
               <Link href={createdItem.shortUrl} target="_blank">
                 {createdItem.shortUrl}
               </Link>
             </Alert.Description>
+            <Button
+              className="mt-3 self-start"
+              size="sm"
+              variant="secondary"
+              onPress={() => void copyShortUrl(createdItem)}
+            >
+              {copiedCode === createdItem.code ? <Check /> : <Copy />}
+              {copiedCode === createdItem.code ? 'Скопировано' : 'Копировать'}
+            </Button>
           </Alert.Content>
-          <Button
-            size="sm"
-            variant="secondary"
-            onPress={() => void copyShortUrl(createdItem)}
-          >
-            {copiedCode === createdItem.code ? <Check /> : <Copy />}
-            {copiedCode === createdItem.code ? 'Скопировано' : 'Копировать'}
-          </Button>
         </Alert>
       ) : null}
 

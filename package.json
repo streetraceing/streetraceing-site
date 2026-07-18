@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "prepare": "husky",
-    "db:generate": "drizzle-kit generate",
+    "db:generate": "drizzle-kit generate --name",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio --port 7777"
   },

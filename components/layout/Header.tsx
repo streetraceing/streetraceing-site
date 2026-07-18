@@ -79,7 +79,7 @@ export function Header() {
         </Container>
 
         {open && (
-          <div className="absolute left-0 top-full w-full md:hidden border-b border-t bg-background/75 backdrop-blur shadow-lg z-50">
+          <div className="absolute left-0 top-full z-50 w-full border-b border-t bg-background/80 shadow-lg backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] md:hidden">
             <Container className="py-4 flex flex-col gap-4">
               <Typography.Heading level={5}>Навигация</Typography.Heading>
 
