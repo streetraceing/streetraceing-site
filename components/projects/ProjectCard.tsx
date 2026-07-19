@@ -19,11 +19,11 @@ export function ProjectCard({ project }: ProjectCardProps) {
       <Modal.Trigger className="h-full w-full text-left">
         <Card
           className="project-card h-full overflow-hidden border-2 transition-colors hover:border-accent/60"
-          style={
+          /*style={
             {
               '--project-gradient': `linear-gradient(90deg, ${project.colors.join(', ')})`,
             } as CSSProperties
-          }
+          }*/
         >
           <Card.Header className="gap-3">
             <div className="flex items-start justify-between gap-3">

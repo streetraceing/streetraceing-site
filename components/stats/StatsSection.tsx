@@ -17,7 +17,9 @@ import {
   TextField,
   Typography,
 } from '@heroui/react';
-import { LockKeyhole, LogOut, Send } from 'lucide-react';
+import { Eye, EyeOff, LockKeyhole, LogOut, Send } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import rehypeHighlight from 'rehype-highlight';
 import {
   Fragment,
   type FormEvent,
@@ -72,6 +74,34 @@ function getVisiblePages(currentPage: number, totalPages: number) {
     .sort((firstPage, secondPage) => firstPage - secondPage);
 }
 
+function MarkdownContent({ content }: { content: string }) {
+  return (
+    <Typography.Prose className="max-w-none break-words text-sm leading-6 [&_a]:text-accent [&_a]:underline [&_a]:underline-offset-4 [&_blockquote]:border-l-2 [&_blockquote]:border-accent/60 [&_blockquote]:pl-3 [&_blockquote]:text-muted [&_code:not(.hljs)]:rounded-md [&_code:not(.hljs)]:bg-default-soft [&_code:not(.hljs)]:px-1.5 [&_code:not(.hljs)]:py-0.5 [&_code:not(.hljs)]:text-[0.8125rem] [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:my-3 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre_code]:min-w-max [&_ul]:list-disc [&_ul]:pl-5">
+      <ReactMarkdown
+        rehypePlugins={[[rehypeHighlight, { detect: true }]]}
+        components={{
+          a: ({ href, children }) => {
+            const isExternal =
+              href?.startsWith('https://') || href?.startsWith('http://');
+
+            return (
+              <a
+                href={href}
+                target={isExternal ? '_blank' : undefined}
+                rel={isExternal ? 'noreferrer' : undefined}
+              >
+                {children}
+              </a>
+            );
+          },
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </Typography.Prose>
+  );
+}
+
 type AuthorControlsProps = {
   session: SessionResponse;
   onAuthenticated: () => void;
@@ -92,6 +122,7 @@ function AuthorControls({
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [topic, setTopic] = useState<DevUpdateTopic>('projects');
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [publishError, setPublishError] = useState<string>();
   const [isPublishing, setIsPublishing] = useState(false);
 
@@ -157,6 +188,7 @@ function AuthorControls({
 
       setTitle('');
       setContent('');
+      setIsPreviewOpen(false);
       onCreated(body.update);
     } catch (caughtError) {
       setPublishError(
@@ -296,10 +328,41 @@ function AuthorControls({
               placeholder="Что нового в разработке?"
             />
             <Description>
-              {content.length.toLocaleString('ru-RU')} / 8 000
+              Markdown поддерживается: **жирный**, _курсив_, списки и ссылки.
+              Блок кода: ```ts … ```. {content.length.toLocaleString('ru-RU')} /
+              8 000
             </Description>
             <FieldError />
           </TextField>
+
+          <div className="flex flex-col items-start gap-3">
+            <Button
+              type="button"
+              size="sm"
+              variant="tertiary"
+              onPress={() => setIsPreviewOpen((value) => !value)}
+            >
+              {isPreviewOpen ? <EyeOff /> : <Eye />}
+              {isPreviewOpen ? 'Скрыть предпросмотр' : 'Предпросмотр Markdown'}
+            </Button>
+
+            {isPreviewOpen && (
+              <Card className="w-full" variant="transparent">
+                <Card.Header>
+                  <Card.Title>Предпросмотр</Card.Title>
+                </Card.Header>
+                <Card.Content>
+                  {content.trim() ? (
+                    <MarkdownContent content={content} />
+                  ) : (
+                    <Typography.Paragraph className="text-muted" size="sm">
+                      Напиши заметку, чтобы увидеть результат.
+                    </Typography.Paragraph>
+                  )}
+                </Card.Content>
+              </Card>
+            )}
+          </div>
 
           <Button className="self-start" type="submit" isPending={isPublishing}>
             <Send />
@@ -555,7 +618,7 @@ export function StatsSection() {
             </Typography.Paragraph>
           </div>
           {pagination && (
-            <Chip size="sm" variant="secondary" className="px-2">
+            <Chip size="sm" variant="secondary" className="py-11">
               Всего: {pagination.total}
             </Chip>
           )}
@@ -621,9 +684,7 @@ export function StatsSection() {
                   {update.title && <Card.Title>{update.title}</Card.Title>}
                 </Card.Header>
                 <Card.Content>
-                  <p className="whitespace-pre-wrap text-sm leading-6">
-                    {update.content}
-                  </p>
+                  <MarkdownContent content={update.content} />
                 </Card.Content>
               </Card>
             ))}

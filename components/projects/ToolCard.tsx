@@ -37,6 +37,7 @@ export function ToolCard({ tool }: ToolCardProps) {
           color={tool.status === 'available' ? 'success' : 'warning'}
           variant="soft"
           size="sm"
+          className="px-2 py-1"
         >
           {tool.status === 'available' ? 'Доступен' : 'Скоро'}
         </Chip>
