@@ -63,7 +63,6 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
           onPress={() => setTheme('system')}
         >
           <Monitor className="size-4" />
-          <ButtonGroup.Separator />
           {themeName['system']}
         </Button>
 
