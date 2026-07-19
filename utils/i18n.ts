@@ -204,6 +204,15 @@ export const translations = {
       previewEmpty: 'Напиши заметку, чтобы увидеть результат.',
       publish: 'Опубликовать',
       noteNotPublished: 'Заметка не опубликована',
+      edit: 'Редактировать заметку',
+      delete: 'Удалить заметку',
+      save: 'Сохранить изменения',
+      cancel: 'Отмена',
+      editNote: 'Редактирование заметки',
+      deleteNote: 'Удалить заметку?',
+      deleteNoteDescription:
+        'Запись будет удалена без возможности восстановления.',
+      noteNotUpdated: 'Заметка не обновлена',
       updatesTitle: 'Наработки и новости',
       updatesDescription: 'Короткие заметки по проектам, AI, обучению и сайту.',
       total: 'Всего: {count}',
@@ -227,6 +236,8 @@ export const translations = {
         session: 'Не удалось проверить авторскую сессию.',
         publish: 'Не удалось опубликовать заметку.',
         publishMissing: 'Сервер не вернул опубликованную заметку.',
+        update: 'Не удалось обновить заметку.',
+        delete: 'Не удалось удалить заметку.',
         updates: 'Не удалось загрузить новости.',
       },
     },
@@ -295,6 +306,7 @@ export const translations = {
       devNotes: {
         invalid: 'Проверь текст заметки и выбранную тему.',
         titleTooLong: 'Заголовок не должен быть длиннее 160 символов.',
+        notFound: 'Заметку не удалось найти.',
       },
       tinyUrl: {
         loadFailed: 'Не удалось загрузить сохранённые данные.',
@@ -448,6 +460,15 @@ export const translations = {
       previewEmpty: 'Write a note to see the result.',
       publish: 'Publish',
       noteNotPublished: 'Note was not published',
+      edit: 'Edit note',
+      delete: 'Delete note',
+      save: 'Save changes',
+      cancel: 'Cancel',
+      editNote: 'Edit note',
+      deleteNote: 'Delete this note?',
+      deleteNoteDescription:
+        'This entry will be permanently deleted and cannot be restored.',
+      noteNotUpdated: 'Note was not updated',
       updatesTitle: 'Work in progress and news',
       updatesDescription:
         'Short notes about projects, AI, learning, and the site.',
@@ -472,6 +493,8 @@ export const translations = {
         session: 'Could not check the author session.',
         publish: 'Could not publish the note.',
         publishMissing: 'The server did not return the published note.',
+        update: 'Could not update the note.',
+        delete: 'Could not delete the note.',
         updates: 'Could not load news.',
       },
     },
@@ -541,6 +564,7 @@ export const translations = {
       devNotes: {
         invalid: 'Check the note text and selected topic.',
         titleTooLong: 'The title must be 160 characters or fewer.',
+        notFound: 'The note could not be found.',
       },
       tinyUrl: {
         loadFailed: 'Could not load saved data.',

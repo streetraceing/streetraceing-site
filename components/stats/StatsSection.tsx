@@ -2,6 +2,7 @@
 
 import {
   Alert,
+  AlertDialog,
   Button,
   Card,
   Chip,
@@ -11,6 +12,7 @@ import {
   Input,
   Label,
   ListBox,
+  Modal,
   Pagination,
   ProgressBar,
   Select,
@@ -27,7 +29,10 @@ import {
   EyeOff,
   LockKeyhole,
   LogOut,
+  Pencil,
+  Save,
   Send,
+  Trash2,
   X,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -119,22 +124,343 @@ function isLongDevUpdate(content: string) {
   return content.length > 1_200 || content.split(/\r?\n/).length > 16;
 }
 
-function DevUpdateCard({ update }: { update: DevUpdate }) {
+type DevUpdateCardProps = {
+  update: DevUpdate;
+  isAuthor: boolean;
+  onChanged: () => void;
+};
+
+function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
   const { copy, locale } = useLocale();
+  const strings = copy.stats;
   const [isExpanded, setIsExpanded] = useState(false);
+  const [editTitle, setEditTitle] = useState(update.title ?? '');
+  const [editContent, setEditContent] = useState(update.content);
+  const [editTopic, setEditTopic] = useState<DevUpdateTopic>(update.topic);
+  const [isEditPreviewOpen, setIsEditPreviewOpen] = useState(false);
+  const [editError, setEditError] = useState<string>();
+  const [isSaving, setIsSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState<string>();
+  const [isDeleting, setIsDeleting] = useState(false);
   const isLong = isLongDevUpdate(update.content);
   const isCollapsed = isLong && !isExpanded;
+
+  function resetEditor() {
+    setEditTitle(update.title ?? '');
+    setEditContent(update.content);
+    setEditTopic(update.topic);
+    setIsEditPreviewOpen(false);
+    setEditError(undefined);
+  }
+
+  async function saveUpdate(
+    event: FormEvent<HTMLFormElement>,
+    close: () => void,
+  ) {
+    event.preventDefault();
+    setIsSaving(true);
+    setEditError(undefined);
+
+    try {
+      const response = await fetch(`/api/dev-updates/${update.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editTitle,
+          content: editContent,
+          topic: editTopic,
+        }),
+      });
+      const body = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(body.error ?? strings.errors.update);
+      }
+
+      close();
+      onChanged();
+    } catch (caughtError) {
+      setEditError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : strings.errors.update,
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function deleteUpdate(close: () => void) {
+    setIsDeleting(true);
+    setDeleteError(undefined);
+
+    try {
+      const response = await fetch(`/api/dev-updates/${update.id}`, {
+        method: 'DELETE',
+      });
+      const body = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(body.error ?? strings.errors.delete);
+      }
+
+      close();
+      onChanged();
+    } catch (caughtError) {
+      setDeleteError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : strings.errors.delete,
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   return (
     <Card variant="secondary">
       <Card.Header className="gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <Chip color="accent" size="sm" variant="soft">
-            {getDevUpdateTopicLabel(update.topic, locale)}
-          </Chip>
-          <span className="text-xs text-muted">
-            {formatDate(update.createdAt, getLocaleTag(locale))}
-          </span>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Chip color="accent" size="sm" variant="soft">
+              {getDevUpdateTopicLabel(update.topic, locale)}
+            </Chip>
+            <span className="text-xs text-muted">
+              {formatDate(update.createdAt, getLocaleTag(locale))}
+            </span>
+          </div>
+
+          {isAuthor && (
+            <div className="flex shrink-0 gap-1">
+              <Modal>
+                <Modal.Trigger>
+                  <Button
+                    aria-label={strings.edit}
+                    isIconOnly
+                    size="sm"
+                    variant="tertiary"
+                    onPress={resetEditor}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
+                </Modal.Trigger>
+                <Modal.Backdrop variant="blur">
+                  <Modal.Container size="lg" scroll="inside">
+                    <Modal.Dialog className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] sm:max-w-3xl">
+                      {({ close }) => (
+                        <Form
+                          className="flex h-full flex-col"
+                          onSubmit={(event) => void saveUpdate(event, close)}
+                        >
+                          <Modal.CloseTrigger />
+                          <Modal.Header>
+                            <Modal.Heading>{strings.editNote}</Modal.Heading>
+                          </Modal.Header>
+                          <Modal.Body className="flex flex-col gap-4">
+                            <TextField
+                              fullWidth
+                              name="edit-title"
+                              value={editTitle}
+                              onChange={setEditTitle}
+                            >
+                              <Label>{strings.noteTitle}</Label>
+                              <Input
+                                maxLength={160}
+                                placeholder={strings.noteTitlePlaceholder}
+                              />
+                              <Description>
+                                {editTitle.length} / 160
+                              </Description>
+                            </TextField>
+
+                            <div className="flex flex-col gap-2">
+                              <p className="text-sm font-medium">
+                                {strings.topic}
+                              </p>
+                              <div
+                                className="flex flex-wrap gap-2"
+                                aria-label={strings.topic}
+                              >
+                                {devUpdateTopics.map((topic) => (
+                                  <Button
+                                    key={topic.value}
+                                    type="button"
+                                    size="sm"
+                                    variant={
+                                      editTopic === topic.value
+                                        ? 'primary'
+                                        : 'secondary'
+                                    }
+                                    onPress={() => setEditTopic(topic.value)}
+                                  >
+                                    {getDevUpdateTopicLabel(
+                                      topic.value,
+                                      locale,
+                                    )}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <TextField
+                              isRequired
+                              fullWidth
+                              name="edit-content"
+                              value={editContent}
+                              onChange={setEditContent}
+                              validate={(value) =>
+                                value.trim() ? null : strings.noteRequired
+                              }
+                            >
+                              <Label>{strings.note}</Label>
+                              <TextArea
+                                rows={10}
+                                maxLength={8_000}
+                                placeholder={strings.notePlaceholder}
+                              />
+                              <Description>
+                                {strings.markdownHint}{' '}
+                                {editContent.length.toLocaleString(
+                                  getLocaleTag(locale),
+                                )}{' '}
+                                / 8 000
+                              </Description>
+                              <FieldError />
+                            </TextField>
+
+                            <div className="flex flex-col items-start gap-3">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="tertiary"
+                                onPress={() =>
+                                  setIsEditPreviewOpen((value) => !value)
+                                }
+                              >
+                                {isEditPreviewOpen ? <EyeOff /> : <Eye />}
+                                {isEditPreviewOpen
+                                  ? strings.hidePreview
+                                  : strings.preview}
+                              </Button>
+
+                              {isEditPreviewOpen && (
+                                <Card className="w-full" variant="transparent">
+                                  <Card.Header>
+                                    <Card.Title>
+                                      {strings.previewTitle}
+                                    </Card.Title>
+                                  </Card.Header>
+                                  <Card.Content>
+                                    {editContent.trim() ? (
+                                      <MarkdownContent content={editContent} />
+                                    ) : (
+                                      <Typography.Paragraph
+                                        className="text-muted"
+                                        size="sm"
+                                      >
+                                        {strings.previewEmpty}
+                                      </Typography.Paragraph>
+                                    )}
+                                  </Card.Content>
+                                </Card>
+                              )}
+                            </div>
+
+                            {editError && (
+                              <Alert status="danger">
+                                <Alert.Indicator />
+                                <Alert.Content>
+                                  <Alert.Title>
+                                    {strings.noteNotUpdated}
+                                  </Alert.Title>
+                                  <Alert.Description>
+                                    {editError}
+                                  </Alert.Description>
+                                </Alert.Content>
+                              </Alert>
+                            )}
+                          </Modal.Body>
+                          <Modal.Footer>
+                            <Button
+                              slot="close"
+                              type="button"
+                              variant="tertiary"
+                            >
+                              {strings.cancel}
+                            </Button>
+                            <Button type="submit" isPending={isSaving}>
+                              <Save />
+                              {strings.save}
+                            </Button>
+                          </Modal.Footer>
+                        </Form>
+                      )}
+                    </Modal.Dialog>
+                  </Modal.Container>
+                </Modal.Backdrop>
+              </Modal>
+
+              <AlertDialog>
+                <AlertDialog.Trigger>
+                  <Button
+                    aria-label={strings.delete}
+                    isIconOnly
+                    size="sm"
+                    variant="danger"
+                    onPress={() => setDeleteError(undefined)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </AlertDialog.Trigger>
+                <AlertDialog.Backdrop variant="blur">
+                  <AlertDialog.Container size="sm">
+                    <AlertDialog.Dialog>
+                      {({ close }) => (
+                        <>
+                          <AlertDialog.Header>
+                            <AlertDialog.Icon status="danger">
+                              <Trash2 className="size-5" />
+                            </AlertDialog.Icon>
+                            <AlertDialog.Heading>
+                              {strings.deleteNote}
+                            </AlertDialog.Heading>
+                          </AlertDialog.Header>
+                          <AlertDialog.Body>
+                            <Typography.Paragraph className="text-muted">
+                              {strings.deleteNoteDescription}
+                            </Typography.Paragraph>
+                            {deleteError && (
+                              <Alert className="mt-3" status="danger">
+                                <Alert.Indicator />
+                                <Alert.Content>
+                                  <Alert.Description>
+                                    {deleteError}
+                                  </Alert.Description>
+                                </Alert.Content>
+                              </Alert>
+                            )}
+                          </AlertDialog.Body>
+                          <AlertDialog.Footer>
+                            <Button slot="close" variant="tertiary">
+                              {strings.cancel}
+                            </Button>
+                            <Button
+                              isPending={isDeleting}
+                              variant="danger"
+                              onPress={() => void deleteUpdate(close)}
+                            >
+                              <Trash2 />
+                              {strings.delete}
+                            </Button>
+                          </AlertDialog.Footer>
+                        </>
+                      )}
+                    </AlertDialog.Dialog>
+                  </AlertDialog.Container>
+                </AlertDialog.Backdrop>
+              </AlertDialog>
+            </div>
+          )}
         </div>
         {update.title && <Card.Title>{update.title}</Card.Title>}
       </Card.Header>
@@ -458,6 +784,7 @@ export function StatsSection() {
   const [pagination, setPagination] = useState<FeedResponse['pagination']>();
   const [feedError, setFeedError] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
+  const [feedRevision, setFeedRevision] = useState(0);
   const feedRequestId = useRef(0);
 
   useEffect(() => {
@@ -499,6 +826,10 @@ export function StatsSection() {
     }
 
     searchParams.set('sort', selectedSort);
+
+    if (feedRevision > 0) {
+      searchParams.set('refresh', String(feedRevision));
+    }
 
     fetch(`/api/dev-updates?${searchParams}`, {
       cache: 'no-store',
@@ -543,7 +874,7 @@ export function StatsSection() {
     return () => {
       controller.abort();
     };
-  }, [page, selectedSort, selectedTopic, strings.errors.updates]);
+  }, [feedRevision, page, selectedSort, selectedTopic, strings.errors.updates]);
 
   const visiblePages = useMemo(
     () =>
@@ -596,6 +927,12 @@ export function StatsSection() {
       })
       .then(setSession)
       .catch(() => setSession({ authenticated: false, configured: false }));
+  }
+
+  function refreshFeed() {
+    setIsLoading(true);
+    setFeedError(undefined);
+    setFeedRevision((revision) => revision + 1);
   }
 
   return (
@@ -662,7 +999,7 @@ export function StatsSection() {
             }
 
             feedRequestId.current += 1;
-            setIsLoading(false);
+            setIsLoading(true);
 
             if (page === 1 && selectedSort === 'newest') {
               setUpdates((currentUpdates) =>
@@ -689,6 +1026,7 @@ export function StatsSection() {
                   }
                 : currentPagination,
             );
+            setFeedRevision((revision) => revision + 1);
           }}
         />
       ) : (
@@ -826,7 +1164,12 @@ export function StatsSection() {
         {updates.length > 0 && (
           <div className="flex flex-col gap-3">
             {updates.map((update) => (
-              <DevUpdateCard key={update.id} update={update} />
+              <DevUpdateCard
+                key={update.id}
+                update={update}
+                isAuthor={session?.authenticated ?? false}
+                onChanged={refreshFeed}
+              />
             ))}
           </div>
         )}

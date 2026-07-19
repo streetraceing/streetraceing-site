@@ -34,6 +34,17 @@ const themeBootstrapScript = `
   })();
 `;
 
+const isVercelAnalyticsEnabled =
+  process.env.VERCEL_ANALYTICS_ENABLED === 'true';
+const speedInsightsSampleRate = Math.min(
+  1,
+  Math.max(
+    0,
+    Number.parseFloat(process.env.VERCEL_SPEED_INSIGHTS_SAMPLE_RATE ?? '0') ||
+      0,
+  ),
+);
+
 export async function generateMetadata(): Promise<Metadata> {
   const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
   const storedLocale = cookieStore.get(LOCALE_COOKIE)?.value;
@@ -66,8 +77,13 @@ export default async function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
-        {process.env.NODE_ENV === 'production' && <Analytics />}
-        {process.env.NODE_ENV === 'production' && <SpeedInsights />}
+        {process.env.NODE_ENV === 'production' && isVercelAnalyticsEnabled && (
+          <Analytics />
+        )}
+        {process.env.NODE_ENV === 'production' &&
+          speedInsightsSampleRate > 0 && (
+            <SpeedInsights sampleRate={speedInsightsSampleRate} />
+          )}
       </head>
       <body className="bg-background text-foreground">
         <Providers initialLocale={locale}>{children}</Providers>
