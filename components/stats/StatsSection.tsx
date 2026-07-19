@@ -18,9 +18,17 @@ import {
   Typography,
 } from '@heroui/react';
 import { LockKeyhole, LogOut, Send } from 'lucide-react';
-import { Fragment, type FormEvent, useEffect, useMemo, useState } from 'react';
+import {
+  Fragment,
+  type FormEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import {
+  DEV_UPDATES_PAGE_SIZE,
   developmentDirections,
   devUpdateTopics,
   getDevUpdateTopicLabel,
@@ -68,7 +76,7 @@ type AuthorControlsProps = {
   session: SessionResponse;
   onAuthenticated: () => void;
   onLogout: () => void;
-  onCreated: (topic: DevUpdateTopic) => void;
+  onCreated: (update: DevUpdate) => void;
 };
 
 function AuthorControls({
@@ -134,15 +142,22 @@ function AuthorControls({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content, topic }),
       });
-      const body = (await response.json()) as { error?: string };
+      const body = (await response.json()) as {
+        error?: string;
+        update?: DevUpdate;
+      };
 
       if (!response.ok) {
         throw new Error(body.error ?? 'Не удалось опубликовать заметку.');
       }
 
+      if (!body.update) {
+        throw new Error('Сервер не вернул опубликованную заметку.');
+      }
+
       setTitle('');
       setContent('');
-      onCreated(topic);
+      onCreated(body.update);
     } catch (caughtError) {
       setPublishError(
         caughtError instanceof Error
@@ -314,7 +329,7 @@ export function StatsSection() {
   const [pagination, setPagination] = useState<FeedResponse['pagination']>();
   const [feedError, setFeedError] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
-  const [reloadKey, setReloadKey] = useState(0);
+  const feedRequestId = useRef(0);
 
   useEffect(() => {
     let isCancelled = false;
@@ -344,14 +359,20 @@ export function StatsSection() {
   }, []);
 
   useEffect(() => {
-    let isCancelled = false;
+    const controller = new AbortController();
+    const requestId = feedRequestId.current + 1;
     const searchParams = new URLSearchParams({ page: String(page) });
+
+    feedRequestId.current = requestId;
 
     if (selectedTopic) {
       searchParams.set('topic', selectedTopic);
     }
 
-    fetch(`/api/dev-updates?${searchParams}`, { cache: 'no-store' })
+    fetch(`/api/dev-updates?${searchParams}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
       .then(async (response) => {
         if (!response.ok) {
           throw new Error('Не удалось загрузить новости.');
@@ -360,14 +381,21 @@ export function StatsSection() {
         return (await response.json()) as FeedResponse;
       })
       .then((body) => {
-        if (!isCancelled) {
+        if (requestId === feedRequestId.current) {
           setUpdates(body.updates);
           setPagination(body.pagination);
           setFeedError(undefined);
         }
       })
       .catch((caughtError: unknown) => {
-        if (!isCancelled) {
+        if (
+          caughtError instanceof DOMException &&
+          caughtError.name === 'AbortError'
+        ) {
+          return;
+        }
+
+        if (requestId === feedRequestId.current) {
           setFeedError(
             caughtError instanceof Error
               ? caughtError.message
@@ -376,15 +404,15 @@ export function StatsSection() {
         }
       })
       .finally(() => {
-        if (!isCancelled) {
+        if (!controller.signal.aborted && requestId === feedRequestId.current) {
           setIsLoading(false);
         }
       });
 
     return () => {
-      isCancelled = true;
+      controller.abort();
     };
-  }, [page, reloadKey, selectedTopic]);
+  }, [page, selectedTopic]);
 
   const visiblePages = useMemo(
     () =>
@@ -469,12 +497,42 @@ export function StatsSection() {
               configured: current?.configured ?? false,
             }))
           }
-          onCreated={(topic) => {
-            setIsLoading(true);
-            setFeedError(undefined);
-            setSelectedTopic(topic);
-            setPage(1);
-            setReloadKey((currentKey) => currentKey + 1);
+          onCreated={(update) => {
+            const belongsToCurrentFilter =
+              !selectedTopic || selectedTopic === update.topic;
+
+            if (!belongsToCurrentFilter) {
+              return;
+            }
+
+            feedRequestId.current += 1;
+            setIsLoading(false);
+
+            if (page === 1) {
+              setUpdates((currentUpdates) =>
+                [
+                  update,
+                  ...currentUpdates.filter(
+                    (currentUpdate) => currentUpdate.id !== update.id,
+                  ),
+                ].slice(0, DEV_UPDATES_PAGE_SIZE),
+              );
+            }
+
+            setPagination((currentPagination) =>
+              currentPagination
+                ? {
+                    ...currentPagination,
+                    total: currentPagination.total + 1,
+                    totalPages: Math.max(
+                      1,
+                      Math.ceil(
+                        (currentPagination.total + 1) / DEV_UPDATES_PAGE_SIZE,
+                      ),
+                    ),
+                  }
+                : currentPagination,
+            );
           }}
         />
       ) : (
@@ -533,7 +591,7 @@ export function StatsSection() {
           </Alert>
         )}
 
-        {isLoading && (
+        {isLoading && updates.length === 0 && (
           <div className="flex justify-center py-6">
             <Spinner />
           </div>
@@ -547,7 +605,7 @@ export function StatsSection() {
           </Card>
         )}
 
-        {!isLoading && updates.length > 0 && (
+        {updates.length > 0 && (
           <div className="flex flex-col gap-3">
             {updates.map((update) => (
               <Card key={update.id} variant="secondary">
@@ -569,6 +627,13 @@ export function StatsSection() {
                 </Card.Content>
               </Card>
             ))}
+          </div>
+        )}
+
+        {isLoading && updates.length > 0 && (
+          <div className="flex items-center gap-2 text-sm text-muted">
+            <Spinner size="sm" />
+            Обновляю ленту…
           </div>
         )}
 
