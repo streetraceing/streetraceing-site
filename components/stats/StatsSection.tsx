@@ -17,7 +17,14 @@ import {
   TextField,
   Typography,
 } from '@heroui/react';
-import { Eye, EyeOff, LockKeyhole, LogOut, Send } from 'lucide-react';
+import {
+  ChevronDown,
+  Eye,
+  EyeOff,
+  LockKeyhole,
+  LogOut,
+  Send,
+} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import {
@@ -99,6 +106,58 @@ function MarkdownContent({ content }: { content: string }) {
         {content}
       </ReactMarkdown>
     </Typography.Prose>
+  );
+}
+
+function isLongDevUpdate(content: string) {
+  return content.length > 1_200 || content.split(/\r?\n/).length > 16;
+}
+
+function DevUpdateCard({ update }: { update: DevUpdate }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isLong = isLongDevUpdate(update.content);
+  const isCollapsed = isLong && !isExpanded;
+
+  return (
+    <Card variant="secondary">
+      <Card.Header className="gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Chip color="accent" size="sm" variant="soft">
+            {getDevUpdateTopicLabel(update.topic)}
+          </Chip>
+          <span className="text-xs text-muted">
+            {formatDate(update.createdAt)}
+          </span>
+        </div>
+        {update.title && <Card.Title>{update.title}</Card.Title>}
+      </Card.Header>
+      <Card.Content className="flex flex-col items-start gap-3">
+        <div
+          className={
+            isCollapsed ? 'relative max-h-80 w-full overflow-hidden' : 'w-full'
+          }
+        >
+          <MarkdownContent content={update.content} />
+          {isCollapsed && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-surface-tertiary to-transparent"
+            />
+          )}
+        </div>
+
+        {isCollapsed && (
+          <Button
+            size="sm"
+            variant="tertiary"
+            onPress={() => setIsExpanded(true)}
+          >
+            <ChevronDown />
+            Показать полностью
+          </Button>
+        )}
+      </Card.Content>
+    </Card>
   );
 }
 
@@ -676,22 +735,7 @@ export function StatsSection() {
         {updates.length > 0 && (
           <div className="flex flex-col gap-3">
             {updates.map((update) => (
-              <Card key={update.id} variant="secondary">
-                <Card.Header className="gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Chip color="accent" size="sm" variant="soft">
-                      {getDevUpdateTopicLabel(update.topic)}
-                    </Chip>
-                    <span className="text-xs text-muted">
-                      {formatDate(update.createdAt)}
-                    </span>
-                  </div>
-                  {update.title && <Card.Title>{update.title}</Card.Title>}
-                </Card.Header>
-                <Card.Content>
-                  <MarkdownContent content={update.content} />
-                </Card.Content>
-              </Card>
+              <DevUpdateCard key={update.id} update={update} />
             ))}
           </div>
         )}
