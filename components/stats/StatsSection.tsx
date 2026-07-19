@@ -218,7 +218,7 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
   }
 
   return (
-    <Card variant="secondary">
+    <Card variant="default">
       <Card.Header className="gap-2">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -254,13 +254,16 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
                         >
                           <Modal.CloseTrigger />
                           <Modal.Header>
-                            <Modal.Heading>{strings.editNote}</Modal.Heading>
+                            <Modal.Heading className="font-bold text-xl">
+                              {strings.editNote}
+                            </Modal.Heading>
                           </Modal.Header>
                           <Modal.Body className="flex flex-col gap-4">
                             <TextField
                               fullWidth
                               name="edit-title"
                               value={editTitle}
+                              variant="secondary"
                               onChange={setEditTitle}
                             >
                               <Label>{strings.noteTitle}</Label>
@@ -307,6 +310,7 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
                               fullWidth
                               name="edit-content"
                               value={editContent}
+                              variant="secondary"
                               onChange={setEditContent}
                               validate={(value) =>
                                 value.trim() ? null : strings.noteRequired
@@ -619,7 +623,7 @@ function AuthorControls({
         </Button>
 
         {isLoginOpen && (
-          <Card variant="secondary">
+          <Card variant="default">
             <Card.Content>
               <Form className="flex flex-col gap-3" onSubmit={login}>
                 <TextField
@@ -661,7 +665,7 @@ function AuthorControls({
   }
 
   return (
-    <Card variant="secondary">
+    <Card variant="default">
       <Card.Header className="flex-row items-start justify-between gap-3">
         <div>
           <Card.Title>{strings.newNote}</Card.Title>
@@ -681,7 +685,11 @@ function AuthorControls({
         <Form className="flex flex-col gap-4" onSubmit={publish}>
           <TextField fullWidth name="title" value={title} onChange={setTitle}>
             <Label>{strings.noteTitle}</Label>
-            <Input maxLength={160} placeholder={strings.noteTitlePlaceholder} />
+            <Input
+              maxLength={160}
+              placeholder={strings.noteTitlePlaceholder}
+              variant="secondary"
+            />
             <Description>{title.length} / 160</Description>
           </TextField>
 
@@ -712,8 +720,8 @@ function AuthorControls({
           >
             <Label>{strings.note}</Label>
             <TextArea
-              variant="primary"
               rows={6}
+              variant="secondary"
               maxLength={8_000}
               placeholder={strings.notePlaceholder}
             />
@@ -736,9 +744,11 @@ function AuthorControls({
             </Button>
 
             {isPreviewOpen && (
-              <Card className="w-full" variant="transparent">
+              <Card className="w-full" variant="secondary">
                 <Card.Header>
-                  <Card.Title>{strings.previewTitle}</Card.Title>
+                  <Card.Title className="font-semibold">
+                    {strings.previewTitle}
+                  </Card.Title>
                 </Card.Header>
                 <Card.Content>
                   {content.trim() ? (
@@ -949,7 +959,7 @@ export function StatsSection() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {developmentDirections.map((direction) => (
-          <Card key={direction.id} variant="secondary">
+          <Card key={direction.id} variant="default">
             <Card.Header className="flex-row items-center justify-between gap-3">
               <Card.Title className="text-lg font-semibold">
                 {getText(direction.label, locale)}
