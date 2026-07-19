@@ -717,68 +717,87 @@ export function StatsSection() {
           )}
         </div>
 
-        <div
-          className="flex flex-wrap gap-2"
-          aria-label={strings.updatesFilter}
-        >
-          <Button
-            size="sm"
-            variant={selectedTopic ? 'secondary' : 'primary'}
-            onPress={() => selectTopic(undefined)}
-          >
-            {strings.all}
-          </Button>
-          {devUpdateTopics.map((topic) => (
-            <Button
-              key={topic.value}
-              size="sm"
-              variant={selectedTopic === topic.value ? 'primary' : 'secondary'}
-              onPress={() => selectTopic(topic.value)}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1">
+            <div
+              className="flex flex-wrap gap-2"
+              aria-label={strings.updatesFilter}
             >
-              {getDevUpdateTopicLabel(topic.value, locale)}
-            </Button>
-          ))}
-          {selectedTopic && (
-            <Button
-              aria-label={strings.clearFilters}
-              isIconOnly
-              size="sm"
-              variant="tertiary"
-              onPress={() => selectTopic(undefined)}
-            >
-              <X className="size-4" />
-            </Button>
-          )}
-        </div>
+              <Button
+                size="sm"
+                variant={selectedTopic ? 'secondary' : 'primary'}
+                onPress={() => selectTopic(undefined)}
+              >
+                {strings.all}
+              </Button>
+              {devUpdateTopics.map((topic) => (
+                <Button
+                  key={topic.value}
+                  size="sm"
+                  variant={
+                    selectedTopic === topic.value ? 'primary' : 'secondary'
+                  }
+                  onPress={() => selectTopic(topic.value)}
+                >
+                  {getDevUpdateTopicLabel(topic.value, locale)}
+                </Button>
+              ))}
+              {selectedTopic && (
+                <Button
+                  aria-label={strings.clearFilters}
+                  isIconOnly
+                  size="sm"
+                  variant="tertiary"
+                  onPress={() => selectTopic(undefined)}
+                >
+                  <X className="size-4" />
+                </Button>
+              )}
+            </div>
+          </div>
 
-        <Select
-          className="w-full sm:w-72"
-          value={selectedSort}
-          variant="secondary"
-          onChange={(value) => {
-            if (value === 'newest' || value === 'oldest') {
-              selectSort(value);
-            }
-          }}
-        >
-          <Label>{strings.sort}</Label>
-          <Select.Trigger>
-            <Select.Value />
-            <Select.Indicator />
-          </Select.Trigger>
-          <Select.Popover>
-            <ListBox>
-              <ListBox.Item id="newest" textValue={strings.sortNewest}>
-                {strings.sortNewest}
-                <ListBox.ItemIndicator />
-              </ListBox.Item>
-              <ListBox.Item id="oldest" textValue={strings.sortOldest}>
-                {strings.sortOldest}
-                <ListBox.ItemIndicator />
-              </ListBox.Item>
-            </ListBox>
-          </Select.Popover>
-        </Select>
+          <div className="flex items-end gap-2 sm:shrink-0">
+            <Select
+              className="min-w-0 flex-1 sm:w-72 sm:flex-none"
+              value={selectedSort}
+              variant="secondary"
+              onChange={(value) => {
+                if (value === 'newest' || value === 'oldest') {
+                  selectSort(value);
+                }
+              }}
+            >
+              <Label className="sm:sr-only">{strings.sort}</Label>
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  <ListBox.Item id="newest" textValue={strings.sortNewest}>
+                    {strings.sortNewest}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                  <ListBox.Item id="oldest" textValue={strings.sortOldest}>
+                    {strings.sortOldest}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                </ListBox>
+              </Select.Popover>
+            </Select>
+            {selectedSort !== 'newest' && (
+              <Button
+                aria-label={strings.clearSort}
+                isIconOnly
+                size="sm"
+                variant="tertiary"
+                onPress={() => selectSort('newest')}
+              >
+                <X className="size-4" />
+              </Button>
+            )}
+          </div>
+        </div>
 
         {feedError && (
           <Alert status="danger">

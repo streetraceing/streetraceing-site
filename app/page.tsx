@@ -227,85 +227,110 @@ export default function HomePage() {
               </SearchField.Group>
             </SearchField>
 
-            <div
-              className="flex flex-wrap gap-2"
-              aria-label={copy.home.projectsFilters}
-            >
-              <Button
-                type="button"
-                size="sm"
-                variant={
-                  selectedProjectStatus === undefined ? 'primary' : 'secondary'
-                }
-                onPress={() => setSelectedProjectStatus(undefined)}
-              >
-                {copy.home.all}
-              </Button>
-              {projectStatuses.map((status) => (
-                <Button
-                  key={status}
-                  type="button"
-                  size="sm"
-                  variant={
-                    selectedProjectStatus === status ? 'primary' : 'secondary'
-                  }
-                  onPress={() => setSelectedProjectStatus(status)}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1">
+                <div
+                  className="flex flex-wrap gap-2"
+                  aria-label={copy.home.projectsFilters}
                 >
-                  {copy.project.status[status]}
-                </Button>
-              ))}
-              {selectedProjectStatus && (
-                <Button
-                  aria-label={copy.home.clearFilters}
-                  isIconOnly
-                  type="button"
-                  size="sm"
-                  variant="tertiary"
-                  onPress={() => setSelectedProjectStatus(undefined)}
-                >
-                  <X className="size-4" />
-                </Button>
-              )}
-            </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={
+                      selectedProjectStatus === undefined
+                        ? 'primary'
+                        : 'secondary'
+                    }
+                    onPress={() => setSelectedProjectStatus(undefined)}
+                  >
+                    {copy.home.all}
+                  </Button>
+                  {projectStatuses.map((status) => (
+                    <Button
+                      key={status}
+                      type="button"
+                      size="sm"
+                      variant={
+                        selectedProjectStatus === status
+                          ? 'primary'
+                          : 'secondary'
+                      }
+                      onPress={() => setSelectedProjectStatus(status)}
+                    >
+                      {copy.project.status[status]}
+                    </Button>
+                  ))}
+                  {selectedProjectStatus && (
+                    <Button
+                      aria-label={copy.home.clearFilters}
+                      isIconOnly
+                      type="button"
+                      size="sm"
+                      variant="tertiary"
+                      onPress={() => setSelectedProjectStatus(undefined)}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
 
-            <Select
-              className="w-full sm:w-72"
-              value={projectSort}
-              variant="secondary"
-              onChange={(value) => {
-                if (typeof value === 'string') {
-                  setProjectSort(value as ProjectSort);
-                }
-              }}
-            >
-              <Label>{copy.home.projectsSort}</Label>
-              <Select.Trigger>
-                <Select.Value />
-                <Select.Indicator />
-              </Select.Trigger>
-              <Select.Popover>
-                <ListBox>
-                  <ListBox.Item
-                    id="relevance"
-                    textValue={copy.home.sortRelevance}
+              <div className="flex items-end gap-2 sm:shrink-0">
+                <Select
+                  className="min-w-0 flex-1 sm:w-72 sm:flex-none"
+                  value={projectSort}
+                  variant="secondary"
+                  onChange={(value) => {
+                    if (typeof value === 'string') {
+                      setProjectSort(value as ProjectSort);
+                    }
+                  }}
+                >
+                  <Label className="sm:sr-only">{copy.home.projectsSort}</Label>
+                  <Select.Trigger>
+                    <Select.Value />
+                    <Select.Indicator />
+                  </Select.Trigger>
+                  <Select.Popover>
+                    <ListBox>
+                      <ListBox.Item
+                        id="relevance"
+                        textValue={copy.home.sortRelevance}
+                      >
+                        {copy.home.sortRelevance}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                      <ListBox.Item
+                        id="progress-desc"
+                        textValue={copy.home.sortProgress}
+                      >
+                        {copy.home.sortProgress}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                      <ListBox.Item
+                        id="name-asc"
+                        textValue={copy.home.sortName}
+                      >
+                        {copy.home.sortName}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
+                {projectSort !== 'relevance' && (
+                  <Button
+                    aria-label={copy.home.clearSort}
+                    isIconOnly
+                    type="button"
+                    size="sm"
+                    variant="tertiary"
+                    onPress={() => setProjectSort('relevance')}
                   >
-                    {copy.home.sortRelevance}
-                    <ListBox.ItemIndicator />
-                  </ListBox.Item>
-                  <ListBox.Item
-                    id="progress-desc"
-                    textValue={copy.home.sortProgress}
-                  >
-                    {copy.home.sortProgress}
-                    <ListBox.ItemIndicator />
-                  </ListBox.Item>
-                  <ListBox.Item id="name-asc" textValue={copy.home.sortName}>
-                    {copy.home.sortName}
-                    <ListBox.ItemIndicator />
-                  </ListBox.Item>
-                </ListBox>
-              </Select.Popover>
-            </Select>
+                    <X className="size-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-col gap-4">
@@ -345,76 +370,99 @@ export default function HomePage() {
               </SearchField.Group>
             </SearchField>
 
-            <div
-              className="flex flex-wrap gap-2"
-              aria-label={copy.home.toolsFilters}
-            >
-              <Button
-                type="button"
-                size="sm"
-                variant={
-                  selectedToolTag === undefined ? 'primary' : 'secondary'
-                }
-                onPress={() => setSelectedToolTag(undefined)}
-              >
-                {copy.home.all}
-              </Button>
-              {toolTags.map((tag) => (
-                <Button
-                  key={tag.ru}
-                  type="button"
-                  size="sm"
-                  variant={selectedToolTag === tag.ru ? 'primary' : 'secondary'}
-                  onPress={() => setSelectedToolTag(tag.ru)}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1">
+                <div
+                  className="flex flex-wrap gap-2"
+                  aria-label={copy.home.toolsFilters}
                 >
-                  {getText(tag, locale)}
-                </Button>
-              ))}
-              {selectedToolTag && (
-                <Button
-                  aria-label={copy.home.clearFilters}
-                  isIconOnly
-                  type="button"
-                  size="sm"
-                  variant="tertiary"
-                  onPress={() => setSelectedToolTag(undefined)}
-                >
-                  <X className="size-4" />
-                </Button>
-              )}
-            </div>
-
-            <Select
-              className="w-full sm:w-72"
-              value={toolSort}
-              variant="secondary"
-              onChange={(value) => {
-                if (typeof value === 'string') {
-                  setToolSort(value as ToolSort);
-                }
-              }}
-            >
-              <Label>{copy.home.toolsSort}</Label>
-              <Select.Trigger>
-                <Select.Value />
-                <Select.Indicator />
-              </Select.Trigger>
-              <Select.Popover>
-                <ListBox>
-                  <ListBox.Item
-                    id="relevance"
-                    textValue={copy.home.sortRelevance}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={
+                      selectedToolTag === undefined ? 'primary' : 'secondary'
+                    }
+                    onPress={() => setSelectedToolTag(undefined)}
                   >
-                    {copy.home.sortRelevance}
-                    <ListBox.ItemIndicator />
-                  </ListBox.Item>
-                  <ListBox.Item id="name-asc" textValue={copy.home.sortName}>
-                    {copy.home.sortName}
-                    <ListBox.ItemIndicator />
-                  </ListBox.Item>
-                </ListBox>
-              </Select.Popover>
-            </Select>
+                    {copy.home.all}
+                  </Button>
+                  {toolTags.map((tag) => (
+                    <Button
+                      key={tag.ru}
+                      type="button"
+                      size="sm"
+                      variant={
+                        selectedToolTag === tag.ru ? 'primary' : 'secondary'
+                      }
+                      onPress={() => setSelectedToolTag(tag.ru)}
+                    >
+                      {getText(tag, locale)}
+                    </Button>
+                  ))}
+                  {selectedToolTag && (
+                    <Button
+                      aria-label={copy.home.clearFilters}
+                      isIconOnly
+                      type="button"
+                      size="sm"
+                      variant="tertiary"
+                      onPress={() => setSelectedToolTag(undefined)}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-end gap-2 sm:shrink-0">
+                <Select
+                  className="min-w-0 flex-1 sm:w-72 sm:flex-none"
+                  value={toolSort}
+                  variant="secondary"
+                  onChange={(value) => {
+                    if (typeof value === 'string') {
+                      setToolSort(value as ToolSort);
+                    }
+                  }}
+                >
+                  <Label className="sm:sr-only">{copy.home.toolsSort}</Label>
+                  <Select.Trigger>
+                    <Select.Value />
+                    <Select.Indicator />
+                  </Select.Trigger>
+                  <Select.Popover>
+                    <ListBox>
+                      <ListBox.Item
+                        id="relevance"
+                        textValue={copy.home.sortRelevance}
+                      >
+                        {copy.home.sortRelevance}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                      <ListBox.Item
+                        id="name-asc"
+                        textValue={copy.home.sortName}
+                      >
+                        {copy.home.sortName}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
+                {toolSort !== 'relevance' && (
+                  <Button
+                    aria-label={copy.home.clearSort}
+                    isIconOnly
+                    type="button"
+                    size="sm"
+                    variant="tertiary"
+                    onPress={() => setToolSort('relevance')}
+                  >
+                    <X className="size-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-col gap-4">
