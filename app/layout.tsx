@@ -11,6 +11,8 @@ import {
 } from '@/utils/i18n';
 import type { Metadata } from 'next';
 import { cookies, headers } from 'next/headers';
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const themeBootstrapScript = `
   (() => {
@@ -64,6 +66,8 @@ export default async function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+        {process.env.NODE_ENV === 'production' && <Analytics />}
+        {process.env.NODE_ENV === 'production' && <SpeedInsights />}
       </head>
       <body className="bg-background text-foreground">
         <Providers initialLocale={locale}>{children}</Providers>
