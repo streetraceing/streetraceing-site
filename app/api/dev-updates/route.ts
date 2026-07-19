@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { devUpdates } from '@/db/schema';
 import { isAdmin } from '@/utils/auth';
+import { getRequestLocale, translations } from '@/utils/i18n';
 import { DEV_UPDATES_PAGE_SIZE, isDevUpdateTopic } from '@/utils/stats';
 
 export const runtime = 'nodejs';
@@ -46,11 +47,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const locale = getRequestLocale(request);
+  const strings = translations[locale].api;
+
   if (!(await isAdmin())) {
-    return NextResponse.json(
-      { error: 'Требуется авторизация.' },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: strings.auth.required }, { status: 401 });
   }
 
   let body: {
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: 'Некорректный запрос.' },
+      { error: strings.auth.invalidRequest },
       { status: 400 },
     );
   }
@@ -74,14 +75,14 @@ export async function POST(request: Request) {
 
   if (!content || content.length > 8_000 || !isDevUpdateTopic(topic)) {
     return NextResponse.json(
-      { error: 'Проверь текст заметки и выбранную тему.' },
+      { error: strings.devNotes.invalid },
       { status: 400 },
     );
   }
 
   if (title.length > 160) {
     return NextResponse.json(
-      { error: 'Заголовок не должен быть длиннее 160 символов.' },
+      { error: strings.devNotes.titleTooLong },
       { status: 400 },
     );
   }

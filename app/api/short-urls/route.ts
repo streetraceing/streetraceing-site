@@ -6,6 +6,7 @@ import {
   MAX_CONTENT_LENGTH,
   TINY_URL_OWNER_COOKIE,
 } from '@/lib/tiny-url';
+import { getLocaleTag, getRequestLocale, translations } from '@/utils/i18n';
 import { desc, eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -39,6 +40,7 @@ function toResponseItem(
 }
 
 export async function GET(request: NextRequest) {
+  const strings = translations[getRequestLocale(request)].api.tinyUrl;
   const ownerToken = request.cookies.get(TINY_URL_OWNER_COOKIE)?.value;
 
   if (!ownerToken || !process.env.DATABASE_URL) {
@@ -62,30 +64,29 @@ export async function GET(request: NextRequest) {
       items: items.map((item) => toResponseItem(item, request)),
     });
   } catch {
-    return NextResponse.json(
-      { error: 'Не удалось загрузить сохранённые данные.' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: strings.loadFailed }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
+  const locale = getRequestLocale(request);
+  const strings = translations[locale].api.tinyUrl;
   let body: { content?: unknown };
 
   try {
     body = (await request.json()) as { content?: unknown };
   } catch {
-    return NextResponse.json(
-      { error: 'Передай данные в JSON-формате.' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: strings.invalidJson }, { status: 400 });
   }
 
   const content = getContent(body.content);
   if (!content) {
     return NextResponse.json(
       {
-        error: `Добавь непустые данные объёмом до ${MAX_CONTENT_LENGTH.toLocaleString('ru-RU')} символов.`,
+        error: strings.contentTooLong.replace(
+          '{count}',
+          MAX_CONTENT_LENGTH.toLocaleString(getLocaleTag(locale)),
+        ),
       },
       { status: 400 },
     );
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
 
   if (!process.env.DATABASE_URL) {
     return NextResponse.json(
-      { error: 'База данных не настроена. Проверь DATABASE_URL.' },
+      { error: strings.databaseMissing },
       { status: 503 },
     );
   }
@@ -144,14 +145,11 @@ export async function POST(request: NextRequest) {
       }
     }
   } catch {
-    return NextResponse.json(
-      { error: 'Не удалось сохранить данные. Попробуй ещё раз.' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: strings.saveFailed }, { status: 500 });
   }
 
   return NextResponse.json(
-    { error: 'Не удалось подобрать короткий адрес. Попробуй ещё раз.' },
+    { error: strings.codeGenerationFailed },
     { status: 500 },
   );
 }

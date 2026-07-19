@@ -1,16 +1,17 @@
+'use client';
+
+import { useLocale } from '@/app/providers';
 import { Container } from '@/components/layout/Container';
 import { footerPhrases } from '@/utils/footerPhrases';
 import { footerConfig, siteConfig } from '@/utils/config';
 import { cn, linkVariants, Separator, Typography } from '@heroui/react';
 import NextLink from 'next/link';
 
-export const dynamic = 'force-dynamic';
-
 export function Footer() {
   const linkSlots = linkVariants();
-
-  const phrase =
-    footerPhrases.ru[Math.floor(Math.random() * footerPhrases.ru.length)]; // eslint-disable-line react-hooks/purity
+  const { copy, locale } = useLocale();
+  const phrases = footerPhrases[locale];
+  const phrase = phrases[0];
 
   return (
     <footer className="relative border-t bg-background overflow-hidden">
@@ -42,7 +43,7 @@ export function Footer() {
 
         <div className="flex flex-col justify-between min-w-0 md:max-w-[50%] md:text-right mx-0 px-4 md:px-0">
           <span className="font-petit-formal whitespace-nowrap mx-auto md:mx-[unset]">
-            life is good ❤️
+            {copy.footer.slogan}
           </span>
 
           <Separator className="my-2 w-1/8 mx-auto md:mx-unset md:w-full" />

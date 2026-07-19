@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocale } from '@/app/providers';
 import {
   Alert,
   Button,
@@ -19,6 +20,8 @@ const jsonExample =
   '{\n  "name": "streetraceing",\n  "tools": ["JSON Viewer", "UUID Generator"]\n}';
 
 export function JsonViewerTool() {
+  const { copy } = useLocale();
+  const strings = copy.tools.json;
   const [source, setSource] = useState('');
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string>();
@@ -32,8 +35,8 @@ export function JsonViewerTool() {
       setOutput('');
       setError(
         caughtError instanceof Error
-          ? `Не удалось прочитать JSON: ${caughtError.message}`
-          : 'Не удалось прочитать JSON.',
+          ? strings.invalid.replace('{message}', caughtError.message)
+          : strings.invalidGeneric,
       );
     }
   }
@@ -52,27 +55,23 @@ export function JsonViewerTool() {
           name="json"
           value={source}
           onChange={setSource}
-          validate={(value) =>
-            value.trim() ? null : 'Вставь JSON, который нужно проверить.'
-          }
+          validate={(value) => (value.trim() ? null : strings.required)}
         >
-          <Label>JSON</Label>
+          <Label>{strings.label}</Label>
           <TextArea
             variant="secondary"
             rows={12}
-            placeholder="Вставь JSON сюда…"
+            placeholder={strings.placeholder}
             spellCheck={false}
           />
-          <Description>
-            Данные обрабатываются только в этом браузере.
-          </Description>
+          <Description>{strings.description}</Description>
           <FieldError />
         </TextField>
 
         <div className="flex flex-wrap gap-2">
           <Button type="submit">
             <Braces />
-            Форматировать
+            {strings.format}
           </Button>
           <Button
             type="button"
@@ -80,7 +79,7 @@ export function JsonViewerTool() {
             onPress={() => transformJson(0)}
           >
             <Minimize2 />
-            Минифицировать
+            {strings.minify}
           </Button>
           <Button
             type="button"
@@ -92,7 +91,7 @@ export function JsonViewerTool() {
             }}
           >
             <Sparkles />
-            Пример
+            {strings.example}
           </Button>
         </div>
       </Form>
@@ -101,13 +100,13 @@ export function JsonViewerTool() {
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Некорректный JSON</Alert.Title>
+            <Alert.Title>{strings.errorTitle}</Alert.Title>
             <Alert.Description>{error}</Alert.Description>
           </Alert.Content>
         </Alert>
       )}
 
-      {output && <ToolOutput content={output} label="Готовый JSON" />}
+      {output && <ToolOutput content={output} label={strings.output} />}
     </div>
   );
 }

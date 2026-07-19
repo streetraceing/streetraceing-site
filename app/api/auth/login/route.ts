@@ -6,10 +6,12 @@ import {
   isAuthConfigured,
   isValidAdminPassword,
 } from '@/utils/auth';
+import { getRequestLocale, translations } from '@/utils/i18n';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
+  const strings = translations[getRequestLocale(request)].api.auth;
   let password = '';
 
   try {
@@ -17,27 +19,27 @@ export async function POST(request: Request) {
     password = typeof body.password === 'string' ? body.password : '';
   } catch {
     return NextResponse.json(
-      { error: 'Некорректный запрос.' },
+      { error: strings.invalidRequest },
       { status: 400 },
     );
   }
 
   if (!isAuthConfigured()) {
-    return NextResponse.json(
-      { error: 'Авторизация пока не настроена.' },
-      { status: 503 },
-    );
+    return NextResponse.json({ error: strings.notConfigured }, { status: 503 });
   }
 
   if (!isValidAdminPassword(password)) {
-    return NextResponse.json({ error: 'Неверный пароль.' }, { status: 401 });
+    return NextResponse.json(
+      { error: strings.invalidPassword },
+      { status: 401 },
+    );
   }
 
   const token = createAdminSessionToken();
 
   if (!token) {
     return NextResponse.json(
-      { error: 'Не удалось создать сессию.' },
+      { error: strings.sessionCreation },
       { status: 503 },
     );
   }

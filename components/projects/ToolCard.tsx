@@ -1,14 +1,19 @@
+'use client';
+
 import { Card, Chip } from '@heroui/react';
 import { ArrowUpRight, Clock3 } from 'lucide-react';
 import Link from 'next/link';
 
 import type { ToolConfig } from '@/utils/config';
+import { useLocale } from '@/app/providers';
+import { getText } from '@/utils/i18n';
 
 type ToolCardProps = {
   tool: ToolConfig;
 };
 
 export function ToolCard({ tool }: ToolCardProps) {
+  const { copy, locale } = useLocale();
   const card = (
     <Card
       className={
@@ -25,7 +30,9 @@ export function ToolCard({ tool }: ToolCardProps) {
                 <tool.icon className="size-5" />
               </span>
             )}
-            <Card.Title className="truncate">{tool.name}</Card.Title>
+            <Card.Title className="truncate">
+              {getText(tool.name, locale)}
+            </Card.Title>
           </div>
           {tool.status === 'available' ? (
             <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted" />
@@ -39,15 +46,17 @@ export function ToolCard({ tool }: ToolCardProps) {
           size="sm"
           className="px-2 py-1"
         >
-          {tool.status === 'available' ? 'Доступен' : 'Скоро'}
+          {tool.status === 'available'
+            ? copy.tool.available
+            : copy.tool.planned}
         </Chip>
-        <Card.Description>{tool.description}</Card.Description>
+        <Card.Description>{getText(tool.description, locale)}</Card.Description>
       </Card.Header>
       <Card.Content className="mt-auto">
         <div className="flex flex-wrap gap-2">
           {tool.tags.map((tag) => (
-            <Chip key={tag} size="sm" variant="secondary">
-              {tag}
+            <Chip key={tag.ru} size="sm" variant="secondary">
+              {getText(tag, locale)}
             </Chip>
           ))}
         </div>

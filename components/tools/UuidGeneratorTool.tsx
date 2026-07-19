@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocale } from '@/app/providers';
 import {
   Alert,
   Button,
@@ -18,6 +19,8 @@ import { ToolOutput } from './ToolOutput';
 const MAX_UUIDS = 100;
 
 export function UuidGeneratorTool() {
+  const { copy } = useLocale();
+  const strings = copy.tools.uuid;
   const [amount, setAmount] = useState('5');
   const [uuids, setUuids] = useState<string[]>([]);
   const [error, setError] = useState<string>();
@@ -30,7 +33,7 @@ export function UuidGeneratorTool() {
       parsedAmount < 1 ||
       parsedAmount > MAX_UUIDS
     ) {
-      setError(`Укажи целое число от 1 до ${MAX_UUIDS}.`);
+      setError(strings.invalid.replace('{count}', String(MAX_UUIDS)));
       return;
     }
 
@@ -47,15 +50,17 @@ export function UuidGeneratorTool() {
     <div className="flex flex-col gap-4">
       <Form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <TextField fullWidth name="amount" value={amount} onChange={setAmount}>
-          <Label>Сколько UUID создать?</Label>
+          <Label>{strings.label}</Label>
           <Input type="number" inputMode="numeric" min={1} max={MAX_UUIDS} />
-          <Description>От 1 до {MAX_UUIDS} UUID v4 за один раз.</Description>
+          <Description>
+            {strings.description.replace('{count}', String(MAX_UUIDS))}
+          </Description>
           <FieldError />
         </TextField>
 
         <Button className="self-start" type="submit">
           <KeyRound />
-          Сгенерировать
+          {strings.generate}
         </Button>
       </Form>
 
@@ -63,7 +68,7 @@ export function UuidGeneratorTool() {
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Проверь количество</Alert.Title>
+            <Alert.Title>{strings.errorTitle}</Alert.Title>
             <Alert.Description>{error}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -78,7 +83,7 @@ export function UuidGeneratorTool() {
             onPress={generateUuids}
           >
             <RefreshCw />
-            Сгенерировать ещё
+            {strings.generateMore}
           </Button>
           <ToolOutput
             content={uuids.join('\n')}

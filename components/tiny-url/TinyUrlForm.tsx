@@ -1,5 +1,7 @@
 'use client';
 
+import { useLocale } from '@/app/providers';
+import { getLocaleTag } from '@/utils/i18n';
 import {
   Alert,
   Button,
@@ -30,21 +32,23 @@ type ApiErrorResponse = {
 
 const MAX_CONTENT_LENGTH = 100_000;
 
-function getPreview(content: string) {
+function getPreview(content: string, emptyData: string) {
   const normalizedContent = content.replace(/\s+/g, ' ').trim();
   return normalizedContent.length > 120
     ? `${normalizedContent.slice(0, 120)}…`
-    : normalizedContent || 'Пустые данные';
+    : normalizedContent || emptyData;
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('ru-RU', {
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
 }
 
 export function TinyUrlForm() {
+  const { copy, locale } = useLocale();
+  const strings = copy.tinyUrl;
   const [content, setContent] = useState('');
   const [items, setItems] = useState<TinyUrlItem[]>([]);
   const [createdItem, setCreatedItem] = useState<TinyUrlItem>();
@@ -77,7 +81,7 @@ export function TinyUrlForm() {
             caughtError.name === 'AbortError'
           )
         ) {
-          setError('Не удалось загрузить сохранённые данные.');
+          setError(strings.loadFailed);
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -89,7 +93,7 @@ export function TinyUrlForm() {
     void loadItems();
 
     return () => controller.abort();
-  }, []);
+  }, [strings.loadFailed]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -111,12 +115,12 @@ export function TinyUrlForm() {
         throw new Error(
           'error' in body && typeof body.error === 'string'
             ? body.error
-            : 'Не удалось сохранить данные.',
+            : strings.saveFailed,
         );
       }
 
       if (!('item' in body)) {
-        throw new Error('Сервер вернул некорректный ответ.');
+        throw new Error(strings.invalidServerResponse);
       }
 
       setCreatedItem(body.item);
@@ -124,9 +128,7 @@ export function TinyUrlForm() {
       setContent('');
     } catch (caughtError) {
       setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'Не удалось сохранить данные.',
+        caughtError instanceof Error ? caughtError.message : strings.saveFailed,
       );
     } finally {
       setIsSubmitting(false);
@@ -139,7 +141,7 @@ export function TinyUrlForm() {
       setCopiedCode(item.code);
       window.setTimeout(() => setCopiedCode(undefined), 2_000);
     } catch {
-      setError('Не удалось скопировать ссылку.');
+      setError(strings.copyFailed);
     }
   }
 
@@ -154,26 +156,30 @@ export function TinyUrlForm() {
           onChange={setContent}
           validate={(value) => {
             if (value.trim().length === 0) {
-              return 'Добавь данные, которые нужно сохранить.';
+              return strings.required;
             }
 
             if (value.length > MAX_CONTENT_LENGTH) {
-              return `Максимум ${MAX_CONTENT_LENGTH.toLocaleString('ru-RU')} символов.`;
+              return strings.maxLength.replace(
+                '{count}',
+                MAX_CONTENT_LENGTH.toLocaleString(getLocaleTag(locale)),
+              );
             }
 
             return null;
           }}
         >
-          <Label>Что сохранить?</Label>
+          <Label>{strings.fieldLabel}</Label>
           <TextArea
             variant="secondary"
-            placeholder={'Любой текст, URL, JSON, заметка, код…'}
+            placeholder={strings.fieldPlaceholder}
             rows={7}
             maxLength={MAX_CONTENT_LENGTH}
           />
           <Description>
-            {content.length.toLocaleString('ru-RU')} /{' '}
-            {MAX_CONTENT_LENGTH.toLocaleString('ru-RU')} символов
+            {content.length.toLocaleString(getLocaleTag(locale))} /{' '}
+            {MAX_CONTENT_LENGTH.toLocaleString(getLocaleTag(locale))}{' '}
+            {strings.characters}
           </Description>
           <FieldError />
         </TextField>
@@ -182,7 +188,7 @@ export function TinyUrlForm() {
           {({ isPending }) => (
             <>
               {isPending ? <Spinner color="current" size="sm" /> : <LinkIcon />}
-              {isPending ? 'Сохраняю…' : 'Создать короткий адрес'}
+              {isPending ? strings.saving : strings.create}
             </>
           )}
         </Button>
@@ -192,7 +198,7 @@ export function TinyUrlForm() {
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Что-то пошло не так</Alert.Title>
+            <Alert.Title>{strings.errorTitle}</Alert.Title>
             <Alert.Description>{error}</Alert.Description>
           </Alert.Content>
         </Alert>
@@ -202,7 +208,7 @@ export function TinyUrlForm() {
         <Alert status="success" className="bg-surface-secondary">
           <Alert.Indicator />
           <Alert.Content className="min-w-0">
-            <Alert.Title>Данные сохранены</Alert.Title>
+            <Alert.Title>{strings.saved}</Alert.Title>
             <Alert.Description>
               <Link href={createdItem.shortUrl} target="_blank">
                 {createdItem.shortUrl}
@@ -215,7 +221,7 @@ export function TinyUrlForm() {
               onPress={() => void copyShortUrl(createdItem)}
             >
               {copiedCode === createdItem.code ? <Check /> : <Copy />}
-              {copiedCode === createdItem.code ? 'Скопировано' : 'Копировать'}
+              {copiedCode === createdItem.code ? strings.copied : strings.copy}
             </Button>
           </Alert.Content>
         </Alert>
@@ -224,11 +230,9 @@ export function TinyUrlForm() {
       <section className="space-y-3" aria-labelledby="your-data-heading">
         <div>
           <h2 id="your-data-heading" className="text-lg font-semibold">
-            Твои сохранённые данные
+            {strings.yourData}
           </h2>
-          <p className="text-sm text-muted">
-            Этот список привязан к ключу в cookie текущего браузера.
-          </p>
+          <p className="text-sm text-muted">{strings.ownerDescription}</p>
         </div>
 
         {isLoadingItems ? (
@@ -240,7 +244,7 @@ export function TinyUrlForm() {
         {!isLoadingItems && items.length === 0 ? (
           <Card variant="transparent">
             <Card.Content className="text-sm text-muted">
-              Пока ничего нет — первая запись появится здесь после сохранения.
+              {strings.emptyList}
             </Card.Content>
           </Card>
         ) : null}
@@ -251,10 +255,11 @@ export function TinyUrlForm() {
               <Card key={item.code} variant="secondary">
                 <Card.Header>
                   <Card.Title className="truncate">
-                    {getPreview(item.content)}
+                    {getPreview(item.content, strings.emptyData)}
                   </Card.Title>
                   <Card.Description>
-                    {formatDate(item.createdAt)} · Переходов: {item.visitCount}
+                    {formatDate(item.createdAt, getLocaleTag(locale))} ·{' '}
+                    {strings.visits.replace('{count}', String(item.visitCount))}
                   </Card.Description>
                 </Card.Header>
                 <Card.Footer className="justify-between gap-3">
@@ -267,7 +272,7 @@ export function TinyUrlForm() {
                   </Link>
                   <Button
                     isIconOnly
-                    aria-label="Скопировать короткий адрес"
+                    aria-label={strings.copyShortUrl}
                     size="sm"
                     variant="tertiary"
                     onPress={() => void copyShortUrl(item)}

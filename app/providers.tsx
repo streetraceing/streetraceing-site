@@ -10,6 +10,14 @@ import {
   useState,
 } from 'react';
 
+import {
+  defaultLocale,
+  LOCALE_COOKIE,
+  translations,
+  type Locale,
+  type Translation,
+} from '@/utils/i18n';
+
 export type Theme = 'system' | 'light' | 'dark';
 
 type ThemeContextValue = {
@@ -17,8 +25,15 @@ type ThemeContextValue = {
   setTheme: (theme: Theme) => void;
 };
 
+type LocaleContextValue = {
+  locale: Locale;
+  setLocale: (locale: Locale) => void;
+  copy: Translation;
+};
+
 const THEME_STORAGE_KEY = 'theme';
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
+const LocaleContext = createContext<LocaleContextValue | undefined>(undefined);
 
 function getStoredTheme(): Theme {
   if (typeof window === 'undefined') {
@@ -59,13 +74,36 @@ export function useTheme() {
   return context;
 }
 
-export function Providers({ children }: { children: ReactNode }) {
+export function useLocale() {
+  const context = useContext(LocaleContext);
+
+  if (!context) {
+    throw new Error('useLocale must be used inside Providers.');
+  }
+
+  return context;
+}
+
+export function Providers({
+  children,
+  initialLocale = defaultLocale,
+}: {
+  children: ReactNode;
+  initialLocale?: Locale;
+}) {
   const [theme, setThemeState] = useState<Theme>(getStoredTheme);
+  const [locale, setLocaleState] = useState<Locale>(initialLocale);
 
   const setTheme = useCallback((nextTheme: Theme) => {
     setThemeState(nextTheme);
     window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
     applyTheme(nextTheme);
+  }, []);
+
+  const setLocale = useCallback((nextLocale: Locale) => {
+    setLocaleState(nextLocale);
+    document.documentElement.lang = nextLocale;
+    document.cookie = `${LOCALE_COOKIE}=${nextLocale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
   }, []);
 
   useEffect(() => {
@@ -99,9 +137,17 @@ export function Providers({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const value = useMemo(() => ({ theme, setTheme }), [setTheme, theme]);
+  const themeValue = useMemo(() => ({ theme, setTheme }), [setTheme, theme]);
+  const localeValue = useMemo(
+    () => ({ locale, setLocale, copy: translations[locale] }),
+    [locale, setLocale],
+  );
 
   return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+    <ThemeContext.Provider value={themeValue}>
+      <LocaleContext.Provider value={localeValue}>
+        {children}
+      </LocaleContext.Provider>
+    </ThemeContext.Provider>
   );
 }

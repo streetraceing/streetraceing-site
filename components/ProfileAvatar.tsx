@@ -1,10 +1,13 @@
 'use client';
 
+import { useLocale } from '@/app/providers';
 import { Avatar, Modal } from '@heroui/react';
 import { FaSpotify } from 'react-icons/fa6';
 import Tilt from 'react-parallax-tilt';
 
 export function ProfileAvatar() {
+  const { copy } = useLocale();
+
   return (
     <Modal>
       <Modal.Trigger className="h-48 w-48 select-none">
@@ -33,13 +36,11 @@ export function ProfileAvatar() {
                 <Modal.Icon className="bg-default text-foreground">
                   <FaSpotify className="size-5" />
                 </Modal.Icon>
-                <Modal.Heading>
-                  Аватарка аккуратно взята из одной песни
-                </Modal.Heading>
+                <Modal.Heading>{copy.avatar.title}</Modal.Heading>
               </Modal.Header>
             </Modal.Header>
             <Modal.Body className="flex gap-4 flex-col">
-              <p>Вот ссылочка на нее в спотике</p>
+              <p>{copy.avatar.description}</p>
               <div className="overflow-hidden rounded-2xl transform-gpu block border-0">
                 <iframe
                   data-testid="embed-iframe"

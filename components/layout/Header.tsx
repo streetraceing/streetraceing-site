@@ -1,8 +1,11 @@
 'use client';
 
 import { Container } from '@/components/layout/Container';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
+import { useLocale } from '@/app/providers';
 import { headerConfig, siteConfig } from '@/utils/config';
+import { getText } from '@/utils/i18n';
 import { Button, cn, linkVariants, Typography } from '@heroui/react';
 import NextLink from 'next/link';
 import { Menu, X } from 'lucide-react';
@@ -11,6 +14,7 @@ import { useState } from 'react';
 
 export function Header() {
   const linkSlots = linkVariants();
+  const { copy, locale } = useLocale();
 
   const [open, setOpen] = useState(false);
 
@@ -27,7 +31,7 @@ export function Header() {
           >
             <Image
               src="/images/streetraceing.jpeg"
-              alt="logo"
+              alt={copy.header.logoAlt}
               width={40}
               height={40}
               preload
@@ -51,7 +55,7 @@ export function Header() {
               >
                 <link.icon className="size-5 shrink-0 text-muted" />
                 <Typography.Paragraph className="truncate">
-                  {link.label}
+                  {getText(link.label, locale)}
                 </Typography.Paragraph>
               </NextLink>
             ))}
@@ -59,6 +63,7 @@ export function Header() {
 
           <div className="flex items-center gap-2 shrink-0 justify-self-end">
             <nav className="hidden md:flex min-w-0 gap-4 justify-self-start">
+              <LanguageSwitcher />
               <ThemeSwitcher />
             </nav>
 
@@ -81,7 +86,9 @@ export function Header() {
         {open && (
           <div className="absolute left-0 top-full z-50 w-full border-b border-t bg-background/80 shadow-lg backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] md:hidden">
             <Container className="py-4 flex flex-col gap-4">
-              <Typography.Heading level={5}>Навигация</Typography.Heading>
+              <Typography.Heading level={5}>
+                {copy.header.navigation}
+              </Typography.Heading>
 
               {headerConfig.links.map((link) => (
                 <NextLink key={link.href} href={link.href}>
@@ -91,15 +98,23 @@ export function Header() {
                   >
                     <link.icon className="size-5 mr-2 text-muted" />
                     <Typography.Paragraph className="truncate">
-                      {link.label}
+                      {getText(link.label, locale)}
                     </Typography.Paragraph>
                   </div>
                 </NextLink>
               ))}
 
-              <Typography.Heading level={5}>Тема сайта</Typography.Heading>
+              <Typography.Heading level={5}>
+                {copy.theme.label}
+              </Typography.Heading>
 
               <ThemeSwitcher variant="group" />
+
+              <Typography.Heading level={5}>
+                {copy.language.label}
+              </Typography.Heading>
+
+              <LanguageSwitcher fullWidth />
             </Container>
           </div>
         )}

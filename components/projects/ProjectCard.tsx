@@ -1,8 +1,12 @@
+'use client';
+
 import { Card, Chip, Modal } from '@heroui/react';
 import { ArrowUpRight } from 'lucide-react';
 import type { CSSProperties } from 'react';
 
 import type { ProjectConfig } from '@/utils/config';
+import { useLocale } from '@/app/providers';
+import { getText } from '@/utils/i18n';
 
 import { ProjectActions } from './ProjectActions';
 import { ProjectDetails } from './ProjectDetails';
@@ -14,6 +18,8 @@ type ProjectCardProps = {
 };
 
 export function ProjectCard({ project }: ProjectCardProps) {
+  const { copy, locale } = useLocale();
+
   return (
     <Modal>
       <Modal.Trigger className="h-full w-full text-left">
@@ -38,7 +44,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
               <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted" />
             </div>
             <ProjectStatusChips statuses={project.status} />
-            <Card.Description>{project.shortDescription}</Card.Description>
+            <Card.Description>
+              {getText(project.shortDescription, locale)}
+            </Card.Description>
           </Card.Header>
           <Card.Content className="mt-auto flex flex-col gap-4">
             <div className="flex flex-wrap gap-2">
@@ -56,7 +64,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             <ProjectProgress value={project.progress} />
           </Card.Content>
           <Card.Footer className="text-sm text-muted">
-            Открыть подробности
+            {copy.project.openDetails}
           </Card.Footer>
         </Card>
       </Modal.Trigger>

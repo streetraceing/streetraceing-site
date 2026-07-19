@@ -17,6 +17,8 @@ import {
   TextField,
   Typography,
 } from '@heroui/react';
+import { useLocale } from '@/app/providers';
+import { getLocaleTag, getText } from '@/utils/i18n';
 import {
   ChevronDown,
   Eye,
@@ -66,8 +68,8 @@ type SessionResponse = {
   configured: boolean;
 };
 
-function formatDate(date: string) {
-  return new Intl.DateTimeFormat('ru-RU', {
+function formatDate(date: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(date));
@@ -114,6 +116,7 @@ function isLongDevUpdate(content: string) {
 }
 
 function DevUpdateCard({ update }: { update: DevUpdate }) {
+  const { copy, locale } = useLocale();
   const [isExpanded, setIsExpanded] = useState(false);
   const isLong = isLongDevUpdate(update.content);
   const isCollapsed = isLong && !isExpanded;
@@ -123,10 +126,10 @@ function DevUpdateCard({ update }: { update: DevUpdate }) {
       <Card.Header className="gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Chip color="accent" size="sm" variant="soft">
-            {getDevUpdateTopicLabel(update.topic)}
+            {getDevUpdateTopicLabel(update.topic, locale)}
           </Chip>
           <span className="text-xs text-muted">
-            {formatDate(update.createdAt)}
+            {formatDate(update.createdAt, getLocaleTag(locale))}
           </span>
         </div>
         {update.title && <Card.Title>{update.title}</Card.Title>}
@@ -153,7 +156,7 @@ function DevUpdateCard({ update }: { update: DevUpdate }) {
             onPress={() => setIsExpanded(true)}
           >
             <ChevronDown />
-            Показать полностью
+            {copy.stats.showFull}
           </Button>
         )}
       </Card.Content>
@@ -174,6 +177,8 @@ function AuthorControls({
   onLogout,
   onCreated,
 }: AuthorControlsProps) {
+  const { copy, locale } = useLocale();
+  const strings = copy.stats;
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string>();
@@ -199,7 +204,7 @@ function AuthorControls({
       const body = (await response.json()) as { error?: string };
 
       if (!response.ok) {
-        throw new Error(body.error ?? 'Не удалось войти.');
+        throw new Error(body.error ?? strings.errors.login);
       }
 
       setPassword('');
@@ -209,7 +214,7 @@ function AuthorControls({
       setLoginError(
         caughtError instanceof Error
           ? caughtError.message
-          : 'Не удалось войти.',
+          : strings.errors.login,
       );
     } finally {
       setIsLoginPending(false);
@@ -238,11 +243,11 @@ function AuthorControls({
       };
 
       if (!response.ok) {
-        throw new Error(body.error ?? 'Не удалось опубликовать заметку.');
+        throw new Error(body.error ?? strings.errors.publish);
       }
 
       if (!body.update) {
-        throw new Error('Сервер не вернул опубликованную заметку.');
+        throw new Error(strings.errors.publishMissing);
       }
 
       setTitle('');
@@ -253,7 +258,7 @@ function AuthorControls({
       setPublishError(
         caughtError instanceof Error
           ? caughtError.message
-          : 'Не удалось опубликовать заметку.',
+          : strings.errors.publish,
       );
     } finally {
       setIsPublishing(false);
@@ -265,7 +270,7 @@ function AuthorControls({
       <Alert status="warning">
         <Alert.Indicator />
         <Alert.Content>
-          <Alert.Title>Авторский режим пока не настроен</Alert.Title>
+          <Alert.Title>{strings.authorNotConfigured}</Alert.Title>
         </Alert.Content>
       </Alert>
     );
@@ -280,7 +285,7 @@ function AuthorControls({
           onPress={() => setIsLoginOpen((value) => !value)}
         >
           <LockKeyhole />
-          Войти как автор
+          {strings.loginAsAuthor}
         </Button>
 
         {isLoginOpen && (
@@ -293,9 +298,9 @@ function AuthorControls({
                   name="password"
                   value={password}
                   onChange={setPassword}
-                  validate={(value) => (value ? null : 'Введи пароль.')}
+                  validate={(value) => (value ? null : strings.enterPassword)}
                 >
-                  <Label>Пароль автора</Label>
+                  <Label>{strings.authorPassword}</Label>
                   <Input type="password" autoComplete="current-password" />
                   <FieldError />
                 </TextField>
@@ -305,7 +310,7 @@ function AuthorControls({
                   isPending={isLoginPending}
                 >
                   <LockKeyhole />
-                  Войти
+                  {strings.login}
                 </Button>
               </Form>
             </Card.Content>
@@ -316,7 +321,7 @@ function AuthorControls({
           <Alert status="danger">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>Вход не выполнен</Alert.Title>
+              <Alert.Title>{strings.loginFailed}</Alert.Title>
               <Alert.Description>{loginError}</Alert.Description>
             </Alert.Content>
           </Alert>
@@ -329,14 +334,12 @@ function AuthorControls({
     <Card variant="secondary">
       <Card.Header className="flex-row items-start justify-between gap-3">
         <div>
-          <Card.Title>Новая заметка</Card.Title>
-          <Card.Description>
-            Эта форма видна только в авторской сессии.
-          </Card.Description>
+          <Card.Title>{strings.newNote}</Card.Title>
+          <Card.Description>{strings.authorFormDescription}</Card.Description>
         </div>
         <Button
           isIconOnly
-          aria-label="Выйти из авторского режима"
+          aria-label={strings.logout}
           size="sm"
           variant="tertiary"
           onPress={() => void logout()}
@@ -347,14 +350,14 @@ function AuthorControls({
       <Card.Content>
         <Form className="flex flex-col gap-4" onSubmit={publish}>
           <TextField fullWidth name="title" value={title} onChange={setTitle}>
-            <Label>Заголовок (необязательно)</Label>
-            <Input maxLength={160} placeholder="Например, новый этап проекта" />
+            <Label>{strings.noteTitle}</Label>
+            <Input maxLength={160} placeholder={strings.noteTitlePlaceholder} />
             <Description>{title.length} / 160</Description>
           </TextField>
 
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium">Тема</p>
-            <div className="flex flex-wrap gap-2" aria-label="Тема заметки">
+            <p className="text-sm font-medium">{strings.topic}</p>
+            <div className="flex flex-wrap gap-2" aria-label={strings.topic}>
               {devUpdateTopics.map((item) => (
                 <Button
                   key={item.value}
@@ -363,7 +366,7 @@ function AuthorControls({
                   variant={topic === item.value ? 'primary' : 'secondary'}
                   onPress={() => setTopic(item.value)}
                 >
-                  {item.label}
+                  {getDevUpdateTopicLabel(item.value, locale)}
                 </Button>
               ))}
             </div>
@@ -375,21 +378,18 @@ function AuthorControls({
             name="content"
             value={content}
             onChange={setContent}
-            validate={(value) =>
-              value.trim() ? null : 'Напишите хотя бы одну строчку.'
-            }
+            validate={(value) => (value.trim() ? null : strings.noteRequired)}
           >
-            <Label>Заметка</Label>
+            <Label>{strings.note}</Label>
             <TextArea
               variant="primary"
               rows={6}
               maxLength={8_000}
-              placeholder="Что нового в разработке?"
+              placeholder={strings.notePlaceholder}
             />
             <Description>
-              Markdown поддерживается: **жирный**, _курсив_, списки и ссылки.
-              Блок кода: ```ts … ```. {content.length.toLocaleString('ru-RU')} /
-              8 000
+              {strings.markdownHint}{' '}
+              {content.length.toLocaleString(getLocaleTag(locale))} / 8 000
             </Description>
             <FieldError />
           </TextField>
@@ -402,20 +402,20 @@ function AuthorControls({
               onPress={() => setIsPreviewOpen((value) => !value)}
             >
               {isPreviewOpen ? <EyeOff /> : <Eye />}
-              {isPreviewOpen ? 'Скрыть предпросмотр' : 'Предпросмотр Markdown'}
+              {isPreviewOpen ? strings.hidePreview : strings.preview}
             </Button>
 
             {isPreviewOpen && (
               <Card className="w-full" variant="transparent">
                 <Card.Header>
-                  <Card.Title>Предпросмотр</Card.Title>
+                  <Card.Title>{strings.previewTitle}</Card.Title>
                 </Card.Header>
                 <Card.Content>
                   {content.trim() ? (
                     <MarkdownContent content={content} />
                   ) : (
                     <Typography.Paragraph className="text-muted" size="sm">
-                      Напиши заметку, чтобы увидеть результат.
+                      {strings.previewEmpty}
                     </Typography.Paragraph>
                   )}
                 </Card.Content>
@@ -425,7 +425,7 @@ function AuthorControls({
 
           <Button className="self-start" type="submit" isPending={isPublishing}>
             <Send />
-            Опубликовать
+            {strings.publish}
           </Button>
         </Form>
 
@@ -433,7 +433,7 @@ function AuthorControls({
           <Alert className="mt-4" status="danger">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>Заметка не опубликована</Alert.Title>
+              <Alert.Title>{strings.noteNotPublished}</Alert.Title>
               <Alert.Description>{publishError}</Alert.Description>
             </Alert.Content>
           </Alert>
@@ -444,6 +444,8 @@ function AuthorControls({
 }
 
 export function StatsSection() {
+  const { copy, locale } = useLocale();
+  const strings = copy.stats;
   const [session, setSession] = useState<SessionResponse>();
   const [updates, setUpdates] = useState<DevUpdate[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<DevUpdateTopic>();
@@ -459,7 +461,7 @@ export function StatsSection() {
     fetch('/api/auth/session', { cache: 'no-store' })
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error('Не удалось проверить авторскую сессию.');
+          throw new Error(strings.errors.session);
         }
 
         return (await response.json()) as SessionResponse;
@@ -478,7 +480,7 @@ export function StatsSection() {
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [strings.errors.session]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -497,7 +499,7 @@ export function StatsSection() {
     })
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error('Не удалось загрузить новости.');
+          throw new Error(strings.errors.updates);
         }
 
         return (await response.json()) as FeedResponse;
@@ -521,7 +523,7 @@ export function StatsSection() {
           setFeedError(
             caughtError instanceof Error
               ? caughtError.message
-              : 'Не удалось загрузить новости.',
+              : strings.errors.updates,
           );
         }
       })
@@ -534,7 +536,7 @@ export function StatsSection() {
     return () => {
       controller.abort();
     };
-  }, [page, selectedTopic]);
+  }, [page, selectedTopic, strings.errors.updates]);
 
   const visiblePages = useMemo(
     () =>
@@ -559,7 +561,7 @@ export function StatsSection() {
     void fetch('/api/auth/session', { cache: 'no-store' })
       .then(async (response) => {
         if (!response.ok) {
-          throw new Error('Не удалось проверить авторскую сессию.');
+          throw new Error(strings.errors.session);
         }
 
         return (await response.json()) as SessionResponse;
@@ -574,19 +576,18 @@ export function StatsSection() {
       className="scroll-mt-16 flex flex-col gap-4 border-t pt-4"
     >
       <div className="flex flex-col gap-1">
-        <Typography.Heading level={3}>Статистика и новости</Typography.Heading>
+        <Typography.Heading level={3}>{strings.title}</Typography.Heading>
         <Typography.Paragraph className="text-muted">
-          Направления, в которых сейчас больше всего практики, и заметки о
-          разработке.
+          {strings.description}
         </Typography.Paragraph>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {developmentDirections.map((direction) => (
-          <Card key={direction.label} variant="secondary">
+          <Card key={direction.id} variant="secondary">
             <Card.Header className="flex-row items-center justify-between gap-3">
               <Card.Title className="text-lg font-semibold">
-                {direction.label}
+                {getText(direction.label, locale)}
               </Card.Title>
               <Chip
                 color={direction.color}
@@ -603,7 +604,7 @@ export function StatsSection() {
                 color={direction.color}
                 size="sm"
                 valueLabel={`${direction.value}%`}
-                aria-label={`${direction.label}: ${direction.value}%`}
+                aria-label={`${getText(direction.label, locale)}: ${direction.value}%`}
               >
                 <ProgressBar.Track>
                   <ProgressBar.Fill />
@@ -675,26 +676,29 @@ export function StatsSection() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <Typography.Heading id="updates-heading" level={4}>
-              Наработки и новости
+              {strings.updatesTitle}
             </Typography.Heading>
             <Typography.Paragraph className="text-muted">
-              Короткие заметки по проектам, AI, обучению и сайту.
+              {strings.updatesDescription}
             </Typography.Paragraph>
           </div>
           {pagination && (
             <Chip size="sm" variant="secondary" className="px-2 max-w-fit">
-              Всего: {pagination.total}
+              {strings.total.replace('{count}', String(pagination.total))}
             </Chip>
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2" aria-label="Фильтр новостей">
+        <div
+          className="flex flex-wrap gap-2"
+          aria-label={strings.updatesFilter}
+        >
           <Button
             size="sm"
             variant={selectedTopic ? 'secondary' : 'primary'}
             onPress={() => selectTopic(undefined)}
           >
-            Все
+            {strings.all}
           </Button>
           {devUpdateTopics.map((topic) => (
             <Button
@@ -703,7 +707,7 @@ export function StatsSection() {
               variant={selectedTopic === topic.value ? 'primary' : 'secondary'}
               onPress={() => selectTopic(topic.value)}
             >
-              {topic.label}
+              {getDevUpdateTopicLabel(topic.value, locale)}
             </Button>
           ))}
         </div>
@@ -712,7 +716,7 @@ export function StatsSection() {
           <Alert status="danger">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>Новости не загрузились</Alert.Title>
+              <Alert.Title>{strings.updatesLoadFailed}</Alert.Title>
               <Alert.Description>{feedError}</Alert.Description>
             </Alert.Content>
           </Alert>
@@ -727,7 +731,7 @@ export function StatsSection() {
         {!isLoading && !feedError && updates.length === 0 && (
           <Card variant="transparent">
             <Card.Content className="text-sm text-muted">
-              Здесь появятся первые заметки после публикации в авторском режиме.
+              {strings.noUpdates}
             </Card.Content>
           </Card>
         )}
@@ -743,14 +747,16 @@ export function StatsSection() {
         {isLoading && updates.length > 0 && (
           <div className="flex items-center gap-2 text-sm text-muted">
             <Spinner size="sm" />
-            Обновляю ленту…
+            {strings.refreshing}
           </div>
         )}
 
         {pagination && pagination.totalPages > 1 && (
           <Pagination size="sm">
             <Pagination.Summary>
-              Страница {pagination.page} из {pagination.totalPages}
+              {strings.page
+                .replace('{page}', String(pagination.page))
+                .replace('{total}', String(pagination.totalPages))}
             </Pagination.Summary>
             <Pagination.Content>
               <Pagination.Item>
@@ -759,7 +765,7 @@ export function StatsSection() {
                   onPress={() => selectPage(pagination.page - 1)}
                 >
                   <Pagination.PreviousIcon />
-                  <span>Назад</span>
+                  <span>{strings.previous}</span>
                 </Pagination.Previous>
               </Pagination.Item>
               {visiblePages.map((visiblePage, index) => (
@@ -784,7 +790,7 @@ export function StatsSection() {
                   isDisabled={pagination.page === pagination.totalPages}
                   onPress={() => selectPage(pagination.page + 1)}
                 >
-                  <span>Далее</span>
+                  <span>{strings.next}</span>
                   <Pagination.NextIcon />
                 </Pagination.Next>
               </Pagination.Item>

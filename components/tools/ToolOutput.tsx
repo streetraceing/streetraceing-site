@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocale } from '@/app/providers';
 import { Button, Card } from '@heroui/react';
 import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
@@ -9,7 +10,8 @@ type ToolOutputProps = {
   label?: string;
 };
 
-export function ToolOutput({ content, label = 'Результат' }: ToolOutputProps) {
+export function ToolOutput({ content, label }: ToolOutputProps) {
+  const { copy } = useLocale();
   const [isCopied, setIsCopied] = useState(false);
 
   async function copyOutput() {
@@ -25,10 +27,10 @@ export function ToolOutput({ content, label = 'Результат' }: ToolOutput
   return (
     <Card variant="secondary">
       <Card.Header className="flex-row items-center justify-between gap-3">
-        <Card.Title>{label}</Card.Title>
+        <Card.Title>{label ?? copy.tool.output}</Card.Title>
         <Button
           isIconOnly
-          aria-label="Скопировать результат"
+          aria-label={copy.tool.copyOutput}
           size="sm"
           variant="tertiary"
           onPress={() => void copyOutput()}

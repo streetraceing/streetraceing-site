@@ -1,9 +1,13 @@
+'use client';
+
 import { ArrowUpRight, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
 
 import { cn } from '@heroui/react';
 
 import type { ProjectConfig } from '@/utils/config';
+import { useLocale } from '@/app/providers';
+import { getText } from '@/utils/i18n';
 
 type ProjectActionsProps = {
   project: ProjectConfig;
@@ -11,6 +15,8 @@ type ProjectActionsProps = {
 };
 
 export function ProjectActions({ project, className }: ProjectActionsProps) {
+  const { copy, locale } = useLocale();
+
   return (
     <div
       className={cn(
@@ -23,7 +29,7 @@ export function ProjectActions({ project, className }: ProjectActionsProps) {
         className="button button--secondary button--md w-full sm:w-auto"
       >
         <FolderOpen className="size-4" />
-        Страница проекта
+        {copy.project.projectPage}
       </Link>
 
       {project.links.map((link) => (
@@ -35,7 +41,7 @@ export function ProjectActions({ project, className }: ProjectActionsProps) {
           className="button button--primary button--md w-full sm:w-auto"
         >
           <link.icon className="size-4" />
-          {link.label}
+          {getText(link.label, locale)}
           <ArrowUpRight className="size-4" />
         </a>
       ))}
@@ -49,12 +55,14 @@ export function ProjectActions({ project, className }: ProjectActionsProps) {
           className="button button--tertiary button--md w-full sm:w-auto"
         >
           <link.icon className="size-4" />
-          {link.label}
+          {getText(link.label, locale)}
         </a>
       ))}
 
       {project.links.length === 0 && (
-        <p className="w-full text-sm text-muted">Публичных ссылок пока нет.</p>
+        <p className="w-full text-sm text-muted">
+          {copy.project.noPublicLinks}
+        </p>
       )}
     </div>
   );

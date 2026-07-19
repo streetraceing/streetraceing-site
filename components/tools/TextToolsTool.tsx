@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocale } from '@/app/providers';
 import {
   Button,
   Chip,
@@ -47,6 +48,8 @@ function applyOperation(value: string, operation: TextOperation) {
 }
 
 export function TextToolsTool() {
+  const { copy } = useLocale();
+  const strings = copy.tools.text;
   const [source, setSource] = useState('');
   const [output, setOutput] = useState('');
 
@@ -71,39 +74,42 @@ export function TextToolsTool() {
         onSubmit={(event) => event.preventDefault()}
       >
         <TextField fullWidth name="text" value={source} onChange={setSource}>
-          <Label>Текст</Label>
+          <Label>{strings.label}</Label>
           <TextArea
             variant="secondary"
             rows={12}
-            placeholder="Вставь или напиши текст…"
+            placeholder={strings.placeholder}
           />
-          <Description>
-            Результат появится ниже, исходный текст не изменится.
-          </Description>
+          <Description>{strings.description}</Description>
         </TextField>
 
         <div className="flex flex-wrap gap-2">
           <Chip size="sm" variant="secondary">
-            Символов: {textStats.characters}
+            {strings.characters.replace(
+              '{count}',
+              String(textStats.characters),
+            )}
           </Chip>
           <Chip size="sm" variant="secondary">
-            Слов: {textStats.words}
+            {strings.words.replace('{count}', String(textStats.words))}
           </Chip>
           <Chip size="sm" variant="secondary">
-            Строк: {textStats.lines}
+            {strings.lines.replace('{count}', String(textStats.lines))}
           </Chip>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <Button type="button" onPress={() => transformText('uppercase')}>
-            <CaseUpper />В верхний регистр
+            <CaseUpper />
+            {strings.uppercase}
           </Button>
           <Button
             type="button"
             variant="secondary"
             onPress={() => transformText('lowercase')}
           >
-            <CaseLower />В нижний регистр
+            <CaseLower />
+            {strings.lowercase}
           </Button>
           <Button
             type="button"
@@ -111,7 +117,7 @@ export function TextToolsTool() {
             onPress={() => transformText('trim-lines')}
           >
             <ListFilter />
-            Очистить пробелы
+            {strings.trimLines}
           </Button>
           <Button
             type="button"
@@ -119,7 +125,7 @@ export function TextToolsTool() {
             onPress={() => transformText('remove-empty-lines')}
           >
             <Trash2 />
-            Убрать пустые строки
+            {strings.removeEmptyLines}
           </Button>
           <Button
             type="button"
@@ -127,7 +133,7 @@ export function TextToolsTool() {
             onPress={() => transformText('unique-lines')}
           >
             <Waypoints />
-            Уникальные строки
+            {strings.uniqueLines}
           </Button>
         </div>
       </Form>

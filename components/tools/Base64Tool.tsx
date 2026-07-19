@@ -1,5 +1,6 @@
 'use client';
 
+import { useLocale } from '@/app/providers';
 import {
   Alert,
   Button,
@@ -34,6 +35,8 @@ function decodeBase64(value: string) {
 }
 
 export function Base64Tool() {
+  const { copy } = useLocale();
+  const strings = copy.tools.base64;
   const [source, setSource] = useState('');
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string>();
@@ -46,11 +49,7 @@ export function Base64Tool() {
       setError(undefined);
     } catch {
       setOutput('');
-      setError(
-        direction === 'decode'
-          ? 'Это не похоже на корректный Base64.'
-          : 'Не удалось закодировать текст.',
-      );
+      setError(direction === 'decode' ? strings.invalid : strings.encodeFailed);
     }
   }
 
@@ -68,26 +67,23 @@ export function Base64Tool() {
           name="base64"
           value={source}
           onChange={setSource}
-          validate={(value) =>
-            value ? null : 'Вставь текст или Base64-строку.'
-          }
+          validate={(value) => (value ? null : strings.required)}
         >
-          <Label>Текст или Base64</Label>
+          <Label>{strings.label}</Label>
           <TextArea
             variant="secondary"
             rows={10}
-            placeholder="Например: Привет, мир!"
+            placeholder={strings.placeholder}
             spellCheck={false}
           />
-          <Description>
-            Кодирование UTF-8 выполняется локально в браузере.
-          </Description>
+          <Description>{strings.description}</Description>
           <FieldError />
         </TextField>
 
         <div className="flex flex-wrap gap-2">
           <Button type="submit">
-            <LockKeyhole />В Base64
+            <LockKeyhole />
+            {strings.encode}
           </Button>
           <Button
             type="button"
@@ -95,19 +91,19 @@ export function Base64Tool() {
             onPress={() => transform('decode')}
           >
             <UnlockKeyhole />
-            Из Base64
+            {strings.decode}
           </Button>
           <Button
             type="button"
             variant="tertiary"
             onPress={() => {
-              setSource('Привет, мир!');
+              setSource('Hello, world!');
               setOutput('');
               setError(undefined);
             }}
           >
             <ArrowLeftRight />
-            Пример
+            {strings.example}
           </Button>
         </div>
       </Form>
@@ -116,13 +112,13 @@ export function Base64Tool() {
         <Alert status="danger">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Не получилось обработать значение</Alert.Title>
+            <Alert.Title>{strings.errorTitle}</Alert.Title>
             <Alert.Description>{error}</Alert.Description>
           </Alert.Content>
         </Alert>
       )}
 
-      {output && <ToolOutput content={output} label="Результат Base64" />}
+      {output && <ToolOutput content={output} label={strings.output} />}
     </div>
   );
 }

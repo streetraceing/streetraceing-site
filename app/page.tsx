@@ -1,3 +1,6 @@
+'use client';
+
+import { useLocale } from '@/app/providers';
 import { Container } from '@/components/layout/Container';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
@@ -10,36 +13,29 @@ import { mainPageConfig } from '@/utils/config';
 import { Typography } from '@heroui/react';
 
 export default function HomePage() {
+  const { copy } = useLocale();
+
   return (
     <Page header={<Header />} footer={<Footer />}>
       <Container className="py-4 gap-4 flex flex-col">
-        <Typography.Paragraph>
-          Ээ даже хз что сюда писать и размещать но похъ
-        </Typography.Paragraph>
+        <Typography.Paragraph>{copy.home.intro}</Typography.Paragraph>
 
         <section
           id="bio"
           className="scroll-mt-16 flex flex-col gap-4 pt-4 border-t"
         >
           <Typography.Heading level={3}>
-            Вот моя биография йоу
+            {copy.home.bioTitle}
           </Typography.Heading>
 
           <div className="flex gap-4 h-fit flex-col md:flex-row md:h-48">
             <ProfileAvatar />
-            <div className="flex flex-col">
-              <Typography.Paragraph>
-                Зовут Андрей, 18 лет, люблю программирование, дизайн и лигу
-                легенд. В основном играю в игры и учусь в университете, немного
-                увлекаюсь рисованием .-. <br />
-                Программировать начал с лет 10, создавая дискорд ботов с
-                discordjs, а после уже и пошли программы с tauri, вебсайты,
-                бэкенды и тд. Я себя идентифицирую как фуллстак :) <br />
-                Умею работать с git, docker, бдшками, линуском (ну так по
-                мелочи). Из языков я знаю javascript + typescript, java, учу c#,
-                влюблен в rust (кек). <br /> В последнее время увлекаюсь иишками
-                и работой с ними.
-              </Typography.Paragraph>
+            <div className="flex flex-col gap-3">
+              {copy.home.bio.map((paragraph) => (
+                <Typography.Paragraph key={paragraph}>
+                  {paragraph}
+                </Typography.Paragraph>
+              ))}
             </div>
           </div>
         </section>
@@ -51,7 +47,10 @@ export default function HomePage() {
           className="scroll-mt-16 flex flex-col gap-4 pt-4 border-t"
         >
           <Typography.Heading level={3}>
-            А вот мои проекты ({mainPageConfig.projects.length}) кста
+            {copy.home.projectsTitle.replace(
+              '{count}',
+              String(mainPageConfig.projects.length),
+            )}
           </Typography.Heading>
 
           <div className="flex flex-col gap-4">
@@ -66,7 +65,10 @@ export default function HomePage() {
           className="scroll-mt-16 flex flex-col gap-4 pt-4 border-t"
         >
           <Typography.Heading level={3}>
-            Инструменты ({mainPageConfig.tools.length}) чиста для удобства
+            {copy.home.toolsTitle.replace(
+              '{count}',
+              String(mainPageConfig.tools.length),
+            )}
           </Typography.Heading>
 
           <div className="flex flex-col gap-4">

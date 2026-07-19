@@ -1,18 +1,21 @@
+'use client';
+
 import { cn, Chip } from '@heroui/react';
 
 import type { ProjectStatus } from '@/utils/config';
+import { useLocale } from '@/app/providers';
 
 const projectStatusMeta = {
-  'in-development': { label: 'В разработке', color: 'accent' },
-  released: { label: 'Готов', color: 'success' },
-  private: { label: 'Приватный', color: 'warning' },
-  'closed-source': { label: 'Закрытый код', color: 'default' },
-  'open-source': { label: 'Open source', color: 'success' },
-  maintained: { label: 'Поддерживается', color: 'accent' },
-  archived: { label: 'В архиве', color: 'default' },
-  paused: { label: 'На паузе', color: 'warning' },
-  planned: { label: 'Запланирован', color: 'default' },
-  beta: { label: 'Beta', color: 'warning' },
+  'in-development': { color: 'accent' },
+  released: { color: 'success' },
+  private: { color: 'warning' },
+  'closed-source': { color: 'default' },
+  'open-source': { color: 'success' },
+  maintained: { color: 'accent' },
+  archived: { color: 'default' },
+  paused: { color: 'warning' },
+  planned: { color: 'default' },
+  beta: { color: 'warning' },
 } as const;
 
 const projectStatusOrder: Record<ProjectStatus, number> = {
@@ -37,6 +40,7 @@ export function ProjectStatusChips({
   statuses,
   className,
 }: ProjectStatusChipsProps) {
+  const { copy } = useLocale();
   const sortedStatuses = [...statuses].sort(
     (firstStatus, secondStatus) =>
       projectStatusOrder[firstStatus] - projectStatusOrder[secondStatus],
@@ -49,7 +53,7 @@ export function ProjectStatusChips({
 
         return (
           <Chip key={status} color={meta.color} variant="soft" size="sm">
-            {meta.label}
+            {copy.project.status[status]}
           </Chip>
         );
       })}

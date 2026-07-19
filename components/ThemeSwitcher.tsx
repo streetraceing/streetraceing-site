@@ -1,7 +1,7 @@
 'use client';
 
 import { Button, ButtonGroup, Tooltip } from '@heroui/react';
-import { useTheme } from '@/app/providers';
+import { type Theme, useLocale, useTheme } from '@/app/providers';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 
@@ -9,18 +9,16 @@ type ThemeSwitcherProps = {
   variant?: 'cycle' | 'group';
 };
 
-type Theme = 'system' | 'light' | 'dark';
-
-const themeName: Record<Theme, string> = {
-  system: 'Система',
-  light: 'Светлая',
-  dark: 'Тёмная',
-};
-
 const subscribeToNothing = () => () => {};
 
 export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
   const { theme, setTheme } = useTheme();
+  const { copy } = useLocale();
+  const themeName: Record<Theme, string> = {
+    system: copy.theme.system,
+    light: copy.theme.light,
+    dark: copy.theme.dark,
+  };
   const mounted = useSyncExternalStore(
     subscribeToNothing,
     () => true,
@@ -99,8 +97,8 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
       </Button>
 
       <Tooltip.Content>
-        {themeName[theme as Theme] ?? 'Неизвестно'}{' '}
-        {theme != 'system' ? 'тема' : ''}
+        {themeName[theme as Theme] ?? copy.theme.unknown}{' '}
+        {theme != 'system' ? copy.theme.themeSuffix : ''}
       </Tooltip.Content>
     </Tooltip>
   );
