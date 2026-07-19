@@ -76,7 +76,7 @@ function getVisiblePages(currentPage: number, totalPages: number) {
 
 function MarkdownContent({ content }: { content: string }) {
   return (
-    <Typography.Prose className="max-w-none break-words text-sm leading-6 [&_a]:text-accent [&_a]:underline [&_a]:underline-offset-4 [&_blockquote]:border-l-2 [&_blockquote]:border-accent/60 [&_blockquote]:pl-3 [&_blockquote]:text-muted [&_code:not(.hljs)]:rounded-md [&_code:not(.hljs)]:bg-default-soft [&_code:not(.hljs)]:px-1.5 [&_code:not(.hljs)]:py-0.5 [&_code:not(.hljs)]:text-[0.8125rem] [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:my-3 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre_code]:min-w-max [&_ul]:list-disc [&_ul]:pl-5">
+    <Typography.Prose className="max-w-none wrap-break-word text-sm leading-6 [&_a]:text-accent [&_a]:underline [&_a]:underline-offset-4 [&_blockquote]:border-l-2 [&_blockquote]:border-accent/60 [&_blockquote]:pl-3 [&_blockquote]:text-muted [&_code:not(.hljs)]:rounded-md [&_code:not(.hljs)]:bg-default-soft [&_code:not(.hljs)]:px-1.5 [&_code:not(.hljs)]:py-0.5 [&_code:not(.hljs)]:text-[0.8125rem] [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:my-3 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre_code]:min-w-max [&_ul]:list-disc [&_ul]:pl-5">
       <ReactMarkdown
         rehypePlugins={[[rehypeHighlight, { detect: true }]]}
         components={{
@@ -529,7 +529,12 @@ export function StatsSection() {
               <Card.Title className="text-lg font-semibold">
                 {direction.label}
               </Card.Title>
-              <Chip color={direction.color} size="sm" variant="soft">
+              <Chip
+                color={direction.color}
+                size="sm"
+                variant="soft"
+                className="px-2"
+              >
                 {direction.value}%
               </Chip>
             </Card.Header>
@@ -618,7 +623,7 @@ export function StatsSection() {
             </Typography.Paragraph>
           </div>
           {pagination && (
-            <Chip size="sm" variant="secondary" className="py-11">
+            <Chip size="sm" variant="secondary" className="px-2 max-w-fit">
               Всего: {pagination.total}
             </Chip>
           )}

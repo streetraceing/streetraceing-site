@@ -42,8 +42,11 @@ function applyTheme(theme: Theme) {
         : 'light'
       : theme;
 
-  document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
-  document.documentElement.style.colorScheme = resolvedTheme;
+  const root = document.documentElement;
+
+  root.classList.toggle('dark', resolvedTheme === 'dark');
+  root.dataset.theme = resolvedTheme;
+  root.style.colorScheme = resolvedTheme;
 }
 
 export function useTheme() {
