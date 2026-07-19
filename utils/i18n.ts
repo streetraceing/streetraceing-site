@@ -22,7 +22,34 @@ export function getRequestLocale(request: Request): Locale {
     .map((cookie) => cookie.trim())
     .find((cookie) => cookie.startsWith(`${LOCALE_COOKIE}=`));
 
-  return getLocale(localeCookie?.slice(LOCALE_COOKIE.length + 1));
+  return localeCookie
+    ? getLocale(localeCookie.slice(LOCALE_COOKIE.length + 1))
+    : getLocaleFromAcceptLanguage(request.headers.get('accept-language'));
+}
+
+export function getLocaleFromAcceptLanguage(
+  acceptLanguage: string | null,
+): Locale {
+  const preferredLocale = acceptLanguage
+    ?.split(',')
+    .map((item) => item.split(';')[0]?.trim().toLowerCase())
+    .find(
+      (locale) =>
+        locale === 'ru' ||
+        locale?.startsWith('ru-') ||
+        locale === 'en' ||
+        locale?.startsWith('en-'),
+    );
+
+  if (preferredLocale === 'ru' || preferredLocale?.startsWith('ru-')) {
+    return 'ru';
+  }
+
+  if (preferredLocale === 'en' || preferredLocale?.startsWith('en-')) {
+    return 'en';
+  }
+
+  return defaultLocale;
 }
 
 export function getText(value: LocalizedText, locale: Locale) {

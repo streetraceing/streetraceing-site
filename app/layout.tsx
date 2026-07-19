@@ -3,9 +3,14 @@ import './globals.css';
 import { geistMono, geistSans, petitFormal } from '@/app/fonts';
 import { Providers } from '@/app/providers';
 import { siteConfig } from '@/utils/config';
-import { getLocale, getText, LOCALE_COOKIE } from '@/utils/i18n';
+import {
+  getLocale,
+  getLocaleFromAcceptLanguage,
+  getText,
+  LOCALE_COOKIE,
+} from '@/utils/i18n';
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 const themeBootstrapScript = `
   (() => {
@@ -28,8 +33,11 @@ const themeBootstrapScript = `
 `;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const cookieStore = await cookies();
-  const locale = getLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
+  const storedLocale = cookieStore.get(LOCALE_COOKIE)?.value;
+  const locale = storedLocale
+    ? getLocale(storedLocale)
+    : getLocaleFromAcceptLanguage(headerStore.get('accept-language'));
 
   return {
     title: siteConfig.name,
@@ -42,8 +50,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const locale = getLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
+  const storedLocale = cookieStore.get(LOCALE_COOKIE)?.value;
+  const locale = storedLocale
+    ? getLocale(storedLocale)
+    : getLocaleFromAcceptLanguage(headerStore.get('accept-language'));
 
   return (
     <html
