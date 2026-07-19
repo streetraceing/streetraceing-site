@@ -160,9 +160,6 @@ function AuthorControls({
         <Alert.Indicator />
         <Alert.Content>
           <Alert.Title>Авторский режим пока не настроен</Alert.Title>
-          <Alert.Description>
-            Добавь ADMIN_PASSWORD и AUTH_SECRET в переменные окружения.
-          </Alert.Description>
         </Alert.Content>
       </Alert>
     );
@@ -228,7 +225,7 @@ function AuthorControls({
         <div>
           <Card.Title>Новая заметка</Card.Title>
           <Card.Description>
-            Эта форма видна только в твоей авторской сессии.
+            Эта форма видна только в авторской сессии.
           </Card.Description>
         </div>
         <Button
@@ -244,11 +241,8 @@ function AuthorControls({
       <Card.Content>
         <Form className="flex flex-col gap-4" onSubmit={publish}>
           <TextField fullWidth name="title" value={title} onChange={setTitle}>
-            <Label>Заголовок — необязательно</Label>
-            <Input
-              maxLength={160}
-              placeholder="Например, новый этап Symmetry"
-            />
+            <Label>Заголовок (необязательно)</Label>
+            <Input maxLength={160} placeholder="Например, новый этап проекта" />
             <Description>{title.length} / 160</Description>
           </TextField>
 
@@ -276,7 +270,7 @@ function AuthorControls({
             value={content}
             onChange={setContent}
             validate={(value) =>
-              value.trim() ? null : 'Напиши хотя бы одну строчку.'
+              value.trim() ? null : 'Напишите хотя бы одну строчку.'
             }
           >
             <Label>Заметка</Label>
@@ -441,7 +435,9 @@ export function StatsSection() {
         {developmentDirections.map((direction) => (
           <Card key={direction.label} variant="secondary">
             <Card.Header className="flex-row items-center justify-between gap-3">
-              <Card.Title>{direction.label}</Card.Title>
+              <Card.Title className="text-lg font-semibold">
+                {direction.label}
+              </Card.Title>
               <Chip color={direction.color} size="sm" variant="soft">
                 {direction.value}%
               </Chip>
@@ -501,7 +497,7 @@ export function StatsSection() {
             </Typography.Paragraph>
           </div>
           {pagination && (
-            <Chip size="sm" variant="secondary">
+            <Chip size="sm" variant="secondary" className="px-2">
               Всего: {pagination.total}
             </Chip>
           )}
