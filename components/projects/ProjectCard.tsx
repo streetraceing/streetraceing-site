@@ -2,7 +2,6 @@
 
 import { Card, Chip, Modal } from '@heroui/react';
 import { ArrowUpRight } from 'lucide-react';
-import type { CSSProperties } from 'react';
 
 import type { ProjectConfig } from '@/utils/config';
 import { useLocale } from '@/app/providers';

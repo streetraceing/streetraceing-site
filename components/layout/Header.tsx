@@ -19,9 +19,9 @@ export function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/75 backdrop-blur">
-      <div className="relative">
-        <Container className="h-16 grid grid-cols-[auto_1fr] md:grid-cols-[auto_1fr_auto] items-center gap-4">
+    <>
+      <header className="sticky top-0 z-50 border-b bg-background/75 backdrop-blur">
+        <Container className="grid h-16 grid-cols-[auto_1fr] items-center gap-4 md:grid-cols-[auto_1fr_auto]">
           <NextLink
             href="/"
             className={cn(
@@ -82,43 +82,43 @@ export function Header() {
             </Button>
           </div>
         </Container>
+      </header>
 
-        {open && (
-          <div className="absolute left-0 top-full z-50 w-full border-b border-t bg-background/80 shadow-lg backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] md:hidden">
-            <Container className="py-4 flex flex-col gap-4">
-              <Typography.Heading level={5}>
-                {copy.header.navigation}
-              </Typography.Heading>
+      {open && (
+        <div className="fixed inset-x-0 top-16 z-40 border-b border-t bg-background/70 shadow-lg backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] md:hidden">
+          <Container className="flex flex-col gap-4 py-4">
+            <Typography.Heading level={5}>
+              {copy.header.navigation}
+            </Typography.Heading>
 
-              {headerConfig.links.map((link) => (
-                <NextLink key={link.href} href={link.href}>
-                  <div
-                    className={cn(linkSlots.base(), 'no-underline')}
-                    onClick={() => setOpen(false)}
-                  >
-                    <link.icon className="size-5 mr-2 text-muted" />
-                    <Typography.Paragraph className="truncate">
-                      {getText(link.label, locale)}
-                    </Typography.Paragraph>
-                  </div>
-                </NextLink>
-              ))}
+            {headerConfig.links.map((link) => (
+              <NextLink key={link.href} href={link.href}>
+                <div
+                  className={cn(linkSlots.base(), 'no-underline')}
+                  onClick={() => setOpen(false)}
+                >
+                  <link.icon className="mr-2 size-5 text-muted" />
+                  <Typography.Paragraph className="truncate">
+                    {getText(link.label, locale)}
+                  </Typography.Paragraph>
+                </div>
+              </NextLink>
+            ))}
 
-              <Typography.Heading level={5}>
-                {copy.theme.label}
-              </Typography.Heading>
+            <Typography.Heading level={5}>
+              {copy.theme.label}
+            </Typography.Heading>
 
-              <ThemeSwitcher variant="group" />
+            <ThemeSwitcher variant="group" />
 
-              <Typography.Heading level={5}>
-                {copy.language.label}
-              </Typography.Heading>
+            <Typography.Heading level={5}>
+              {copy.language.label}
+            </Typography.Heading>
 
-              <LanguageSwitcher fullWidth />
-            </Container>
-          </div>
-        )}
-      </div>
-    </header>
+            <LanguageSwitcher fullWidth />
+          </Container>
+        </div>
+      )}
+    </>
   );
 }
