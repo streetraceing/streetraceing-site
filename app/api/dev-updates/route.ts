@@ -1,0 +1,99 @@
+import { count, desc, eq } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
+
+import { db } from '@/db';
+import { devUpdates } from '@/db/schema';
+import { isAdmin } from '@/utils/auth';
+import { DEV_UPDATES_PAGE_SIZE, isDevUpdateTopic } from '@/utils/stats';
+
+export const runtime = 'nodejs';
+
+function getPage(value: string | null) {
+  const page = Number.parseInt(value ?? '1', 10);
+
+  return Number.isSafeInteger(page) && page > 0 ? page : 1;
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const page = getPage(searchParams.get('page'));
+  const topicValue = searchParams.get('topic');
+  const topic =
+    topicValue && isDevUpdateTopic(topicValue) ? topicValue : undefined;
+  const where = topic ? eq(devUpdates.topic, topic) : undefined;
+
+  const [totalResult, updates] = await Promise.all([
+    db.select({ total: count() }).from(devUpdates).where(where),
+    db
+      .select()
+      .from(devUpdates)
+      .where(where)
+      .orderBy(desc(devUpdates.createdAt))
+      .limit(DEV_UPDATES_PAGE_SIZE)
+      .offset((page - 1) * DEV_UPDATES_PAGE_SIZE),
+  ]);
+
+  const total = totalResult[0]?.total ?? 0;
+
+  return NextResponse.json({
+    updates,
+    pagination: {
+      page,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / DEV_UPDATES_PAGE_SIZE)),
+    },
+  });
+}
+
+export async function POST(request: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json(
+      { error: 'Требуется авторизация.' },
+      { status: 401 },
+    );
+  }
+
+  let body: {
+    title?: unknown;
+    content?: unknown;
+    topic?: unknown;
+  };
+
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: 'Некорректный запрос.' },
+      { status: 400 },
+    );
+  }
+
+  const title = typeof body.title === 'string' ? body.title.trim() : '';
+  const content = typeof body.content === 'string' ? body.content.trim() : '';
+  const topic = typeof body.topic === 'string' ? body.topic : '';
+
+  if (!content || content.length > 8_000 || !isDevUpdateTopic(topic)) {
+    return NextResponse.json(
+      { error: 'Проверь текст заметки и выбранную тему.' },
+      { status: 400 },
+    );
+  }
+
+  if (title.length > 160) {
+    return NextResponse.json(
+      { error: 'Заголовок не должен быть длиннее 160 символов.' },
+      { status: 400 },
+    );
+  }
+
+  const [update] = await db
+    .insert(devUpdates)
+    .values({
+      title: title || null,
+      content,
+      topic,
+    })
+    .returning();
+
+  return NextResponse.json({ update }, { status: 201 });
+}

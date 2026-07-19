@@ -1,8 +1,8 @@
 'use client';
 
 import { Button, ButtonGroup, Tooltip } from '@heroui/react';
+import { useTheme } from '@/app/providers';
 import { Monitor, Moon, Sun } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import { useSyncExternalStore } from 'react';
 
 type ThemeSwitcherProps = {

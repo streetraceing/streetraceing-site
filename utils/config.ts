@@ -1,6 +1,7 @@
 import {
   Bot,
   Braces,
+  BarChart3,
   Code2,
   ExternalLink,
   FileText,
@@ -195,7 +196,7 @@ export const mainPageConfig: MainPageConfig = {
   tools: [
     {
       slug: 'tiny-url',
-      name: 'Tiny data',
+      name: 'Tiny url and other data',
       description:
         'Сохраняй ссылку, текст или другие данные и получай короткий адрес.',
       icon: ExternalLink,
@@ -256,6 +257,11 @@ export const headerConfig: HeaderConfig = {
       icon: Home,
       label: 'Биография',
       href: '/#bio',
+    },
+    {
+      icon: BarChart3,
+      label: 'Статистика',
+      href: '/#stats',
     },
     {
       icon: FolderOpen,

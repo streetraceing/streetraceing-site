@@ -26,3 +26,19 @@ export const shortUrls = pgTable(
     index('short_urls_owner_token_idx').on(table.ownerToken),
   ],
 );
+
+export const devUpdates = pgTable(
+  'dev_updates',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    title: varchar('title', { length: 160 }),
+    content: text('content').notNull(),
+    topic: varchar('topic', { length: 32 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('dev_updates_topic_created_at_idx').on(table.topic, table.createdAt),
+  ],
+);

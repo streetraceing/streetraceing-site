@@ -16,48 +16,50 @@ export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Modal>
       <Modal.Trigger className="h-full w-full text-left">
-        <Card className="relative h-full overflow-hidden border-2 border-t-0 transition-colors hover:border-accent/60">
+        <div className="relative h-full">
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 h-0.5"
+            className="pointer-events-none absolute inset-x-1 top-0 z-10 h-0.5 rounded-t-lg"
             style={{
               backgroundImage: `linear-gradient(90deg, ${project.colors.join(', ')})`,
             }}
           />
-          <Card.Header className="gap-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2">
-                {project.icon && (
-                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-default-soft">
-                    <project.icon className="size-5" />
-                  </span>
-                )}
-                <Card.Title className="truncate">{project.name}</Card.Title>
+          <Card className="h-full border-2 transition-colors hover:border-accent/60">
+            <Card.Header className="gap-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  {project.icon && (
+                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-default-soft">
+                      <project.icon className="size-5" />
+                    </span>
+                  )}
+                  <Card.Title className="truncate">{project.name}</Card.Title>
+                </div>
+                <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted" />
               </div>
-              <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted" />
-            </div>
-            <ProjectStatusChips statuses={project.status} />
-            <Card.Description>{project.shortDescription}</Card.Description>
-          </Card.Header>
-          <Card.Content className="mt-auto flex flex-col gap-4">
-            <div className="flex flex-wrap gap-2">
-              {project.technologies.slice(0, 3).map((technology) => (
-                <Chip key={technology} size="sm" variant="secondary">
-                  {technology}
-                </Chip>
-              ))}
-              {project.technologies.length > 3 && (
-                <Chip size="sm" variant="secondary">
-                  +{project.technologies.length - 3}
-                </Chip>
-              )}
-            </div>
-            <ProjectProgress value={project.progress} />
-          </Card.Content>
-          <Card.Footer className="text-sm text-muted">
-            Открыть подробности
-          </Card.Footer>
-        </Card>
+              <ProjectStatusChips statuses={project.status} />
+              <Card.Description>{project.shortDescription}</Card.Description>
+            </Card.Header>
+            <Card.Content className="mt-auto flex flex-col gap-4">
+              <div className="flex flex-wrap gap-2">
+                {project.technologies.slice(0, 3).map((technology) => (
+                  <Chip key={technology} size="sm" variant="secondary">
+                    {technology}
+                  </Chip>
+                ))}
+                {project.technologies.length > 3 && (
+                  <Chip size="sm" variant="secondary">
+                    +{project.technologies.length - 3}
+                  </Chip>
+                )}
+              </div>
+              <ProjectProgress value={project.progress} />
+            </Card.Content>
+            <Card.Footer className="text-sm text-muted">
+              Открыть подробности
+            </Card.Footer>
+          </Card>
+        </div>
       </Modal.Trigger>
 
       <Modal.Backdrop variant="blur">

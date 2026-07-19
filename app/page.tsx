@@ -5,6 +5,7 @@ import { Page } from '@/components/layout/Page';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { ToolCard } from '@/components/projects/ToolCard';
+import { StatsSection } from '@/components/stats/StatsSection';
 import { mainPageConfig } from '@/utils/config';
 import { Typography } from '@heroui/react';
 
@@ -42,6 +43,8 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        <StatsSection />
 
         <section
           id="projects"
