@@ -9,10 +9,44 @@ import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { ToolCard } from '@/components/projects/ToolCard';
 import { StatsSection } from '@/components/stats/StatsSection';
-import { mainPageConfig, type ProjectStatus } from '@/utils/config';
-import { getText } from '@/utils/i18n';
-import { Button, Card, Label, SearchField, Typography } from '@heroui/react';
+import {
+  mainPageConfig,
+  type ProjectConfig,
+  type ProjectStatus,
+  type ToolConfig,
+} from '@/utils/config';
+import { getLocaleTag, getText } from '@/utils/i18n';
+import {
+  Button,
+  Card,
+  Label,
+  ListBox,
+  SearchField,
+  Select,
+  Typography,
+} from '@heroui/react';
+import Fuse from 'fuse.js';
+import { X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+
+type ProjectSort = 'relevance' | 'progress-desc' | 'name-asc';
+type ToolSort = 'relevance' | 'name-asc';
+
+type ProjectSearchItem = {
+  project: ProjectConfig;
+  name: string;
+  description: string;
+  technologies: string[];
+  statuses: string[];
+  highlights: string[];
+};
+
+type ToolSearchItem = {
+  tool: ToolConfig;
+  name: string;
+  description: string;
+  tags: string[];
+};
 
 const projectStatuses = Array.from(
   new Set(mainPageConfig.projects.flatMap((project) => project.status)),
@@ -25,58 +59,119 @@ const toolTags = mainPageConfig.tools
       tags.findIndex((candidate) => candidate.ru === tag.ru) === index,
   );
 
-function includesQuery(query: string, values: string[]) {
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-
-  return (
-    normalizedQuery.length === 0 ||
-    values.some((value) => value.toLocaleLowerCase().includes(normalizedQuery))
-  );
-}
-
 export default function HomePage() {
   const { copy, locale } = useLocale();
   const [projectQuery, setProjectQuery] = useState('');
   const [selectedProjectStatus, setSelectedProjectStatus] = useState<
     ProjectStatus | undefined
   >();
+  const [projectSort, setProjectSort] = useState<ProjectSort>('relevance');
   const [toolQuery, setToolQuery] = useState('');
   const [selectedToolTag, setSelectedToolTag] = useState<string>();
+  const [toolSort, setToolSort] = useState<ToolSort>('relevance');
 
-  const filteredProjects = useMemo(
+  const projectSearch = useMemo(
     () =>
-      mainPageConfig.projects.filter(
-        (project) =>
-          (!selectedProjectStatus ||
-            project.status.includes(selectedProjectStatus)) &&
-          includesQuery(projectQuery, [
-            project.name,
+      new Fuse<ProjectSearchItem>(
+        mainPageConfig.projects.map((project) => ({
+          project,
+          name: project.name,
+          description: [
             getText(project.shortDescription, locale),
             getText(project.longDescription, locale),
-            ...project.technologies,
-            ...project.status.map((status) => copy.project.status[status]),
-            ...project.highlights.map((highlight) =>
-              getText(highlight, locale),
-            ),
-          ]),
+          ].join(' '),
+          technologies: project.technologies,
+          statuses: project.status.map((status) => copy.project.status[status]),
+          highlights: project.highlights.map((highlight) =>
+            getText(highlight, locale),
+          ),
+        })),
+        {
+          keys: [
+            { name: 'name', weight: 0.5 },
+            { name: 'technologies', weight: 0.2 },
+            { name: 'statuses', weight: 0.15 },
+            { name: 'description', weight: 0.1 },
+            { name: 'highlights', weight: 0.05 },
+          ],
+          threshold: 0.35,
+          ignoreLocation: true,
+        },
       ),
-    [copy.project.status, locale, projectQuery, selectedProjectStatus],
+    [copy.project.status, locale],
   );
 
-  const filteredTools = useMemo(
+  const toolSearch = useMemo(
     () =>
-      mainPageConfig.tools.filter(
-        (tool) =>
-          (!selectedToolTag ||
-            tool.tags.some((tag) => tag.ru === selectedToolTag)) &&
-          includesQuery(toolQuery, [
-            getText(tool.name, locale),
-            getText(tool.description, locale),
-            ...tool.tags.map((tag) => getText(tag, locale)),
-          ]),
+      new Fuse<ToolSearchItem>(
+        mainPageConfig.tools.map((tool) => ({
+          tool,
+          name: getText(tool.name, locale),
+          description: getText(tool.description, locale),
+          tags: tool.tags.map((tag) => getText(tag, locale)),
+        })),
+        {
+          keys: [
+            { name: 'name', weight: 0.55 },
+            { name: 'tags', weight: 0.3 },
+            { name: 'description', weight: 0.15 },
+          ],
+          threshold: 0.35,
+          ignoreLocation: true,
+        },
       ),
-    [locale, selectedToolTag, toolQuery],
+    [locale],
   );
+
+  const filteredProjects = useMemo(() => {
+    const projects = projectQuery.trim()
+      ? projectSearch.search(projectQuery).map(({ item }) => item.project)
+      : mainPageConfig.projects;
+
+    const filtered = projects.filter(
+      (project) =>
+        !selectedProjectStatus ||
+        project.status.includes(selectedProjectStatus),
+    );
+
+    if (projectSort === 'progress-desc') {
+      return [...filtered].sort(
+        (firstProject, secondProject) =>
+          secondProject.progress - firstProject.progress,
+      );
+    }
+
+    if (projectSort === 'name-asc') {
+      return [...filtered].sort((firstProject, secondProject) =>
+        firstProject.name.localeCompare(
+          secondProject.name,
+          getLocaleTag(locale),
+        ),
+      );
+    }
+
+    return filtered;
+  }, [locale, projectQuery, projectSearch, projectSort, selectedProjectStatus]);
+
+  const filteredTools = useMemo(() => {
+    const tools = toolQuery.trim()
+      ? toolSearch.search(toolQuery).map(({ item }) => item.tool)
+      : mainPageConfig.tools;
+
+    const filtered = tools.filter(
+      (tool) =>
+        !selectedToolTag || tool.tags.some((tag) => tag.ru === selectedToolTag),
+    );
+
+    return toolSort === 'name-asc'
+      ? [...filtered].sort((firstTool, secondTool) =>
+          getText(firstTool.name, locale).localeCompare(
+            getText(secondTool.name, locale),
+            getLocaleTag(locale),
+          ),
+        )
+      : filtered;
+  }, [locale, selectedToolTag, toolQuery, toolSearch, toolSort]);
 
   return (
     <Page header={<Header />} footer={<Footer />}>
@@ -159,7 +254,58 @@ export default function HomePage() {
                   {copy.project.status[status]}
                 </Button>
               ))}
+              {selectedProjectStatus && (
+                <Button
+                  aria-label={copy.home.clearFilters}
+                  isIconOnly
+                  type="button"
+                  size="sm"
+                  variant="tertiary"
+                  onPress={() => setSelectedProjectStatus(undefined)}
+                >
+                  <X className="size-4" />
+                </Button>
+              )}
             </div>
+
+            <Select
+              className="w-full sm:w-72"
+              value={projectSort}
+              variant="secondary"
+              onChange={(value) => {
+                if (typeof value === 'string') {
+                  setProjectSort(value as ProjectSort);
+                }
+              }}
+            >
+              <Label>{copy.home.projectsSort}</Label>
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  <ListBox.Item
+                    id="relevance"
+                    textValue={copy.home.sortRelevance}
+                  >
+                    {copy.home.sortRelevance}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                  <ListBox.Item
+                    id="progress-desc"
+                    textValue={copy.home.sortProgress}
+                  >
+                    {copy.home.sortProgress}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                  <ListBox.Item id="name-asc" textValue={copy.home.sortName}>
+                    {copy.home.sortName}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                </ListBox>
+              </Select.Popover>
+            </Select>
           </div>
 
           <div className="flex flex-col gap-4">
@@ -224,7 +370,51 @@ export default function HomePage() {
                   {getText(tag, locale)}
                 </Button>
               ))}
+              {selectedToolTag && (
+                <Button
+                  aria-label={copy.home.clearFilters}
+                  isIconOnly
+                  type="button"
+                  size="sm"
+                  variant="tertiary"
+                  onPress={() => setSelectedToolTag(undefined)}
+                >
+                  <X className="size-4" />
+                </Button>
+              )}
             </div>
+
+            <Select
+              className="w-full sm:w-72"
+              value={toolSort}
+              variant="secondary"
+              onChange={(value) => {
+                if (typeof value === 'string') {
+                  setToolSort(value as ToolSort);
+                }
+              }}
+            >
+              <Label>{copy.home.toolsSort}</Label>
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  <ListBox.Item
+                    id="relevance"
+                    textValue={copy.home.sortRelevance}
+                  >
+                    {copy.home.sortRelevance}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                  <ListBox.Item id="name-asc" textValue={copy.home.sortName}>
+                    {copy.home.sortName}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                </ListBox>
+              </Select.Popover>
+            </Select>
           </div>
 
           <div className="flex flex-col gap-4">

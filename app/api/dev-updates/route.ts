@@ -1,11 +1,15 @@
-import { count, desc, eq } from 'drizzle-orm';
+import { asc, count, desc, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { devUpdates } from '@/db/schema';
 import { isAdmin } from '@/utils/auth';
 import { getRequestLocale, translations } from '@/utils/i18n';
-import { DEV_UPDATES_PAGE_SIZE, isDevUpdateTopic } from '@/utils/stats';
+import {
+  DEV_UPDATES_PAGE_SIZE,
+  isDevUpdateSort,
+  isDevUpdateTopic,
+} from '@/utils/stats';
 
 export const runtime = 'nodejs';
 
@@ -21,7 +25,11 @@ export async function GET(request: Request) {
   const topicValue = searchParams.get('topic');
   const topic =
     topicValue && isDevUpdateTopic(topicValue) ? topicValue : undefined;
+  const sortValue = searchParams.get('sort');
+  const sort = sortValue && isDevUpdateSort(sortValue) ? sortValue : 'newest';
   const where = topic ? eq(devUpdates.topic, topic) : undefined;
+  const orderBy =
+    sort === 'oldest' ? asc(devUpdates.createdAt) : desc(devUpdates.createdAt);
 
   const [totalResult, updates] = await Promise.all([
     db.select({ total: count() }).from(devUpdates).where(where),
@@ -29,7 +37,7 @@ export async function GET(request: Request) {
       .select()
       .from(devUpdates)
       .where(where)
-      .orderBy(desc(devUpdates.createdAt))
+      .orderBy(orderBy)
       .limit(DEV_UPDATES_PAGE_SIZE)
       .offset((page - 1) * DEV_UPDATES_PAGE_SIZE),
   ]);

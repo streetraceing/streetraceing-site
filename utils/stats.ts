@@ -23,10 +23,18 @@ export const devUpdateTopics = [
 
 export type DevUpdateTopic = (typeof devUpdateTopics)[number]['value'];
 
+export const devUpdateSorts = ['newest', 'oldest'] as const;
+
+export type DevUpdateSort = (typeof devUpdateSorts)[number];
+
 export const DEV_UPDATES_PAGE_SIZE = 5;
 
 export function isDevUpdateTopic(value: string): value is DevUpdateTopic {
   return devUpdateTopics.some((topic) => topic.value === value);
+}
+
+export function isDevUpdateSort(value: string): value is DevUpdateSort {
+  return devUpdateSorts.includes(value as DevUpdateSort);
 }
 
 export function getDevUpdateTopicLabel(topic: DevUpdateTopic, locale: Locale) {

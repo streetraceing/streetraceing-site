@@ -10,8 +10,10 @@ import {
   Form,
   Input,
   Label,
+  ListBox,
   Pagination,
   ProgressBar,
+  Select,
   Spinner,
   TextArea,
   TextField,
@@ -26,6 +28,7 @@ import {
   LockKeyhole,
   LogOut,
   Send,
+  X,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
@@ -43,6 +46,7 @@ import {
   developmentDirections,
   devUpdateTopics,
   getDevUpdateTopicLabel,
+  type DevUpdateSort,
   type DevUpdateTopic,
 } from '@/utils/stats';
 
@@ -449,6 +453,7 @@ export function StatsSection() {
   const [session, setSession] = useState<SessionResponse>();
   const [updates, setUpdates] = useState<DevUpdate[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<DevUpdateTopic>();
+  const [selectedSort, setSelectedSort] = useState<DevUpdateSort>('newest');
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<FeedResponse['pagination']>();
   const [feedError, setFeedError] = useState<string>();
@@ -493,6 +498,8 @@ export function StatsSection() {
       searchParams.set('topic', selectedTopic);
     }
 
+    searchParams.set('sort', selectedSort);
+
     fetch(`/api/dev-updates?${searchParams}`, {
       cache: 'no-store',
       signal: controller.signal,
@@ -536,7 +543,7 @@ export function StatsSection() {
     return () => {
       controller.abort();
     };
-  }, [page, selectedTopic, strings.errors.updates]);
+  }, [page, selectedSort, selectedTopic, strings.errors.updates]);
 
   const visiblePages = useMemo(
     () =>
@@ -545,16 +552,37 @@ export function StatsSection() {
   );
 
   function selectTopic(topic: DevUpdateTopic | undefined) {
+    const nextTopic = selectedTopic === topic ? undefined : topic;
+
+    if (selectedTopic === nextTopic && page === 1) {
+      return;
+    }
+
     setIsLoading(true);
     setFeedError(undefined);
-    setSelectedTopic(topic);
+    setSelectedTopic(nextTopic);
     setPage(1);
   }
 
   function selectPage(nextPage: number) {
+    if (nextPage === page) {
+      return;
+    }
+
     setIsLoading(true);
     setFeedError(undefined);
     setPage(nextPage);
+  }
+
+  function selectSort(sort: DevUpdateSort) {
+    if (sort === selectedSort && page === 1) {
+      return;
+    }
+
+    setIsLoading(true);
+    setFeedError(undefined);
+    setSelectedSort(sort);
+    setPage(1);
   }
 
   function refreshSession() {
@@ -636,7 +664,7 @@ export function StatsSection() {
             feedRequestId.current += 1;
             setIsLoading(false);
 
-            if (page === 1) {
+            if (page === 1 && selectedSort === 'newest') {
               setUpdates((currentUpdates) =>
                 [
                   update,
@@ -710,7 +738,47 @@ export function StatsSection() {
               {getDevUpdateTopicLabel(topic.value, locale)}
             </Button>
           ))}
+          {selectedTopic && (
+            <Button
+              aria-label={strings.clearFilters}
+              isIconOnly
+              size="sm"
+              variant="tertiary"
+              onPress={() => selectTopic(undefined)}
+            >
+              <X className="size-4" />
+            </Button>
+          )}
         </div>
+
+        <Select
+          className="w-full sm:w-72"
+          value={selectedSort}
+          variant="secondary"
+          onChange={(value) => {
+            if (value === 'newest' || value === 'oldest') {
+              selectSort(value);
+            }
+          }}
+        >
+          <Label>{strings.sort}</Label>
+          <Select.Trigger>
+            <Select.Value />
+            <Select.Indicator />
+          </Select.Trigger>
+          <Select.Popover>
+            <ListBox>
+              <ListBox.Item id="newest" textValue={strings.sortNewest}>
+                {strings.sortNewest}
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
+              <ListBox.Item id="oldest" textValue={strings.sortOldest}>
+                {strings.sortOldest}
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
+            </ListBox>
+          </Select.Popover>
+        </Select>
 
         {feedError && (
           <Alert status="danger">
