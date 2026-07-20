@@ -22,13 +22,15 @@ import {
   Typography,
 } from '@heroui/react';
 import { useLocale } from '@/app/providers';
+import {
+  AUTHOR_SESSION_CHANGED_EVENT,
+  HOME_LAYOUT_SETTLED_EVENT,
+} from '@/utils/client-events';
 import { getLocaleTag, getText } from '@/utils/i18n';
 import {
   ChevronDown,
   Eye,
   EyeOff,
-  LockKeyhole,
-  LogOut,
   Pencil,
   Save,
   Send,
@@ -40,6 +42,7 @@ import rehypeHighlight from 'rehype-highlight';
 import {
   Fragment,
   type FormEvent,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -62,6 +65,8 @@ type DevUpdate = {
   topic: DevUpdateTopic;
   createdAt: string;
 };
+
+const ALL_FILTER_ID = 'all';
 
 type FeedResponse = {
   updates: DevUpdate[];
@@ -276,34 +281,42 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
                               </Description>
                             </TextField>
 
-                            <div className="flex flex-col gap-2">
-                              <p className="text-sm font-medium">
-                                {strings.topic}
-                              </p>
-                              <div
-                                className="flex flex-wrap gap-2"
-                                aria-label={strings.topic}
-                              >
-                                {devUpdateTopics.map((topic) => (
-                                  <Button
-                                    key={topic.value}
-                                    type="button"
-                                    size="sm"
-                                    variant={
-                                      editTopic === topic.value
-                                        ? 'primary'
-                                        : 'secondary'
-                                    }
-                                    onPress={() => setEditTopic(topic.value)}
-                                  >
-                                    {getDevUpdateTopicLabel(
-                                      topic.value,
-                                      locale,
-                                    )}
-                                  </Button>
-                                ))}
-                              </div>
-                            </div>
+                            <Select
+                              fullWidth
+                              value={editTopic}
+                              variant="secondary"
+                              onChange={(value) => {
+                                if (typeof value === 'string') {
+                                  setEditTopic(value as DevUpdateTopic);
+                                }
+                              }}
+                            >
+                              <Label>{strings.topic}</Label>
+                              <Select.Trigger>
+                                <Select.Value />
+                                <Select.Indicator />
+                              </Select.Trigger>
+                              <Select.Popover>
+                                <ListBox>
+                                  {devUpdateTopics.map((topic) => (
+                                    <ListBox.Item
+                                      key={topic.value}
+                                      id={topic.value}
+                                      textValue={getDevUpdateTopicLabel(
+                                        topic.value,
+                                        locale,
+                                      )}
+                                    >
+                                      {getDevUpdateTopicLabel(
+                                        topic.value,
+                                        locale,
+                                      )}
+                                      <ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                  ))}
+                                </ListBox>
+                              </Select.Popover>
+                            </Select>
 
                             <TextField
                               isRequired
@@ -499,66 +512,18 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
 }
 
 type AuthorControlsProps = {
-  session: SessionResponse;
-  onAuthenticated: () => void;
-  onLogout: () => void;
   onCreated: (update: DevUpdate) => void;
 };
 
-function AuthorControls({
-  session,
-  onAuthenticated,
-  onLogout,
-  onCreated,
-}: AuthorControlsProps) {
+function AuthorControls({ onCreated }: AuthorControlsProps) {
   const { copy, locale } = useLocale();
   const strings = copy.stats;
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState<string>();
-  const [isLoginPending, setIsLoginPending] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [topic, setTopic] = useState<DevUpdateTopic>('projects');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [publishError, setPublishError] = useState<string>();
   const [isPublishing, setIsPublishing] = useState(false);
-
-  async function login(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsLoginPending(true);
-    setLoginError(undefined);
-
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
-      const body = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        throw new Error(body.error ?? strings.errors.login);
-      }
-
-      setPassword('');
-      setIsLoginOpen(false);
-      onAuthenticated();
-    } catch (caughtError) {
-      setLoginError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : strings.errors.login,
-      );
-    } finally {
-      setIsLoginPending(false);
-    }
-  }
-
-  async function logout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    onLogout();
-  }
 
   async function publish(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -599,87 +564,13 @@ function AuthorControls({
     }
   }
 
-  if (!session.configured) {
-    return (
-      <Alert status="warning">
-        <Alert.Indicator />
-        <Alert.Content>
-          <Alert.Title>{strings.authorNotConfigured}</Alert.Title>
-        </Alert.Content>
-      </Alert>
-    );
-  }
-
-  if (!session.authenticated) {
-    return (
-      <div className="flex flex-col gap-3">
-        <Button
-          className="self-start"
-          variant="tertiary"
-          onPress={() => setIsLoginOpen((value) => !value)}
-        >
-          <LockKeyhole />
-          {strings.loginAsAuthor}
-        </Button>
-
-        {isLoginOpen && (
-          <Card variant="default">
-            <Card.Content>
-              <Form className="flex flex-col gap-3" onSubmit={login}>
-                <TextField
-                  isRequired
-                  fullWidth
-                  name="password"
-                  value={password}
-                  onChange={setPassword}
-                  validate={(value) => (value ? null : strings.enterPassword)}
-                >
-                  <Label>{strings.authorPassword}</Label>
-                  <Input type="password" autoComplete="current-password" />
-                  <FieldError />
-                </TextField>
-                <Button
-                  className="self-start"
-                  type="submit"
-                  isPending={isLoginPending}
-                >
-                  <LockKeyhole />
-                  {strings.login}
-                </Button>
-              </Form>
-            </Card.Content>
-          </Card>
-        )}
-
-        {loginError && (
-          <Alert status="danger">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{strings.loginFailed}</Alert.Title>
-              <Alert.Description>{loginError}</Alert.Description>
-            </Alert.Content>
-          </Alert>
-        )}
-      </div>
-    );
-  }
-
   return (
     <Card variant="default">
-      <Card.Header className="flex-row items-start justify-between gap-3">
+      <Card.Header>
         <div>
           <Card.Title>{strings.newNote}</Card.Title>
           <Card.Description>{strings.authorFormDescription}</Card.Description>
         </div>
-        <Button
-          isIconOnly
-          aria-label={strings.logout}
-          size="sm"
-          variant="tertiary"
-          onPress={() => void logout()}
-        >
-          <LogOut />
-        </Button>
       </Card.Header>
       <Card.Content>
         <Form className="flex flex-col gap-4" onSubmit={publish}>
@@ -693,22 +584,36 @@ function AuthorControls({
             <Description>{title.length} / 160</Description>
           </TextField>
 
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium">{strings.topic}</p>
-            <div className="flex flex-wrap gap-2" aria-label={strings.topic}>
-              {devUpdateTopics.map((item) => (
-                <Button
-                  key={item.value}
-                  type="button"
-                  size="sm"
-                  variant={topic === item.value ? 'primary' : 'secondary'}
-                  onPress={() => setTopic(item.value)}
-                >
-                  {getDevUpdateTopicLabel(item.value, locale)}
-                </Button>
-              ))}
-            </div>
-          </div>
+          <Select
+            fullWidth
+            value={topic}
+            variant="secondary"
+            onChange={(value) => {
+              if (typeof value === 'string') {
+                setTopic(value as DevUpdateTopic);
+              }
+            }}
+          >
+            <Label>{strings.topic}</Label>
+            <Select.Trigger>
+              <Select.Value />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                {devUpdateTopics.map((item) => (
+                  <ListBox.Item
+                    key={item.value}
+                    id={item.value}
+                    textValue={getDevUpdateTopicLabel(item.value, locale)}
+                  >
+                    {getDevUpdateTopicLabel(item.value, locale)}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            </Select.Popover>
+          </Select>
 
           <TextField
             isRequired
@@ -796,6 +701,39 @@ export function StatsSection() {
   const [isLoading, setIsLoading] = useState(true);
   const [feedRevision, setFeedRevision] = useState(0);
   const feedRequestId = useRef(0);
+  const hasSettledInitialHomeLayout = useRef(false);
+
+  const refreshSession = useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        const response = await fetch('/api/auth/session', {
+          cache: 'no-store',
+          signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(strings.errors.session);
+        }
+
+        const nextSession = (await response.json()) as SessionResponse;
+
+        if (!signal?.aborted) {
+          setSession(nextSession);
+        }
+      } catch (caughtError) {
+        if (
+          signal?.aborted ||
+          (caughtError instanceof DOMException &&
+            caughtError.name === 'AbortError')
+        ) {
+          return;
+        }
+
+        setSession({ authenticated: false, configured: false });
+      }
+    },
+    [strings.errors.session],
+  );
 
   useEffect(() => {
     let isCancelled = false;
@@ -823,6 +761,21 @@ export function StatsSection() {
       isCancelled = true;
     };
   }, [strings.errors.session]);
+
+  useEffect(() => {
+    const handleSessionChange = () => {
+      void refreshSession();
+    };
+
+    window.addEventListener(AUTHOR_SESSION_CHANGED_EVENT, handleSessionChange);
+
+    return () => {
+      window.removeEventListener(
+        AUTHOR_SESSION_CHANGED_EVENT,
+        handleSessionChange,
+      );
+    };
+  }, [refreshSession]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -926,24 +879,20 @@ export function StatsSection() {
     setPage(1);
   }
 
-  function refreshSession() {
-    void fetch('/api/auth/session', { cache: 'no-store' })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(strings.errors.session);
-        }
-
-        return (await response.json()) as SessionResponse;
-      })
-      .then(setSession)
-      .catch(() => setSession({ authenticated: false, configured: false }));
-  }
-
   function refreshFeed() {
     setIsLoading(true);
     setFeedError(undefined);
     setFeedRevision((revision) => revision + 1);
   }
+
+  useEffect(() => {
+    if (isLoading || hasSettledInitialHomeLayout.current) {
+      return;
+    }
+
+    hasSettledInitialHomeLayout.current = true;
+    window.dispatchEvent(new Event(HOME_LAYOUT_SETTLED_EVENT));
+  }, [isLoading]);
 
   return (
     <section
@@ -990,16 +939,8 @@ export function StatsSection() {
         ))}
       </div>
 
-      {session ? (
+      {session?.authenticated && (
         <AuthorControls
-          session={session}
-          onAuthenticated={refreshSession}
-          onLogout={() =>
-            setSession((current) => ({
-              authenticated: false,
-              configured: current?.configured ?? false,
-            }))
-          }
           onCreated={(update) => {
             const belongsToCurrentFilter =
               !selectedTopic || selectedTopic === update.topic;
@@ -1039,10 +980,6 @@ export function StatsSection() {
             setFeedRevision((revision) => revision + 1);
           }}
         />
-      ) : (
-        <div className="flex justify-center py-2">
-          <Spinner size="sm" />
-        </div>
       )}
 
       <section
@@ -1066,42 +1003,57 @@ export function StatsSection() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="min-w-0 flex-1">
-            <div
-              className="flex flex-wrap gap-2"
-              aria-label={strings.updatesFilter}
+          <div className="flex min-w-0 flex-1 items-end gap-2">
+            <Select
+              className="min-w-0 flex-1"
+              value={selectedTopic ?? ALL_FILTER_ID}
+              variant="secondary"
+              onChange={(value) => {
+                if (value === ALL_FILTER_ID || value === null) {
+                  selectTopic(undefined);
+                  return;
+                }
+
+                if (typeof value === 'string') {
+                  selectTopic(value as DevUpdateTopic);
+                }
+              }}
             >
+              <Label>{strings.updatesFilter}</Label>
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  <ListBox.Item id={ALL_FILTER_ID} textValue={strings.all}>
+                    {strings.all}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                  {devUpdateTopics.map((topic) => (
+                    <ListBox.Item
+                      key={topic.value}
+                      id={topic.value}
+                      textValue={getDevUpdateTopicLabel(topic.value, locale)}
+                    >
+                      {getDevUpdateTopicLabel(topic.value, locale)}
+                      <ListBox.ItemIndicator />
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+            </Select>
+            {selectedTopic && (
               <Button
+                aria-label={strings.clearFilters}
+                isIconOnly
                 size="sm"
-                variant={selectedTopic ? 'secondary' : 'primary'}
+                variant="tertiary"
                 onPress={() => selectTopic(undefined)}
               >
-                {strings.all}
+                <X className="size-4" />
               </Button>
-              {devUpdateTopics.map((topic) => (
-                <Button
-                  key={topic.value}
-                  size="sm"
-                  variant={
-                    selectedTopic === topic.value ? 'primary' : 'secondary'
-                  }
-                  onPress={() => selectTopic(topic.value)}
-                >
-                  {getDevUpdateTopicLabel(topic.value, locale)}
-                </Button>
-              ))}
-              {selectedTopic && (
-                <Button
-                  aria-label={strings.clearFilters}
-                  isIconOnly
-                  size="sm"
-                  variant="tertiary"
-                  onPress={() => selectTopic(undefined)}
-                >
-                  <X className="size-4" />
-                </Button>
-              )}
-            </div>
+            )}
           </div>
 
           <div className="flex items-end gap-2 sm:shrink-0">

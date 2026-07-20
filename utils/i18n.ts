@@ -127,7 +127,7 @@ export const translations = {
         released: 'Готов',
         private: 'Приватный',
         'closed-source': 'Закрытый код',
-        'open-source': 'Open source',
+        'open-source': 'Открытый код',
         maintained: 'Поддерживается',
         archived: 'В архиве',
         paused: 'На паузе',

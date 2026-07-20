@@ -49,7 +49,13 @@ export function UuidGeneratorTool() {
   return (
     <div className="flex flex-col gap-4">
       <Form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <TextField fullWidth name="amount" value={amount} onChange={setAmount}>
+        <TextField
+          fullWidth
+          name="amount"
+          value={amount}
+          onChange={setAmount}
+          variant="secondary"
+        >
           <Label>{strings.label}</Label>
           <Input type="number" inputMode="numeric" min={1} max={MAX_UUIDS} />
           <Description>
@@ -87,7 +93,7 @@ export function UuidGeneratorTool() {
           </Button>
           <ToolOutput
             content={uuids.join('\n')}
-            label={`UUID v4 · ${uuids.length}`}
+            label={`UUID v4 - ${uuids.length}`}
           />
         </div>
       )}

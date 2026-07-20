@@ -7,3 +7,7 @@
 ## Project maintenance
 
 Before changing this application, read `.agents/PROJECT_GUIDE.md` for the site architecture, database workflow, and the RU/EN i18n conventions.
+
+## Small instructions you need follow:
+
+- At the end of writing the results, write a short and informative message to git about the latest changes, in the same style as it is now in the project.

@@ -4,6 +4,7 @@ import { useLocale } from '@/app/providers';
 import { Container } from '@/components/layout/Container';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
+import { HomeScrollManager } from '@/components/layout/HomeScrollManager';
 import { Page } from '@/components/layout/Page';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { ProjectCard } from '@/components/projects/ProjectCard';
@@ -31,6 +32,8 @@ import { useMemo, useState } from 'react';
 
 type ProjectSort = 'relevance' | 'progress-desc' | 'name-asc';
 type ToolSort = 'relevance' | 'name-asc';
+
+const ALL_FILTER_ID = 'all';
 
 type ProjectSearchItem = {
   project: ProjectConfig;
@@ -175,6 +178,7 @@ export default function HomePage() {
 
   return (
     <Page header={<Header />} footer={<Footer />}>
+      <HomeScrollManager />
       <Container className="py-4 gap-4 flex flex-col">
         <Typography.Paragraph>{copy.home.intro}</Typography.Paragraph>
 
@@ -228,51 +232,61 @@ export default function HomePage() {
             </SearchField>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="min-w-0 flex-1">
-                <div
-                  className="flex flex-wrap gap-2"
-                  aria-label={copy.home.projectsFilters}
+              <div className="flex min-w-0 flex-1 items-end gap-2">
+                <Select
+                  className="min-w-0 flex-1"
+                  value={selectedProjectStatus ?? ALL_FILTER_ID}
+                  variant="secondary"
+                  onChange={(value) => {
+                    if (value === ALL_FILTER_ID || value === null) {
+                      setSelectedProjectStatus(undefined);
+                      return;
+                    }
+
+                    if (typeof value === 'string') {
+                      setSelectedProjectStatus(value as ProjectStatus);
+                    }
+                  }}
                 >
+                  <Label>{copy.home.projectsFilters}</Label>
+                  <Select.Trigger>
+                    <Select.Value />
+                    <Select.Indicator />
+                  </Select.Trigger>
+                  <Select.Popover>
+                    <ListBox>
+                      <ListBox.Item
+                        id={ALL_FILTER_ID}
+                        textValue={copy.home.all}
+                      >
+                        {copy.home.all}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                      {projectStatuses.map((status) => (
+                        <ListBox.Item
+                          key={status}
+                          id={status}
+                          textValue={copy.project.status[status]}
+                        >
+                          {copy.project.status[status]}
+                          <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                      ))}
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
+                {selectedProjectStatus && (
                   <Button
+                    aria-label={copy.home.clearFilters}
+                    isIconOnly
                     type="button"
                     size="sm"
-                    variant={
-                      selectedProjectStatus === undefined
-                        ? 'primary'
-                        : 'secondary'
-                    }
+                    variant="tertiary"
                     onPress={() => setSelectedProjectStatus(undefined)}
                   >
-                    {copy.home.all}
+                    <X className="size-4" />
                   </Button>
-                  {projectStatuses.map((status) => (
-                    <Button
-                      key={status}
-                      type="button"
-                      size="sm"
-                      variant={
-                        selectedProjectStatus === status
-                          ? 'primary'
-                          : 'secondary'
-                      }
-                      onPress={() => setSelectedProjectStatus(status)}
-                    >
-                      {copy.project.status[status]}
-                    </Button>
-                  ))}
-                  {selectedProjectStatus && (
-                    <Button
-                      aria-label={copy.home.clearFilters}
-                      isIconOnly
-                      type="button"
-                      size="sm"
-                      variant="tertiary"
-                      onPress={() => setSelectedProjectStatus(undefined)}
-                    >
-                      <X className="size-4" />
-                    </Button>
-                  )}
-                </div>
+                )}
               </div>
 
               <div className="flex items-end gap-2 sm:shrink-0">
@@ -371,47 +385,61 @@ export default function HomePage() {
             </SearchField>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="min-w-0 flex-1">
-                <div
-                  className="flex flex-wrap gap-2"
-                  aria-label={copy.home.toolsFilters}
+              <div className="flex min-w-0 flex-1 items-end gap-2">
+                <Select
+                  className="min-w-0 flex-1"
+                  value={selectedToolTag ?? ALL_FILTER_ID}
+                  variant="secondary"
+                  onChange={(value) => {
+                    if (value === ALL_FILTER_ID || value === null) {
+                      setSelectedToolTag(undefined);
+                      return;
+                    }
+
+                    if (typeof value === 'string') {
+                      setSelectedToolTag(value);
+                    }
+                  }}
                 >
+                  <Label>{copy.home.toolsFilters}</Label>
+                  <Select.Trigger>
+                    <Select.Value />
+                    <Select.Indicator />
+                  </Select.Trigger>
+                  <Select.Popover>
+                    <ListBox>
+                      <ListBox.Item
+                        id={ALL_FILTER_ID}
+                        textValue={copy.home.all}
+                      >
+                        {copy.home.all}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                      {toolTags.map((tag) => (
+                        <ListBox.Item
+                          key={tag.ru}
+                          id={tag.ru}
+                          textValue={getText(tag, locale)}
+                        >
+                          {getText(tag, locale)}
+                          <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                      ))}
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
+                {selectedToolTag && (
                   <Button
+                    aria-label={copy.home.clearFilters}
+                    isIconOnly
                     type="button"
                     size="sm"
-                    variant={
-                      selectedToolTag === undefined ? 'primary' : 'secondary'
-                    }
+                    variant="tertiary"
                     onPress={() => setSelectedToolTag(undefined)}
                   >
-                    {copy.home.all}
+                    <X className="size-4" />
                   </Button>
-                  {toolTags.map((tag) => (
-                    <Button
-                      key={tag.ru}
-                      type="button"
-                      size="sm"
-                      variant={
-                        selectedToolTag === tag.ru ? 'primary' : 'secondary'
-                      }
-                      onPress={() => setSelectedToolTag(tag.ru)}
-                    >
-                      {getText(tag, locale)}
-                    </Button>
-                  ))}
-                  {selectedToolTag && (
-                    <Button
-                      aria-label={copy.home.clearFilters}
-                      isIconOnly
-                      type="button"
-                      size="sm"
-                      variant="tertiary"
-                      onPress={() => setSelectedToolTag(undefined)}
-                    >
-                      <X className="size-4" />
-                    </Button>
-                  )}
-                </div>
+                )}
               </div>
 
               <div className="flex items-end gap-2 sm:shrink-0">
