@@ -1,6 +1,7 @@
 {
   "name": "streetraceing",
   "private": true,
+  "type": "module",
   "scripts": {
     "prettier:write": "prettier . --write",
     "lint": "eslint . --fix",
