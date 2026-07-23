@@ -2,9 +2,9 @@
   "name": "streetraceing",
   "private": true,
   "scripts": {
+    "prettier:write": "prettier . --write",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
-    "lint:staged": "lint-staged",
     "dev": "next dev -p 3333",
     "build": "next build",
     "start": "next start",
@@ -12,10 +12,14 @@
     "secret:generate": "node -e \"console.log(require('node:crypto').randomBytes(32).toString('base64url'))\"",
     "db:generate": "drizzle-kit generate --name",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio --port 7777"
+    "db:studio": "drizzle-kit studio --port 7777",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "package:archive": "tsx scripts/package-archive"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,mjs}": "eslint --fix"
+    "*.{js,jsx,ts,tsx,mjs}": "eslint --fix",
+    "**/*": "prettier --write --ignore-unknown"
   },
   "dependencies": {
     "@heroui/react": "^3.2.2",
@@ -24,34 +28,38 @@
     "@vercel/speed-insights": "^2.0.0",
     "drizzle-orm": "^0.45.2",
     "fuse.js": "^7.5.0",
-    "lucide-react": "^1.17.0",
-    "next": "16.2.7",
+    "lucide-react": "^1.26.0",
+    "next": "16.2.11",
     "next-themes": "^0.4.6",
     "pg": "^8.22.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "react-icons": "^5.6.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-icons": "^5.7.0",
     "react-markdown": "^10.1.0",
-    "react-parallax-tilt": "^1.7.332",
+    "react-parallax-tilt": "^1.7.333",
     "rehype-highlight": "^7.0.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/archiver": "^8.0.0",
+    "@types/node": "^20.19.43",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "archiver": "^8.0.0",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
-    "eslint-config-next": "16.2.7",
+    "eslint-config-next": "16.2.11",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
+    "globby": "^16.2.2",
     "husky": "^9.1.7",
-    "lint-staged": "^17.1.0",
-    "prettier": "3.8.3",
+    "lint-staged": "^17.2.0",
+    "prettier": "3.9.6",
     "tailwindcss": "^4",
+    "tsx": "^4.23.1",
     "typescript": "^5",
-    "vercel": "^56.3.2"
+    "vercel": "^56.5.0"
   }
 }
