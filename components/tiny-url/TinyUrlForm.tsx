@@ -66,8 +66,7 @@ export function TinyUrlForm() {
           signal: controller.signal,
         });
         const body = (await response.json()) as
-          | { items: TinyUrlItem[] }
-          | ApiErrorResponse;
+          { items: TinyUrlItem[] } | ApiErrorResponse;
 
         if (!response.ok || !('items' in body)) {
           return;
@@ -75,12 +74,10 @@ export function TinyUrlForm() {
 
         setItems(body.items);
       } catch (caughtError) {
-        if (
-          !(
-            caughtError instanceof DOMException &&
-            caughtError.name === 'AbortError'
-          )
-        ) {
+        if (!(
+          caughtError instanceof DOMException &&
+          caughtError.name === 'AbortError'
+        )) {
           setError(strings.loadFailed);
         }
       } finally {
@@ -108,8 +105,7 @@ export function TinyUrlForm() {
         body: JSON.stringify({ content }),
       });
       const body = (await response.json()) as
-        | { item: TinyUrlItem }
-        | ApiErrorResponse;
+        { item: TinyUrlItem } | ApiErrorResponse;
 
       if (!response.ok) {
         throw new Error(

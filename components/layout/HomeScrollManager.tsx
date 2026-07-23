@@ -18,8 +18,7 @@ export function HomeScrollManager() {
   useLayoutEffect(() => {
     let frame = 0;
     const navigation = performance.getEntriesByType('navigation')[0] as
-      | PerformanceNavigationTiming
-      | undefined;
+      PerformanceNavigationTiming | undefined;
 
     const scheduleHashScroll = () => {
       window.cancelAnimationFrame(frame);
