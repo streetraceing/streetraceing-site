@@ -6,7 +6,8 @@ import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
 import { Page } from '@/components/layout/Page';
 import { Card } from '@heroui/react';
-import { Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon } from 'lucide-react';
+import NextLink from 'next/link';
 
 import { TinyUrlForm } from './TinyUrlForm';
 
@@ -15,7 +16,15 @@ export function TinyUrlPageContent() {
 
   return (
     <Page header={<Header />} footer={<Footer />}>
-      <Container className="flex items-center py-12 sm:py-20">
+      <Container className="flex flex-col gap-6 py-12 sm:py-20">
+        <NextLink
+          href="/#tools"
+          className="button button--tertiary button--md self-start"
+        >
+          <ArrowLeft className="size-4" />
+          {copy.tool.allTools}
+        </NextLink>
+
         <Card className="mx-auto w-full max-w-2xl">
           <Card.Header className="items-center text-center">
             <div className="mb-4 flex size-12 items-center justify-center rounded-2xl bg-accent-soft text-accent">

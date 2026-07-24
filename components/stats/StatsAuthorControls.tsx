@@ -19,7 +19,10 @@ import { Eye, EyeOff, Send } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
 import { useLocale } from '@/app/providers';
+import { MediaAttachmentsField } from '@/components/media/MediaAttachmentsField';
 import { getLocaleTag } from '@/utils/i18n';
+import { uploadMediaFiles } from '@/utils/media-client';
+import { MAX_DEV_UPDATE_IMAGES } from '@/utils/media';
 import {
   devUpdateTopics,
   getDevUpdateTopicLabel,
@@ -41,6 +44,7 @@ export default function StatsAuthorControls({
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [topic, setTopic] = useState<DevUpdateTopic>('projects');
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [publishError, setPublishError] = useState<string>();
   const [isPublishing, setIsPublishing] = useState(false);
@@ -50,11 +54,24 @@ export default function StatsAuthorControls({
     setIsPublishing(true);
     setPublishError(undefined);
 
+    let uploadedUrls: string[] = [];
+
     try {
+      uploadedUrls = await uploadMediaFiles(
+        pendingFiles,
+        { type: 'dev-update' },
+        strings.imageOptimizationFailed,
+      );
       const response = await fetch('/api/dev-updates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content, topic }),
+        body: JSON.stringify({
+          title,
+          content,
+          topic,
+          imageUrls: uploadedUrls,
+          uploadedImageUrls: uploadedUrls,
+        }),
       });
       const body = (await response.json()) as {
         error?: string;
@@ -71,6 +88,7 @@ export default function StatsAuthorControls({
 
       setTitle('');
       setContent('');
+      setPendingFiles([]);
       setIsPreviewOpen(false);
       onCreated(body.update);
     } catch (caughtError) {
@@ -156,6 +174,21 @@ export default function StatsAuthorControls({
             </Description>
             <FieldError />
           </TextField>
+
+          <MediaAttachmentsField
+            existingUrls={[]}
+            pendingFiles={pendingFiles}
+            maximum={MAX_DEV_UPDATE_IMAGES}
+            label={strings.images}
+            description={strings.newsImagesDescription}
+            addLabel={strings.addImages}
+            removeLabel={strings.removeImage}
+            invalidTypeMessage={strings.invalidImageType}
+            tooLargeMessage={strings.imageTooLarge}
+            limitMessage={strings.imageLimit}
+            onExistingUrlsChange={() => undefined}
+            onPendingFilesChange={setPendingFiles}
+          />
 
           <div className="flex flex-col items-start gap-3">
             <Button

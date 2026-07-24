@@ -3,36 +3,66 @@ import './globals.css';
 import { geistMono, geistSans, petitFormal } from '@/app/fonts';
 import { Providers } from '@/app/providers';
 import { siteConfig } from '@/utils/config';
+import { isAdmin, isAuthConfigured } from '@/utils/auth';
 import {
   getLocale,
   getLocaleFromAcceptLanguage,
   getText,
   LOCALE_COOKIE,
 } from '@/utils/i18n';
+import { getTheme, THEME_COOKIE } from '@/utils/theme';
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata } from 'next';
 import Script from 'next/script';
 import { cookies, headers } from 'next/headers';
-import { Analytics } from '@vercel/analytics/next';
-import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const themeBootstrapScript = `
   (() => {
     try {
+      const cookieTheme = document.cookie
+        .split('; ')
+        .find((value) => value.startsWith('${THEME_COOKIE}='))
+        ?.split('=')[1];
       const storedTheme = window.localStorage.getItem('theme');
+      const preference =
+        storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system'
+          ? storedTheme
+          : cookieTheme === 'light' || cookieTheme === 'dark' || cookieTheme === 'system'
+            ? cookieTheme
+            : 'system';
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const resolvedTheme =
-        storedTheme === 'light' || storedTheme === 'dark'
-          ? storedTheme
-          : prefersDark
+        preference === 'system'
+          ? prefersDark
             ? 'dark'
-            : 'light';
+            : 'light'
+          : preference;
       const root = document.documentElement;
 
       root.classList.toggle('dark', resolvedTheme === 'dark');
       root.dataset.theme = resolvedTheme;
+      root.dataset.themePreference = preference;
       root.style.colorScheme = resolvedTheme;
+      root.style.backgroundColor =
+        resolvedTheme === 'dark' ? '#09090b' : '#ffffff';
+      document.cookie = '${THEME_COOKIE}=' + preference + '; path=/; max-age=31536000; samesite=lax';
     } catch {}
   })();
+`;
+
+const themePrepaintStyles = `
+  html, body { background-color: #ffffff; }
+  html.dark, html.dark body,
+  html[data-theme='dark'], html[data-theme='dark'] body {
+    background-color: #09090b;
+  }
+  @media (prefers-color-scheme: dark) {
+    html[data-theme-preference='system'],
+    html[data-theme-preference='system'] body {
+      background-color: #09090b;
+    }
+  }
 `;
 
 const isVercelAnalyticsEnabled =
@@ -64,19 +94,43 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
+  const [cookieStore, headerStore, authenticated] = await Promise.all([
+    cookies(),
+    headers(),
+    isAdmin(),
+  ]);
   const storedLocale = cookieStore.get(LOCALE_COOKIE)?.value;
   const locale = storedLocale
     ? getLocale(storedLocale)
     : getLocaleFromAcceptLanguage(headerStore.get('accept-language'));
+  const initialTheme = getTheme(cookieStore.get(THEME_COOKIE)?.value);
+  const resolvedServerTheme =
+    initialTheme === 'system' ? undefined : initialTheme;
+  const initialAuthorSession = {
+    authenticated,
+    configured: isAuthConfigured(),
+  };
 
   return (
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${petitFormal.variable} h-full antialiased`}
+      style={{
+        backgroundColor:
+          resolvedServerTheme === 'dark'
+            ? '#09090b'
+            : resolvedServerTheme === 'light'
+              ? '#ffffff'
+              : undefined,
+        colorScheme: resolvedServerTheme,
+      }}
+      data-theme={resolvedServerTheme}
+      data-theme-preference={initialTheme}
+      className={`${initialTheme === 'dark' ? 'dark ' : ''}${geistSans.variable} ${geistMono.variable} ${petitFormal.variable} h-full antialiased`}
     >
       <head>
+        <meta name="color-scheme" content="light dark" />
+        <style>{themePrepaintStyles}</style>
         <Script id="theme-bootstrap" strategy="beforeInteractive">
           {themeBootstrapScript}
         </Script>
@@ -89,7 +143,13 @@ export default async function RootLayout({
           )}
       </head>
       <body className="bg-background text-foreground">
-        <Providers initialLocale={locale}>{children}</Providers>
+        <Providers
+          initialLocale={locale}
+          initialTheme={initialTheme}
+          initialAuthorSession={initialAuthorSession}
+        >
+          {children}
+        </Providers>
       </body>
     </html>
   );

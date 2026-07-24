@@ -21,7 +21,10 @@ import { Eye, EyeOff, Pencil, Save, Trash2 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
 import { useLocale } from '@/app/providers';
+import { MediaAttachmentsField } from '@/components/media/MediaAttachmentsField';
 import { getLocaleTag } from '@/utils/i18n';
+import { MAX_DEV_UPDATE_IMAGES } from '@/utils/media';
+import { uploadMediaFiles } from '@/utils/media-client';
 import {
   devUpdateTopics,
   getDevUpdateTopicLabel,
@@ -45,6 +48,8 @@ export default function DevUpdateAuthorActions({
   const [editTitle, setEditTitle] = useState(update.title ?? '');
   const [editContent, setEditContent] = useState(update.content);
   const [editTopic, setEditTopic] = useState<DevUpdateTopic>(update.topic);
+  const [existingUrls, setExistingUrls] = useState(update.imageUrls);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isEditPreviewOpen, setIsEditPreviewOpen] = useState(false);
   const [editError, setEditError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
@@ -55,6 +60,8 @@ export default function DevUpdateAuthorActions({
     setEditTitle(update.title ?? '');
     setEditContent(update.content);
     setEditTopic(update.topic);
+    setExistingUrls(update.imageUrls);
+    setPendingFiles([]);
     setIsEditPreviewOpen(false);
     setEditError(undefined);
   }
@@ -67,7 +74,14 @@ export default function DevUpdateAuthorActions({
     setIsSaving(true);
     setEditError(undefined);
 
+    let uploadedUrls: string[] = [];
+
     try {
+      uploadedUrls = await uploadMediaFiles(
+        pendingFiles,
+        { type: 'dev-update' },
+        strings.imageOptimizationFailed,
+      );
       const response = await fetch(`/api/dev-updates/${update.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -75,6 +89,8 @@ export default function DevUpdateAuthorActions({
           title: editTitle,
           content: editContent,
           topic: editTopic,
+          imageUrls: [...existingUrls, ...uploadedUrls],
+          uploadedImageUrls: uploadedUrls,
         }),
       });
       const body = (await response.json()) as { error?: string };
@@ -126,16 +142,12 @@ export default function DevUpdateAuthorActions({
   return (
     <div className="flex shrink-0 gap-1">
       <Modal>
-        <Modal.Trigger>
-          <Button
-            aria-label={strings.edit}
-            isIconOnly
-            size="sm"
-            variant="tertiary"
-            onPress={resetEditor}
-          >
-            <Pencil className="size-4" />
-          </Button>
+        <Modal.Trigger
+          aria-label={strings.edit}
+          className="button button--icon-only button--sm button--tertiary"
+          onPress={resetEditor}
+        >
+          <Pencil className="size-4" />
         </Modal.Trigger>
         <Modal.Backdrop variant="blur">
           <Modal.Container size="lg" scroll="inside">
@@ -228,6 +240,21 @@ export default function DevUpdateAuthorActions({
                       <FieldError />
                     </TextField>
 
+                    <MediaAttachmentsField
+                      existingUrls={existingUrls}
+                      pendingFiles={pendingFiles}
+                      maximum={MAX_DEV_UPDATE_IMAGES}
+                      label={strings.images}
+                      description={strings.newsImagesDescription}
+                      addLabel={strings.addImages}
+                      removeLabel={strings.removeImage}
+                      invalidTypeMessage={strings.invalidImageType}
+                      tooLargeMessage={strings.imageTooLarge}
+                      limitMessage={strings.imageLimit}
+                      onExistingUrlsChange={setExistingUrls}
+                      onPendingFilesChange={setPendingFiles}
+                    />
+
                     <div className="flex flex-col items-start gap-3">
                       <Button
                         type="button"
@@ -289,16 +316,12 @@ export default function DevUpdateAuthorActions({
       </Modal>
 
       <AlertDialog>
-        <AlertDialog.Trigger>
-          <Button
-            aria-label={strings.delete}
-            isIconOnly
-            size="sm"
-            variant="danger"
-            onPress={() => setDeleteError(undefined)}
-          >
-            <Trash2 className="size-4" />
-          </Button>
+        <AlertDialog.Trigger
+          aria-label={strings.delete}
+          className="button button--icon-only button--sm button--danger"
+          onPress={() => setDeleteError(undefined)}
+        >
+          <Trash2 className="size-4" />
         </AlertDialog.Trigger>
         <AlertDialog.Backdrop variant="blur">
           <AlertDialog.Container size="sm">

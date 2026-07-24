@@ -124,6 +124,31 @@ export const translations = {
       highlights: 'Что умеет',
       screenshots: 'Скриншоты',
       devLog: 'Dev log',
+      projectContent: 'Материалы проекта',
+      editContent: 'Редактировать материалы',
+      documentation: 'Документация',
+      documentationRu: 'Документация на русском',
+      documentationEn: 'Документация на английском',
+      documentationPlaceholder:
+        'Описание, установка, использование, примеры и другие детали проекта…',
+      markdownDocumentationHint:
+        'Поддерживается Markdown. Документация отображается только на странице этого проекта.',
+      images: 'Фотографии проекта',
+      projectImagesDescription:
+        'До 8 фотографий. Перед загрузкой они сжимаются в WebP до 1440 px и 1,5 МБ.',
+      addImages: 'Добавить фотографии',
+      removeImage: 'Удалить фотографию',
+      invalidImageType: 'Поддерживаются JPEG, PNG, WebP и AVIF.',
+      imageTooLarge: 'Исходный файл должен быть не больше 10 МБ.',
+      imageLimit: 'Превышен лимит фотографий.',
+      imageOptimizationFailed:
+        'Не удалось оптимизировать фотографию до 1,5 МБ. Попробуй другое изображение.',
+      imageAlt: 'Фотография {index} проекта {name}',
+      emptyProjectContent:
+        'Добавь фотографии или Markdown-документацию проекта.',
+      contentSaveFailed: 'Не удалось сохранить материалы проекта.',
+      cancel: 'Отмена',
+      saveContent: 'Сохранить материалы',
       status: {
         'in-development': 'В разработке',
         released: 'Готов',
@@ -240,6 +265,17 @@ export const translations = {
       previous: 'Назад',
       next: 'Далее',
       showFull: 'Показать полностью',
+      images: 'Фотографии',
+      newsImagesDescription:
+        'До 4 фотографий. Перед загрузкой они сжимаются в WebP до 1440 px и 1,5 МБ.',
+      addImages: 'Добавить фотографии',
+      removeImage: 'Удалить фотографию',
+      invalidImageType: 'Поддерживаются JPEG, PNG, WebP и AVIF.',
+      imageTooLarge: 'Исходный файл должен быть не больше 10 МБ.',
+      imageLimit: 'Превышен лимит фотографий.',
+      imageOptimizationFailed:
+        'Не удалось оптимизировать фотографию до 1,5 МБ. Попробуй другое изображение.',
+      imageAlt: 'Фотография к новости',
       errors: {
         login: 'Не удалось войти.',
         logout: 'Не удалось выйти из авторского режима.',
@@ -319,6 +355,22 @@ export const translations = {
         invalid: 'Проверь текст заметки и выбранную тему.',
         titleTooLong: 'Заголовок не должен быть длиннее 160 символов.',
         notFound: 'Заметку не удалось найти.',
+        databaseMissing: 'База данных не настроена. Проверь DATABASE_URL.',
+        loadFailed: 'Не удалось загрузить заметки.',
+        saveFailed: 'Не удалось сохранить заметку.',
+        deleteFailed: 'Не удалось удалить заметку.',
+      },
+      projectContent: {
+        notFound: 'Проект не найден.',
+        invalid: 'Некорректные материалы проекта.',
+        tooLong: 'Документация проекта слишком длинная.',
+        databaseMissing: 'База данных не настроена. Проверь DATABASE_URL.',
+        saveFailed: 'Не удалось сохранить материалы проекта.',
+      },
+      media: {
+        notConfigured: 'Хранилище фотографий не настроено.',
+        invalid: 'Некорректный запрос загрузки.',
+        uploadFailed: 'Не удалось загрузить фотографию.',
       },
       tinyUrl: {
         loadFailed: 'Не удалось загрузить сохранённые данные.',
@@ -399,6 +451,30 @@ export const translations = {
       highlights: 'Highlights',
       screenshots: 'Screenshots',
       devLog: 'Dev log',
+      projectContent: 'Project materials',
+      editContent: 'Edit materials',
+      documentation: 'Documentation',
+      documentationRu: 'Documentation in Russian',
+      documentationEn: 'Documentation in English',
+      documentationPlaceholder:
+        'Overview, installation, usage, examples, and other project details…',
+      markdownDocumentationHint:
+        'Markdown is supported. Documentation is shown only on this project page.',
+      images: 'Project photos',
+      projectImagesDescription:
+        'Up to 8 photos. Before upload, they are compressed to WebP, 1440 px, and 1.5 MB.',
+      addImages: 'Add photos',
+      removeImage: 'Remove photo',
+      invalidImageType: 'JPEG, PNG, WebP, and AVIF are supported.',
+      imageTooLarge: 'The source file must be no larger than 10 MB.',
+      imageLimit: 'The photo limit has been exceeded.',
+      imageOptimizationFailed:
+        'The photo could not be optimized to 1.5 MB. Try another image.',
+      imageAlt: 'Photo {index} of the {name} project',
+      emptyProjectContent: 'Add project photos or Markdown documentation.',
+      contentSaveFailed: 'Could not save the project materials.',
+      cancel: 'Cancel',
+      saveContent: 'Save materials',
       status: {
         'in-development': 'In development',
         released: 'Released',
@@ -513,6 +589,17 @@ export const translations = {
       previous: 'Previous',
       next: 'Next',
       showFull: 'Show full post',
+      images: 'Photos',
+      newsImagesDescription:
+        'Up to 4 photos. Before upload, they are compressed to WebP, 1440 px, and 1.5 MB.',
+      addImages: 'Add photos',
+      removeImage: 'Remove photo',
+      invalidImageType: 'JPEG, PNG, WebP, and AVIF are supported.',
+      imageTooLarge: 'The source file must be no larger than 10 MB.',
+      imageLimit: 'The photo limit has been exceeded.',
+      imageOptimizationFailed:
+        'The photo could not be optimized to 1.5 MB. Try another image.',
+      imageAlt: 'News photo',
       errors: {
         login: 'Could not sign in.',
         logout: 'Could not sign out of author mode.',
@@ -593,6 +680,22 @@ export const translations = {
         invalid: 'Check the note text and selected topic.',
         titleTooLong: 'The title must be 160 characters or fewer.',
         notFound: 'The note could not be found.',
+        databaseMissing: 'The database is not configured. Check DATABASE_URL.',
+        loadFailed: 'Could not load the notes.',
+        saveFailed: 'Could not save the note.',
+        deleteFailed: 'Could not delete the note.',
+      },
+      projectContent: {
+        notFound: 'Project not found.',
+        invalid: 'Invalid project materials.',
+        tooLong: 'Project documentation is too long.',
+        databaseMissing: 'The database is not configured. Check DATABASE_URL.',
+        saveFailed: 'Could not save the project materials.',
+      },
+      media: {
+        notConfigured: 'Photo storage is not configured.',
+        invalid: 'Invalid upload request.',
+        uploadFailed: 'Could not upload the photo.',
       },
       tinyUrl: {
         loadFailed: 'Could not load saved data.',

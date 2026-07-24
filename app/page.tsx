@@ -1,80 +1,25 @@
-'use client';
+import { HomePageContent } from '@/components/home/HomePageContent';
+import { getEmptyDevUpdatesFeed, readDevUpdatesFeed } from '@/lib/dev-updates';
 
-import { useLocale } from '@/app/providers';
-import { Container } from '@/components/layout/Container';
-import { Footer } from '@/components/layout/Footer';
-import { Header } from '@/components/layout/Header';
-import { HomeScrollManager } from '@/components/layout/HomeScrollManager';
-import { Page } from '@/components/layout/Page';
-import { ProfileAvatar } from '@/components/ProfileAvatar';
-import { siteConfig } from '@/utils/config';
-import { Card, Spinner, Typography } from '@heroui/react';
-import dynamic from 'next/dynamic';
+export const dynamic = 'force-dynamic';
 
-const StatsSection = dynamic(
-  () =>
-    import('@/components/stats/StatsSection').then(
-      (module) => module.StatsSection,
-    ),
-  {
-    loading: () => (
-      <Card variant="transparent">
-        <Card.Content className="flex items-center justify-center py-8">
-          <Spinner />
-        </Card.Content>
-      </Card>
-    ),
-  },
-);
+export default async function HomePage() {
+  let initialFeed = getEmptyDevUpdatesFeed();
+  let initialFeedLoaded = false;
 
-const ProjectsSection = dynamic(() =>
-  import('@/components/home/ProjectsSection').then(
-    (module) => module.ProjectsSection,
-  ),
-);
-
-const ToolsSection = dynamic(() =>
-  import('@/components/home/ToolsSection').then(
-    (module) => module.ToolsSection,
-  ),
-);
-
-export default function HomePage() {
-  const { copy } = useLocale();
+  if (process.env.DATABASE_URL) {
+    try {
+      initialFeed = await readDevUpdatesFeed({ page: 1, sort: 'newest' });
+      initialFeedLoaded = true;
+    } catch {
+      // The client keeps the existing retry/error UI if the database is unavailable.
+    }
+  }
 
   return (
-    <Page header={<Header />} footer={<Footer />}>
-      <HomeScrollManager />
-      <Container className="flex flex-col gap-4 py-4">
-        <Typography.Heading level={1} className="sr-only">
-          {siteConfig.name}
-        </Typography.Heading>
-        <Typography.Paragraph>{copy.home.intro}</Typography.Paragraph>
-
-        <section
-          id="bio"
-          className="scroll-mt-16 flex flex-col gap-4 border-t pt-4"
-        >
-          <Typography.Heading level={2}>
-            {copy.home.bioTitle}
-          </Typography.Heading>
-
-          <div className="flex h-fit flex-col gap-4 md:h-48 md:flex-row">
-            <ProfileAvatar />
-            <div className="flex flex-col gap-3">
-              {copy.home.bio.map((paragraph) => (
-                <Typography.Paragraph key={paragraph}>
-                  {paragraph}
-                </Typography.Paragraph>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <StatsSection />
-        <ProjectsSection />
-        <ToolsSection />
-      </Container>
-    </Page>
+    <HomePageContent
+      initialFeed={initialFeed}
+      initialFeedLoaded={initialFeedLoaded}
+    />
   );
 }

@@ -36,7 +36,7 @@ npm run db:studio
 - `components/projects/` — project cards, modal details, and project-page client content.
 - `components/tools/` — browser-only developer tools and their page wrapper.
 - `components/tiny-url/` — Tiny URL form and shared-data views.
-- `components/stats/` — Dev Notes feed, Markdown renderer, and lazily loaded author controls.
+- `components/stats/` — Dev Notes feed, deterministic Markdown renderer, and author controls.
 - `utils/config.ts` — projects, tools, links, and their localized content. Generic tool routes are derived from each tool's `component` field.
 - `utils/i18n.ts` — locales, translation dictionary, locale helpers, and API request language detection.
 - `utils/stats.ts` — development directions and Dev Notes topics.
@@ -89,6 +89,15 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 - Tiny URL remains a dedicated route because it has server-backed behavior.
 - If a project/tool page needs a client i18n context and uses icons from the config, use a client page-content wrapper and pass only a primitive slug from the server route. React components in config objects cannot cross a Server Component → Client Component boundary as props.
 - New database schema changes need a descriptive Drizzle migration name and a checked-in migration file.
+
+## Project media and documentation
+
+- News and project images are compressed in the browser to WebP, capped at 1440 px and 1.5 MB, and uploaded directly to Vercel Blob.
+- PostgreSQL stores only public Blob URLs. Never store image binaries or base64 payloads in the database.
+- Keep `BLOB_READ_WRITE_TOKEN` configured in Vercel and apply the checked-in Drizzle migration before using media or project documentation.
+- Removed images are deleted from Blob after the owning database record is updated. New uploads are cleaned up when a save request fails.
+- Project documentation is localized Markdown stored in `project_contents` and rendered only on `/project/[slug]`.
+- The home page reads the first Dev Notes page and author session on the server so hydration must not replace the feed or author controls with differently sized placeholders.
 
 ## Tiny URL lifecycle
 

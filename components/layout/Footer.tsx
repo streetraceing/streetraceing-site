@@ -8,33 +8,33 @@ import { cn, linkVariants, Separator, Typography } from '@heroui/react';
 import NextLink from 'next/link';
 import { useSyncExternalStore } from 'react';
 
-const DAY_IN_MS = 86_400_000;
+const HOUR_IN_MS = 3_600_000;
 
-function getUtcDayNumber() {
-  return Math.floor(Date.now() / DAY_IN_MS);
+function getUtcHourNumber() {
+  return Math.floor(Date.now() / HOUR_IN_MS);
 }
 
-function getServerUtcDayNumber() {
-  return 0;
+function getServerUtcHourNumber() {
+  return getUtcHourNumber();
 }
 
-function subscribeToUtcDayChange(onStoreChange: () => void) {
+function subscribeToUtcHourChange(onStoreChange: () => void) {
   let timeoutId = 0;
 
-  const scheduleNextDay = () => {
+  const scheduleNextHour = () => {
     const now = Date.now();
-    const nextDay = (getUtcDayNumber() + 1) * DAY_IN_MS;
+    const nextHour = (getUtcHourNumber() + 1) * HOUR_IN_MS;
 
     timeoutId = window.setTimeout(
       () => {
         onStoreChange();
-        scheduleNextDay();
+        scheduleNextHour();
       },
-      Math.max(nextDay - now, 0) + 100,
+      Math.max(nextHour - now, 0) + 100,
     );
   };
 
-  scheduleNextDay();
+  scheduleNextHour();
 
   return () => {
     window.clearTimeout(timeoutId);
@@ -45,19 +45,19 @@ export function Footer() {
   const linkSlots = linkVariants();
   const { copy, locale } = useLocale();
   const phrases = footerPhrases[locale];
-  const dayNumber = useSyncExternalStore(
-    subscribeToUtcDayChange,
-    getUtcDayNumber,
-    getServerUtcDayNumber,
+  const hourNumber = useSyncExternalStore(
+    subscribeToUtcHourChange,
+    getUtcHourNumber,
+    getServerUtcHourNumber,
   );
-  const phraseIndex = dayNumber % phrases.length;
+  const phraseIndex = hourNumber % phrases.length;
 
   return (
     <footer className="relative overflow-hidden border-t bg-background">
       <Container className="relative flex flex-col justify-between gap-6 px-0 py-4 sm:px-0 md:flex-row md:px-6 md:py-8 lg:px-8">
         <div className="flex flex-col items-center gap-4 md:items-start">
           <Typography.Paragraph className="text-left text-sm text-muted">
-            © {new Date().getFullYear()} -{' '}
+            © {new Date().getUTCFullYear()} -{' '}
             <NextLink
               href="/"
               className={cn(linkSlots.base(), 'italic no-underline')}

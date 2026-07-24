@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- Blob images are already compressed and served directly without invoking Vercel Image Optimization. */
 'use client';
 
 import {
@@ -14,10 +15,10 @@ import {
   Typography,
 } from '@heroui/react';
 import { ChevronDown, X } from 'lucide-react';
-import dynamic from 'next/dynamic';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthorSession, useLocale } from '@/app/providers';
+import StatsAuthorControls from '@/components/stats/StatsAuthorControls';
 import { HOME_LAYOUT_SETTLED_EVENT } from '@/utils/client-events';
 import { getLocaleTag, getText } from '@/utils/i18n';
 import {
@@ -29,39 +30,17 @@ import {
   type DevUpdateTopic,
 } from '@/utils/stats';
 
+import DevUpdateAuthorActions from './DevUpdateAuthorActions';
 import { MarkdownContent } from './MarkdownContent';
-import type { DevUpdate, DevUpdateChange } from './types';
-
-const StatsAuthorControls = dynamic(() => import('./StatsAuthorControls'), {
-  loading: () => (
-    <div className="flex justify-center py-4">
-      <Spinner size="sm" />
-    </div>
-  ),
-});
-
-const DevUpdateAuthorActions = dynamic(
-  () => import('./DevUpdateAuthorActions'),
-  {
-    loading: () => <Spinner size="sm" />,
-  },
-);
+import type { DevUpdate, DevUpdateChange, DevUpdatesFeed } from './types';
 
 const ALL_FILTER_ID = 'all';
-
-type FeedResponse = {
-  updates: DevUpdate[];
-  pagination: {
-    page: number;
-    total: number;
-    totalPages: number;
-  };
-};
 
 function formatDate(date: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
     timeStyle: 'short',
+    timeZone: 'UTC',
   }).format(new Date(date));
 }
 
@@ -109,6 +88,25 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
         {update.title && <Card.Title>{update.title}</Card.Title>}
       </Card.Header>
       <Card.Content className="flex flex-col items-start gap-3">
+        {update.imageUrls.length > 0 ? (
+          <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+            {update.imageUrls.map((url, index) => (
+              <figure
+                key={url}
+                className="aspect-video overflow-hidden rounded-xl border bg-default-soft"
+              >
+                <img
+                  src={url}
+                  alt={`${update.title ?? copy.stats.updatesTitle}: ${copy.stats.imageAlt} ${index + 1}`}
+                  className="size-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </figure>
+            ))}
+          </div>
+        ) : null}
+
         <div
           className={
             isCollapsed ? 'relative max-h-80 w-full overflow-hidden' : 'w-full'
@@ -138,22 +136,43 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
   );
 }
 
-export function StatsSection() {
+export function StatsSection({
+  initialFeed,
+  initialFeedLoaded,
+}: {
+  initialFeed: DevUpdatesFeed;
+  initialFeedLoaded: boolean;
+}) {
   const { copy, locale } = useLocale();
   const { session } = useAuthorSession();
   const strings = copy.stats;
-  const [updates, setUpdates] = useState<DevUpdate[]>([]);
+  const [updates, setUpdates] = useState<DevUpdate[]>(initialFeed.updates);
   const [selectedTopic, setSelectedTopic] = useState<DevUpdateTopic>();
   const [selectedSort, setSelectedSort] = useState<DevUpdateSort>('newest');
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState<FeedResponse['pagination']>();
+  const [pagination, setPagination] = useState<DevUpdatesFeed['pagination']>(
+    initialFeed.pagination,
+  );
   const [feedError, setFeedError] = useState<string>();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialFeedLoaded);
   const [feedRevision, setFeedRevision] = useState(0);
   const feedRequestId = useRef(0);
-  const hasSettledInitialHomeLayout = useRef(false);
+  const hasSettledInitialHomeLayout = useRef(initialFeedLoaded);
+  const shouldSkipInitialRequest = useRef(initialFeedLoaded);
 
   useEffect(() => {
+    if (
+      shouldSkipInitialRequest.current &&
+      page === 1 &&
+      !selectedTopic &&
+      selectedSort === 'newest' &&
+      feedRevision === 0
+    ) {
+      shouldSkipInitialRequest.current = false;
+      return;
+    }
+
+    shouldSkipInitialRequest.current = false;
     const controller = new AbortController();
     const requestId = feedRequestId.current + 1;
     const searchParams = new URLSearchParams({ page: String(page) });
@@ -179,7 +198,7 @@ export function StatsSection() {
           throw new Error(strings.errors.updates);
         }
 
-        return (await response.json()) as FeedResponse;
+        return (await response.json()) as DevUpdatesFeed;
       })
       .then((body) => {
         if (requestId === feedRequestId.current) {
@@ -321,49 +340,6 @@ export function StatsSection() {
         ))}
       </div>
 
-      {session?.authenticated && (
-        <StatsAuthorControls
-          onCreated={(update) => {
-            const belongsToCurrentFilter =
-              !selectedTopic || selectedTopic === update.topic;
-
-            if (!belongsToCurrentFilter) {
-              return;
-            }
-
-            feedRequestId.current += 1;
-            setIsLoading(true);
-
-            if (page === 1 && selectedSort === 'newest') {
-              setUpdates((currentUpdates) =>
-                [
-                  update,
-                  ...currentUpdates.filter(
-                    (currentUpdate) => currentUpdate.id !== update.id,
-                  ),
-                ].slice(0, DEV_UPDATES_PAGE_SIZE),
-              );
-            }
-
-            setPagination((currentPagination) =>
-              currentPagination
-                ? {
-                    ...currentPagination,
-                    total: currentPagination.total + 1,
-                    totalPages: Math.max(
-                      1,
-                      Math.ceil(
-                        (currentPagination.total + 1) / DEV_UPDATES_PAGE_SIZE,
-                      ),
-                    ),
-                  }
-                : currentPagination,
-            );
-            setFeedRevision((revision) => revision + 1);
-          }}
-        />
-      )}
-
       <section
         className="flex flex-col gap-3 border-t pt-4"
         aria-labelledby="updates-heading"
@@ -383,6 +359,49 @@ export function StatsSection() {
             </Chip>
           )}
         </div>
+
+        {session?.authenticated && (
+          <StatsAuthorControls
+            onCreated={(update) => {
+              const belongsToCurrentFilter =
+                !selectedTopic || selectedTopic === update.topic;
+
+              if (!belongsToCurrentFilter) {
+                return;
+              }
+
+              feedRequestId.current += 1;
+              setIsLoading(true);
+
+              if (page === 1 && selectedSort === 'newest') {
+                setUpdates((currentUpdates) =>
+                  [
+                    update,
+                    ...currentUpdates.filter(
+                      (currentUpdate) => currentUpdate.id !== update.id,
+                    ),
+                  ].slice(0, DEV_UPDATES_PAGE_SIZE),
+                );
+              }
+
+              setPagination((currentPagination) =>
+                currentPagination
+                  ? {
+                      ...currentPagination,
+                      total: currentPagination.total + 1,
+                      totalPages: Math.max(
+                        1,
+                        Math.ceil(
+                          (currentPagination.total + 1) / DEV_UPDATES_PAGE_SIZE,
+                        ),
+                      ),
+                    }
+                  : currentPagination,
+              );
+              setFeedRevision((revision) => revision + 1);
+            }}
+          />
+        )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex min-w-0 flex-1 items-end gap-2">
@@ -516,12 +535,19 @@ export function StatsSection() {
           </div>
         )}
 
-        {isLoading && updates.length > 0 && (
-          <div className="flex items-center gap-2 text-sm text-muted">
-            <Spinner size="sm" />
-            {strings.refreshing}
+        {updates.length > 0 ? (
+          <div
+            aria-live="polite"
+            className="flex min-h-5 items-center gap-2 text-sm text-muted"
+          >
+            {isLoading ? (
+              <>
+                <Spinner size="sm" />
+                {strings.refreshing}
+              </>
+            ) : null}
           </div>
-        )}
+        ) : null}
 
         {pagination && pagination.totalPages > 1 && (
           <Pagination size="sm">

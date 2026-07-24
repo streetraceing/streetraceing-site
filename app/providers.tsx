@@ -18,7 +18,14 @@ import {
   type Translation,
 } from '@/utils/i18n';
 
-export type Theme = 'system' | 'light' | 'dark';
+import {
+  getTheme,
+  THEME_COOKIE,
+  THEME_STORAGE_KEY,
+  type Theme,
+} from '@/utils/theme';
+
+export type { Theme } from '@/utils/theme';
 
 export type AuthorSession = {
   authenticated: boolean;
@@ -44,25 +51,19 @@ type AuthorSessionContextValue = {
   logoutAuthor: () => Promise<string | undefined>;
 };
 
-const THEME_STORAGE_KEY = 'theme';
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 const LocaleContext = createContext<LocaleContextValue | undefined>(undefined);
 const AuthorSessionContext = createContext<
   AuthorSessionContextValue | undefined
 >(undefined);
 
-function getStoredTheme(): Theme {
+function getStoredTheme(fallback: Theme = 'system'): Theme {
   if (typeof window === 'undefined') {
-    return 'system';
+    return fallback;
   }
 
   const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-
-  return storedTheme === 'light' ||
-    storedTheme === 'dark' ||
-    storedTheme === 'system'
-    ? storedTheme
-    : 'system';
+  return storedTheme ? getTheme(storedTheme) : fallback;
 }
 
 function applyTheme(theme: Theme) {
@@ -77,7 +78,9 @@ function applyTheme(theme: Theme) {
 
   root.classList.toggle('dark', resolvedTheme === 'dark');
   root.dataset.theme = resolvedTheme;
+  root.dataset.themePreference = theme;
   root.style.colorScheme = resolvedTheme;
+  root.style.backgroundColor = resolvedTheme === 'dark' ? '#09090b' : '#ffffff';
 }
 
 async function readApiError(response: Response) {
@@ -135,18 +138,26 @@ export function useAuthorSession() {
 export function Providers({
   children,
   initialLocale = defaultLocale,
+  initialTheme = 'system',
+  initialAuthorSession,
 }: {
   children: ReactNode;
   initialLocale?: Locale;
+  initialTheme?: Theme;
+  initialAuthorSession: AuthorSession;
 }) {
-  const [theme, setThemeState] = useState<Theme>(getStoredTheme);
+  const [theme, setThemeState] = useState<Theme>(() =>
+    getStoredTheme(initialTheme),
+  );
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
-  const [authorSession, setAuthorSession] = useState<AuthorSession>();
-  const [isAuthorSessionLoading, setIsAuthorSessionLoading] = useState(true);
+  const [authorSession, setAuthorSession] =
+    useState<AuthorSession>(initialAuthorSession);
+  const [isAuthorSessionLoading, setIsAuthorSessionLoading] = useState(false);
 
   const setTheme = useCallback((nextTheme: Theme) => {
     setThemeState(nextTheme);
     window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    document.cookie = `${THEME_COOKIE}=${nextTheme}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
     applyTheme(nextTheme);
   }, []);
 
@@ -236,7 +247,7 @@ export function Providers({
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
       if (event.key === THEME_STORAGE_KEY) {
-        const nextTheme = getStoredTheme();
+        const nextTheme = getStoredTheme(initialTheme);
         setThemeState(nextTheme);
         applyTheme(nextTheme);
       }
@@ -247,32 +258,7 @@ export function Providers({
     return () => {
       window.removeEventListener('storage', handleStorage);
     };
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    void requestAuthorSession(controller.signal)
-      .then((session) => {
-        setAuthorSession(session);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) {
-          setAuthorSession(
-            (current) => current ?? { authenticated: false, configured: true },
-          );
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsAuthorSessionLoading(false);
-        }
-      });
-
-    return () => {
-      controller.abort();
-    };
-  }, []);
+  }, [initialTheme]);
 
   const themeValue = useMemo(() => ({ theme, setTheme }), [setTheme, theme]);
   const localeValue = useMemo(

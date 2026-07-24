@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   index,
   integer,
@@ -8,6 +9,8 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+
+import type { DevUpdateTopic } from '@/utils/stats';
 
 export const shortUrls = pgTable(
   'short_urls',
@@ -37,7 +40,11 @@ export const devUpdates = pgTable(
     id: uuid('id').defaultRandom().primaryKey(),
     title: varchar('title', { length: 160 }),
     content: text('content').notNull(),
-    topic: varchar('topic', { length: 32 }).notNull(),
+    topic: varchar('topic', { length: 32 }).$type<DevUpdateTopic>().notNull(),
+    imageUrls: text('image_urls')
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -47,3 +54,16 @@ export const devUpdates = pgTable(
     index('dev_updates_created_at_idx').on(table.createdAt),
   ],
 );
+
+export const projectContents = pgTable('project_contents', {
+  projectSlug: varchar('project_slug', { length: 64 }).primaryKey(),
+  documentationRu: text('documentation_ru').notNull().default(''),
+  documentationEn: text('documentation_en').notNull().default(''),
+  imageUrls: text('image_urls')
+    .array()
+    .notNull()
+    .default(sql`ARRAY[]::text[]`),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

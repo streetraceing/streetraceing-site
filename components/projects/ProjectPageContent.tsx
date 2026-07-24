@@ -7,14 +7,22 @@ import { Header } from '@/components/layout/Header';
 import { Page } from '@/components/layout/Page';
 import { mainPageConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
+import type { ProjectContentData } from '@/utils/project-content';
 import { Card, Typography } from '@heroui/react';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 import { ProjectActions } from './ProjectActions';
+import { ProjectContentSection } from './ProjectContentSection';
 import { ProjectDetails } from './ProjectDetails';
 
-export function ProjectPageContent({ slug }: { slug: string }) {
+export function ProjectPageContent({
+  slug,
+  initialContent,
+}: {
+  slug: string;
+  initialContent: ProjectContentData;
+}) {
   const { copy, locale } = useLocale();
   const project = mainPageConfig.projects.find(
     (currentProject) => currentProject.slug === slug,
@@ -60,6 +68,14 @@ export function ProjectPageContent({ slug }: { slug: string }) {
             <ProjectActions project={project} />
           </Card.Footer>
         </Card>
+
+        <div className="mx-auto w-full max-w-4xl">
+          <ProjectContentSection
+            key={project.slug}
+            project={project}
+            initialContent={initialContent}
+          />
+        </div>
       </Container>
     </Page>
   );

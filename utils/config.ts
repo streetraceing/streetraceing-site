@@ -10,6 +10,7 @@ import {
   Home,
   KeyRound,
   LucideIcon,
+  PackageSearch,
   Sparkles,
 } from 'lucide-react';
 import { IconType } from 'react-icons';
@@ -75,6 +76,7 @@ export type ProjectConfig = {
   relatedLinks: ProjectLink[];
   screenshots?: ProjectScreenshot[];
   devLog?: ProjectDevLogEntry[];
+  documentation?: LocalizedText;
   icon?: AnyIcon;
 };
 
@@ -207,6 +209,86 @@ export const mainPageConfig: MainPageConfig = {
       ],
       links: [],
       relatedLinks: [],
+    },
+    {
+      slug: 'farsight',
+      name: 'Farsight',
+      icon: PackageSearch,
+      shortDescription: text(
+        'TypeScript CLI для быстрого глубокого обзора JavaScript-проектов.',
+        'A TypeScript CLI for a fast, in-depth overview of JavaScript projects.',
+      ),
+      longDescription: text(
+        'Farsight анализирует зависимости npm, строки исходного кода, тип проекта и локальную Git-активность. Инструмент запускается через npx, поддерживает JSON-вывод и режим без сети.',
+        'Farsight analyzes npm dependency freshness, source lines, project type, and local Git activity. It runs through npx and supports JSON output and an offline mode.',
+      ),
+      colors: ['#111827', '#4f46e5', '#22d3ee'],
+      status: ['released', 'maintained', 'open-source'],
+      progress: 100,
+      technologies: ['TypeScript', 'Node.js', 'npm', 'Git', 'CLI'],
+      highlights: [
+        text(
+          'Показывает current, wanted и latest версии прямых npm-зависимостей',
+          'Shows current, wanted, and latest versions of direct npm dependencies',
+        ),
+        text(
+          'Считает физические и непустые строки исходного кода',
+          'Counts physical and non-empty source lines',
+        ),
+        text(
+          'Собирает локальную Git-активность и статистику участников',
+          'Collects local Git activity and contributor statistics',
+        ),
+      ],
+      links: [
+        {
+          url: 'https://github.com/streetraceing/farsight',
+          icon: FaGithub,
+          label: text('GitHub', 'GitHub'),
+        },
+        {
+          url: 'https://www.npmjs.com/package/@streetraceing/farsight',
+          icon: PackageSearch,
+          label: text('npm', 'npm'),
+        },
+      ],
+      relatedLinks: [],
+      documentation: text(
+        `## Установка и запуск
+
+Farsight требует Node.js 18 или новее и запускается без глобальной установки:
+
+\`\`\`bash
+npx @streetraceing/farsight --cwd /path/to/project
+\`\`\`
+
+### Полезные режимы
+
+\`\`\`bash
+npx @streetraceing/farsight --cwd /path/to/project --json
+npx @streetraceing/farsight --cwd /path/to/project --since=30 --top=5
+npx @streetraceing/farsight --cwd /path/to/project --no-network
+\`\`\`
+
+Полный список параметров доступен через \`npx @streetraceing/farsight --help\`.`,
+        `## Install and run
+
+Farsight requires Node.js 18 or newer and can run without a global installation:
+
+\`\`\`bash
+npx @streetraceing/farsight --cwd /path/to/project
+\`\`\`
+
+### Useful modes
+
+\`\`\`bash
+npx @streetraceing/farsight --cwd /path/to/project --json
+npx @streetraceing/farsight --cwd /path/to/project --since=30 --top=5
+npx @streetraceing/farsight --cwd /path/to/project --no-network
+\`\`\`
+
+Run \`npx @streetraceing/farsight --help\` to see every option.`,
+      ),
     },
     {
       slug: 'symmetry',

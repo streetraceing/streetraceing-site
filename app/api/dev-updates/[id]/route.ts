@@ -3,8 +3,10 @@ import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { devUpdates } from '@/db/schema';
+import { deleteBlobMedia } from '@/lib/blob-media';
 import { isAdmin } from '@/utils/auth';
 import { getRequestLocale, translations } from '@/utils/i18n';
+import { MAX_DEV_UPDATE_IMAGES, normalizeMediaUrls } from '@/utils/media';
 import { isDevUpdateTopic } from '@/utils/stats';
 
 export const runtime = 'nodejs';
@@ -24,32 +26,35 @@ async function getUpdateId(context: RouteContext) {
 
 export async function PATCH(request: Request, context: RouteContext) {
   const locale = getRequestLocale(request);
-  const strings = translations[locale].api;
+  const apiStrings = translations[locale].api;
+  const strings = apiStrings.devNotes;
 
   if (!(await isAdmin())) {
-    return NextResponse.json({ error: strings.auth.required }, { status: 401 });
+    return NextResponse.json(
+      { error: apiStrings.auth.required },
+      { status: 401 },
+    );
   }
 
   const id = await getUpdateId(context);
 
   if (!id) {
-    return NextResponse.json(
-      { error: strings.devNotes.notFound },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: strings.notFound }, { status: 404 });
   }
 
   let body: {
     title?: unknown;
     content?: unknown;
     topic?: unknown;
+    imageUrls?: unknown;
+    uploadedImageUrls?: unknown;
   };
 
   try {
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: strings.auth.invalidRequest },
+      { error: apiStrings.auth.invalidRequest },
       { status: 400 },
     );
   }
@@ -57,65 +62,99 @@ export async function PATCH(request: Request, context: RouteContext) {
   const title = typeof body.title === 'string' ? body.title.trim() : '';
   const content = typeof body.content === 'string' ? body.content.trim() : '';
   const topic = typeof body.topic === 'string' ? body.topic : '';
+  const imageUrls = normalizeMediaUrls(body.imageUrls, MAX_DEV_UPDATE_IMAGES);
+  const uploadedImageUrls = normalizeMediaUrls(
+    body.uploadedImageUrls,
+    MAX_DEV_UPDATE_IMAGES,
+  ).filter((url) => imageUrls.includes(url));
 
   if (!content || content.length > 8_000 || !isDevUpdateTopic(topic)) {
-    return NextResponse.json(
-      { error: strings.devNotes.invalid },
-      { status: 400 },
-    );
+    await deleteBlobMedia(uploadedImageUrls);
+    return NextResponse.json({ error: strings.invalid }, { status: 400 });
   }
 
   if (title.length > 160) {
+    await deleteBlobMedia(uploadedImageUrls);
+    return NextResponse.json({ error: strings.titleTooLong }, { status: 400 });
+  }
+
+  if (!process.env.DATABASE_URL) {
+    await deleteBlobMedia(uploadedImageUrls);
     return NextResponse.json(
-      { error: strings.devNotes.titleTooLong },
-      { status: 400 },
+      { error: strings.databaseMissing },
+      { status: 503 },
     );
   }
 
-  const [update] = await db
-    .update(devUpdates)
-    .set({ title: title || null, content, topic })
-    .where(eq(devUpdates.id, id))
-    .returning();
+  try {
+    const [previousUpdate] = await db
+      .select({ imageUrls: devUpdates.imageUrls })
+      .from(devUpdates)
+      .where(eq(devUpdates.id, id))
+      .limit(1);
 
-  if (!update) {
-    return NextResponse.json(
-      { error: strings.devNotes.notFound },
-      { status: 404 },
+    const [update] = await db
+      .update(devUpdates)
+      .set({ title: title || null, content, topic, imageUrls })
+      .where(eq(devUpdates.id, id))
+      .returning();
+
+    if (!update) {
+      await deleteBlobMedia(uploadedImageUrls);
+      return NextResponse.json({ error: strings.notFound }, { status: 404 });
+    }
+
+    const removedUrls = (previousUpdate?.imageUrls ?? []).filter(
+      (url) => !imageUrls.includes(url),
     );
-  }
+    await deleteBlobMedia(removedUrls);
 
-  return NextResponse.json({ update });
+    return NextResponse.json({ update });
+  } catch {
+    await deleteBlobMedia(uploadedImageUrls);
+    return NextResponse.json({ error: strings.saveFailed }, { status: 500 });
+  }
 }
 
 export async function DELETE(request: Request, context: RouteContext) {
   const locale = getRequestLocale(request);
-  const strings = translations[locale].api;
+  const apiStrings = translations[locale].api;
+  const strings = apiStrings.devNotes;
 
   if (!(await isAdmin())) {
-    return NextResponse.json({ error: strings.auth.required }, { status: 401 });
+    return NextResponse.json(
+      { error: apiStrings.auth.required },
+      { status: 401 },
+    );
   }
 
   const id = await getUpdateId(context);
 
   if (!id) {
+    return NextResponse.json({ error: strings.notFound }, { status: 404 });
+  }
+
+  if (!process.env.DATABASE_URL) {
     return NextResponse.json(
-      { error: strings.devNotes.notFound },
-      { status: 404 },
+      { error: strings.databaseMissing },
+      { status: 503 },
     );
   }
 
-  const [deletedUpdate] = await db
-    .delete(devUpdates)
-    .where(eq(devUpdates.id, id))
-    .returning({ id: devUpdates.id });
+  try {
+    const [deletedUpdate] = await db
+      .delete(devUpdates)
+      .where(eq(devUpdates.id, id))
+      .returning({ id: devUpdates.id, imageUrls: devUpdates.imageUrls });
 
-  if (!deletedUpdate) {
-    return NextResponse.json(
-      { error: strings.devNotes.notFound },
-      { status: 404 },
-    );
+    if (!deletedUpdate) {
+      return NextResponse.json({ error: strings.notFound }, { status: 404 });
+    }
+
+    await deleteBlobMedia(deletedUpdate.imageUrls);
+
+    return NextResponse.json({ id: deletedUpdate.id });
+  } catch {
+    return NextResponse.json({ error: strings.deleteFailed }, { status: 500 });
   }
-
-  return NextResponse.json({ id: deletedUpdate.id });
 }
