@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- Cloudinary provides the optimized square previews while the modal intentionally displays the original asset. */
 'use client';
 
-import { Button, Modal, Typography } from '@heroui/react';
+import { Button, Modal } from '@heroui/react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -117,6 +117,7 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
     Record<string, ImageMetadata | undefined>
   >({});
   const pendingMetadata = useRef(new Set<string>());
+  const carouselRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<DragState | undefined>(undefined);
 
   if (urls.length === 0) {
@@ -342,6 +343,19 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
     setIsDragging(false);
   }
 
+  function scrollCarousel(direction: -1 | 1) {
+    const carousel = carouselRef.current;
+
+    if (!carousel) {
+      return;
+    }
+
+    carousel.scrollBy({
+      left: direction * Math.max(carousel.clientWidth * 0.75, 160),
+      behavior: 'smooth',
+    });
+  }
+
   const qualityParts: string[] = [];
 
   if (currentMetadata?.width && currentMetadata.height) {
@@ -371,100 +385,91 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <div className="relative mx-auto w-full max-w-3xl">
-        <Tilt
-          className="w-full"
-          tiltMaxAngleX={7}
-          tiltMaxAngleY={7}
-          scale={1.01}
-          perspective={1_200}
-          transitionSpeed={450}
-        >
-          <button
+      <div className="relative w-full">
+        {canNavigate ? (
+          <Button
             type="button"
-            className="group relative block aspect-square w-full overflow-hidden rounded-2xl border bg-default-soft text-left"
-            aria-label={strings.openImage.replace(
-              '{index}',
-              String(currentIndex + 1),
-            )}
-            onClick={() => openViewer(currentIndex)}
+            isIconOnly
+            size="sm"
+            variant="secondary"
+            className="absolute left-1 top-1/2 z-10 -translate-y-1/2 shadow-lg"
+            aria-label={strings.previousImage}
+            onPress={() => scrollCarousel(-1)}
           >
-            <img
-              src={getCloudinarySquareImageUrl(currentUrl, 1_080)}
-              alt={getAlt(currentIndex)}
-              className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-              loading="lazy"
-              decoding="async"
-            />
-            <span className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/15" />
-            <span className="absolute bottom-3 right-3 inline-flex items-center gap-2 rounded-full bg-black/65 px-3 py-2 text-sm text-white backdrop-blur-sm">
-              <Expand className="size-4" />
-              {strings.openFullscreen}
-            </span>
-          </button>
-        </Tilt>
-
-        {canNavigate ? (
-          <>
-            <Button
-              type="button"
-              isIconOnly
-              variant="secondary"
-              className="absolute left-3 top-1/2 -translate-y-1/2 shadow-lg"
-              aria-label={strings.previousImage}
-              onPress={() => selectImage(currentIndex - 1)}
-            >
-              <ChevronLeft />
-            </Button>
-            <Button
-              type="button"
-              isIconOnly
-              variant="secondary"
-              className="absolute right-3 top-1/2 -translate-y-1/2 shadow-lg"
-              aria-label={strings.nextImage}
-              onPress={() => selectImage(currentIndex + 1)}
-            >
-              <ChevronRight />
-            </Button>
-          </>
+            <ChevronLeft />
+          </Button>
         ) : null}
-      </div>
 
-      <div className="flex items-center justify-between gap-3">
-        <Typography.Paragraph className="text-sm text-muted">
-          {strings.counter
-            .replace('{current}', String(currentIndex + 1))
-            .replace('{total}', String(urls.length))}
-        </Typography.Paragraph>
+        <div
+          ref={carouselRef}
+          className={`flex snap-x snap-mandatory gap-3 overflow-x-auto py-2 scroll-smooth ${
+            canNavigate ? 'px-10' : 'px-1'
+          }`}
+          role="list"
+          aria-label={strings.thumbnails}
+        >
+          {urls.map((url, index) => (
+            <div
+              key={url}
+              className="w-28 shrink-0 snap-start sm:w-32 lg:w-36"
+              role="listitem"
+            >
+              <Tilt
+                className="w-full"
+                tiltMaxAngleX={8}
+                tiltMaxAngleY={8}
+                scale={1.035}
+                perspective={900}
+                transitionSpeed={350}
+              >
+                <button
+                  type="button"
+                  className="group relative block aspect-square w-full overflow-hidden rounded-xl border bg-default-soft text-left shadow-sm"
+                  aria-label={strings.openImage.replace(
+                    '{index}',
+                    String(index + 1),
+                  )}
+                  onClick={() => openViewer(index)}
+                >
+                  <img
+                    src={getCloudinarySquareImageUrl(url, 640)}
+                    srcSet={[
+                      `${getCloudinarySquareImageUrl(url, 320)} 320w`,
+                      `${getCloudinarySquareImageUrl(url, 640)} 640w`,
+                      `${getCloudinarySquareImageUrl(url, 1_080)} 1080w`,
+                    ].join(', ')}
+                    sizes="(min-width: 1024px) 9rem, (min-width: 640px) 8rem, 7rem"
+                    alt={getAlt(index)}
+                    className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <span className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/15" />
+                  <span className="absolute bottom-2 right-2 inline-flex size-8 items-center justify-center rounded-full bg-black/65 text-white backdrop-blur-sm">
+                    <Expand className="size-4" />
+                    <span className="sr-only">{strings.openFullscreen}</span>
+                  </span>
+                  <span className="absolute left-2 top-2 rounded-full bg-black/65 px-2 py-1 text-xs text-white backdrop-blur-sm">
+                    {index + 1}
+                  </span>
+                </button>
+              </Tilt>
+            </div>
+          ))}
+        </div>
 
         {canNavigate ? (
-          <div
-            className="flex max-w-full gap-2 overflow-x-auto pb-1"
-            role="group"
-            aria-label={strings.thumbnails}
+          <Button
+            type="button"
+            isIconOnly
+            size="sm"
+            variant="secondary"
+            className="absolute right-1 top-1/2 z-10 -translate-y-1/2 shadow-lg"
+            aria-label={strings.nextImage}
+            onPress={() => scrollCarousel(1)}
           >
-            {urls.map((url, index) => (
-              <button
-                key={url}
-                type="button"
-                aria-label={strings.selectImage.replace(
-                  '{index}',
-                  String(index + 1),
-                )}
-                aria-current={index === currentIndex ? 'true' : undefined}
-                className="size-14 shrink-0 overflow-hidden rounded-lg border-2 bg-default-soft transition-opacity hover:opacity-90 aria-current:border-accent"
-                onClick={() => selectImage(index)}
-              >
-                <img
-                  src={getCloudinarySquareImageUrl(url, 160)}
-                  alt=""
-                  className="size-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </button>
-            ))}
-          </div>
+            <ChevronRight />
+          </Button>
         ) : null}
       </div>
 
@@ -474,8 +479,8 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
           variant="blur"
           onOpenChange={handleViewerOpenChange}
         >
-          <Modal.Container size="full">
-            <Modal.Dialog className="h-dvh max-h-dvh w-dvw max-w-none rounded-none">
+          <Modal.Container size="cover">
+            <Modal.Dialog className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden">
               <Modal.CloseTrigger />
               <Modal.Header className="border-b">
                 <div className="flex min-w-0 flex-col">
@@ -490,7 +495,7 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
 
               <Modal.Body className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
                 <div
-                  className={`relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/95 ${
+                  className={`relative flex min-h-[20rem] flex-1 items-center justify-center overflow-hidden bg-black/95 ${
                     zoom > MIN_ZOOM
                       ? 'cursor-grab touch-none active:cursor-grabbing'
                       : 'cursor-zoom-in'

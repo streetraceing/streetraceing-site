@@ -18,10 +18,11 @@ import {
   Typography,
 } from '@heroui/react';
 import { Eye, EyeOff, Pencil, Save, Trash2 } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useRef, useState } from 'react';
 
 import { useLocale } from '@/app/providers';
 import { MediaAttachmentsField } from '@/components/media/MediaAttachmentsField';
+import { MarkdownFormattingToolbar } from '@/components/stats/MarkdownFormattingToolbar';
 import { getLocaleTag } from '@/utils/i18n';
 import { MAX_DEV_UPDATE_IMAGES } from '@/utils/media';
 import { uploadMediaFiles } from '@/utils/media-client';
@@ -57,6 +58,7 @@ export default function DevUpdateAuthorActions({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const editContentRef = useRef<HTMLTextAreaElement>(null);
 
   function resetEditor() {
     setEditTitle(update.title ?? '');
@@ -223,32 +225,40 @@ export default function DevUpdateAuthorActions({
                       </Select.Popover>
                     </Select>
 
-                    <TextField
-                      isRequired
-                      fullWidth
-                      name="edit-content"
-                      value={editContent}
-                      onChange={setEditContent}
-                      validate={(value) =>
-                        value.trim() ? null : strings.noteRequired
-                      }
-                    >
-                      <Label>{strings.note}</Label>
-                      <TextArea
-                        rows={10}
-                        maxLength={8_000}
-                        variant="secondary"
-                        placeholder={strings.notePlaceholder}
+                    <div className="flex flex-col gap-2">
+                      <TextField
+                        isRequired
+                        fullWidth
+                        name="edit-content"
+                        value={editContent}
+                        onChange={setEditContent}
+                        validate={(value) =>
+                          value.trim() ? null : strings.noteRequired
+                        }
+                      >
+                        <Label>{strings.note}</Label>
+                        <TextArea
+                          ref={editContentRef}
+                          rows={10}
+                          maxLength={8_000}
+                          variant="secondary"
+                          placeholder={strings.notePlaceholder}
+                        />
+                        <Description>
+                          {strings.markdownHint}{' '}
+                          {editContent.length.toLocaleString(
+                            getLocaleTag(locale),
+                          )}{' '}
+                          / 8 000
+                        </Description>
+                        <FieldError />
+                      </TextField>
+                      <MarkdownFormattingToolbar
+                        value={editContent}
+                        onChange={setEditContent}
+                        textareaRef={editContentRef}
                       />
-                      <Description>
-                        {strings.markdownHint}{' '}
-                        {editContent.length.toLocaleString(
-                          getLocaleTag(locale),
-                        )}{' '}
-                        / 8 000
-                      </Description>
-                      <FieldError />
-                    </TextField>
+                    </div>
 
                     <MediaAttachmentsField
                       existingUrls={existingUrls}

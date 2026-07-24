@@ -118,10 +118,9 @@ export const translations = {
       previousImage: 'Предыдущее изображение',
       nextImage: 'Следующее изображение',
       openImage: 'Открыть изображение {index}',
-      openFullscreen: 'На весь экран',
+      openFullscreen: 'Открыть фотографию',
       counter: '{current} из {total}',
       thumbnails: 'Миниатюры галереи',
-      selectImage: 'Показать изображение {index}',
       viewerTitle: 'Просмотр фотографии',
       zoomArea:
         'Область изображения. Колесо мыши и двойной клик изменяют масштаб.',
@@ -133,6 +132,11 @@ export const translations = {
       zoomOut: 'Уменьшить',
       resetZoom: 'Сбросить масштаб',
       download: 'Скачать оригинал',
+    },
+    markdownFormatting: {
+      toolbar: 'Форматирование Markdown',
+      underline: 'Подчеркнуть выделенный текст',
+      strikethrough: 'Зачеркнуть выделенный текст',
     },
     project: {
       openDetails: 'Открыть подробности',
@@ -152,7 +156,7 @@ export const translations = {
       documentationPlaceholder:
         'Описание, установка, использование, примеры и другие детали проекта…',
       markdownDocumentationHint:
-        'Поддерживается Markdown. Документация отображается только на странице этого проекта.',
+        'Поддерживается Markdown, включая ++подчёркивание++ и ~~зачёркивание~~. Документация отображается только на странице этого проекта.',
       images: 'Фотографии проекта',
       projectImagesDescription:
         'До 8 фотографий. Оригинал загружается напрямую в Cloudinary, а на сайте показывается квадратное превью 1080 × 1080.',
@@ -249,7 +253,7 @@ export const translations = {
       noteRequired: 'Напишите хотя бы одну строчку.',
       notePlaceholder: 'Что нового в разработке?',
       markdownHint:
-        'Markdown поддерживается: **жирный**, _курсив_, списки и ссылки. Блок кода: ```ts … ```.',
+        'Markdown: **жирный**, _курсив_, ++подчёркнутый++, ~~зачёркнутый~~, списки и ссылки. Блок кода: ```ts … ```.',
       preview: 'Предпросмотр Markdown',
       hidePreview: 'Скрыть предпросмотр',
       previewTitle: 'Предпросмотр',
@@ -461,10 +465,9 @@ export const translations = {
       previousImage: 'Previous image',
       nextImage: 'Next image',
       openImage: 'Open image {index}',
-      openFullscreen: 'Full screen',
+      openFullscreen: 'Open photo',
       counter: '{current} of {total}',
       thumbnails: 'Gallery thumbnails',
-      selectImage: 'Show image {index}',
       viewerTitle: 'Photo viewer',
       zoomArea:
         'Image area. Use the mouse wheel or double-click to change zoom.',
@@ -476,6 +479,11 @@ export const translations = {
       zoomOut: 'Zoom out',
       resetZoom: 'Reset zoom',
       download: 'Download original',
+    },
+    markdownFormatting: {
+      toolbar: 'Markdown formatting',
+      underline: 'Underline selected text',
+      strikethrough: 'Strikethrough selected text',
     },
     project: {
       openDetails: 'Open details',
@@ -495,7 +503,7 @@ export const translations = {
       documentationPlaceholder:
         'Overview, installation, usage, examples, and other project details…',
       markdownDocumentationHint:
-        'Markdown is supported. Documentation is shown only on this project page.',
+        'Markdown is supported, including ++underline++ and ~~strikethrough~~. Documentation is shown only on this project page.',
       images: 'Project photos',
       projectImagesDescription:
         'Up to 8 photos. The original is uploaded directly to Cloudinary, while the site displays a square 1080 × 1080 preview.',
@@ -588,7 +596,7 @@ export const translations = {
       noteRequired: 'Write at least one line.',
       notePlaceholder: 'What is new in development?',
       markdownHint:
-        'Markdown is supported: **bold**, _italic_, lists, and links. Code block: ```ts … ```.',
+        'Markdown: **bold**, _italic_, ++underline++, ~~strikethrough~~, lists, and links. Code block: ```ts … ```.',
       preview: 'Preview Markdown',
       hidePreview: 'Hide preview',
       previewTitle: 'Preview',

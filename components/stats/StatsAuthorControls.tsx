@@ -16,10 +16,11 @@ import {
   Typography,
 } from '@heroui/react';
 import { Eye, EyeOff, Send } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useRef, useState } from 'react';
 
 import { useLocale } from '@/app/providers';
 import { MediaAttachmentsField } from '@/components/media/MediaAttachmentsField';
+import { MarkdownFormattingToolbar } from '@/components/stats/MarkdownFormattingToolbar';
 import { getLocaleTag } from '@/utils/i18n';
 import { uploadMediaFiles } from '@/utils/media-client';
 import { MAX_DEV_UPDATE_IMAGES } from '@/utils/media';
@@ -48,6 +49,7 @@ export default function StatsAuthorControls({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [publishError, setPublishError] = useState<string>();
   const [isPublishing, setIsPublishing] = useState(false);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
 
   async function publish(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -151,27 +153,35 @@ export default function StatsAuthorControls({
             </Select.Popover>
           </Select>
 
-          <TextField
-            isRequired
-            fullWidth
-            name="content"
-            value={content}
-            onChange={setContent}
-            validate={(value) => (value.trim() ? null : strings.noteRequired)}
-          >
-            <Label>{strings.note}</Label>
-            <TextArea
-              rows={6}
-              variant="secondary"
-              maxLength={8_000}
-              placeholder={strings.notePlaceholder}
+          <div className="flex flex-col gap-2">
+            <TextField
+              isRequired
+              fullWidth
+              name="content"
+              value={content}
+              onChange={setContent}
+              validate={(value) => (value.trim() ? null : strings.noteRequired)}
+            >
+              <Label>{strings.note}</Label>
+              <TextArea
+                ref={contentRef}
+                rows={6}
+                variant="secondary"
+                maxLength={8_000}
+                placeholder={strings.notePlaceholder}
+              />
+              <Description>
+                {strings.markdownHint}{' '}
+                {content.length.toLocaleString(getLocaleTag(locale))} / 8 000
+              </Description>
+              <FieldError />
+            </TextField>
+            <MarkdownFormattingToolbar
+              value={content}
+              onChange={setContent}
+              textareaRef={contentRef}
             />
-            <Description>
-              {strings.markdownHint}{' '}
-              {content.length.toLocaleString(getLocaleTag(locale))} / 8 000
-            </Description>
-            <FieldError />
-          </TextField>
+          </div>
 
           <MediaAttachmentsField
             existingUrls={[]}

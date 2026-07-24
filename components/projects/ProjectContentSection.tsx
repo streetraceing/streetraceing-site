@@ -12,12 +12,13 @@ import {
   Typography,
 } from '@heroui/react';
 import { Images, Pencil, Save } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useRef, useState } from 'react';
 
 import { useAuthorSession, useLocale } from '@/app/providers';
 import { MediaAttachmentsField } from '@/components/media/MediaAttachmentsField';
 import { MediaGallery } from '@/components/media/MediaGallery';
 import { MarkdownContent } from '@/components/stats/MarkdownContent';
+import { MarkdownFormattingToolbar } from '@/components/stats/MarkdownFormattingToolbar';
 import type { ProjectConfig } from '@/utils/config';
 import { uploadMediaFiles } from '@/utils/media-client';
 import { MAX_PROJECT_IMAGES } from '@/utils/media';
@@ -47,6 +48,8 @@ export function ProjectContentSection({
   const [saveError, setSaveError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const documentationRuRef = useRef<HTMLTextAreaElement>(null);
+  const documentationEnRef = useRef<HTMLTextAreaElement>(null);
   const documentation = content.documentation[locale];
   const hasPublicContent =
     Boolean(documentation.trim()) || content.imageUrls.length > 0;
@@ -152,39 +155,55 @@ export function ProjectContentSection({
                           <Modal.Heading>{strings.editContent}</Modal.Heading>
                         </Modal.Header>
                         <Modal.Body className="flex flex-col gap-5">
-                          <TextField
-                            fullWidth
-                            value={documentationRu}
-                            onChange={setDocumentationRu}
-                          >
-                            <Label>{strings.documentationRu}</Label>
-                            <TextArea
-                              rows={12}
-                              maxLength={50_000}
-                              variant="secondary"
-                              placeholder={strings.documentationPlaceholder}
+                          <div className="flex flex-col gap-2">
+                            <TextField
+                              fullWidth
+                              value={documentationRu}
+                              onChange={setDocumentationRu}
+                            >
+                              <Label>{strings.documentationRu}</Label>
+                              <TextArea
+                                ref={documentationRuRef}
+                                rows={12}
+                                maxLength={50_000}
+                                variant="secondary"
+                                placeholder={strings.documentationPlaceholder}
+                              />
+                              <Description>
+                                {strings.markdownDocumentationHint}
+                              </Description>
+                            </TextField>
+                            <MarkdownFormattingToolbar
+                              value={documentationRu}
+                              onChange={setDocumentationRu}
+                              textareaRef={documentationRuRef}
                             />
-                            <Description>
-                              {strings.markdownDocumentationHint}
-                            </Description>
-                          </TextField>
+                          </div>
 
-                          <TextField
-                            fullWidth
-                            value={documentationEn}
-                            onChange={setDocumentationEn}
-                          >
-                            <Label>{strings.documentationEn}</Label>
-                            <TextArea
-                              rows={12}
-                              maxLength={50_000}
-                              variant="secondary"
-                              placeholder={strings.documentationPlaceholder}
+                          <div className="flex flex-col gap-2">
+                            <TextField
+                              fullWidth
+                              value={documentationEn}
+                              onChange={setDocumentationEn}
+                            >
+                              <Label>{strings.documentationEn}</Label>
+                              <TextArea
+                                ref={documentationEnRef}
+                                rows={12}
+                                maxLength={50_000}
+                                variant="secondary"
+                                placeholder={strings.documentationPlaceholder}
+                              />
+                              <Description>
+                                {strings.markdownDocumentationHint}
+                              </Description>
+                            </TextField>
+                            <MarkdownFormattingToolbar
+                              value={documentationEn}
+                              onChange={setDocumentationEn}
+                              textareaRef={documentationEnRef}
                             />
-                            <Description>
-                              {strings.markdownDocumentationHint}
-                            </Description>
-                          </TextField>
+                          </div>
 
                           <MediaAttachmentsField
                             existingUrls={existingUrls}
