@@ -2,27 +2,71 @@
 
 import { useLocale } from '@/app/providers';
 import { Container } from '@/components/layout/Container';
-import { footerPhrases } from '@/utils/footerPhrases';
 import { footerConfig, siteConfig } from '@/utils/config';
+import { footerPhrases } from '@/utils/footerPhrases';
 import { cn, linkVariants, Separator, Typography } from '@heroui/react';
 import NextLink from 'next/link';
+import { useSyncExternalStore } from 'react';
+
+const DAY_IN_MS = 86_400_000;
+
+function getUtcDayNumber() {
+  return Math.floor(Date.now() / DAY_IN_MS);
+}
+
+function getServerUtcDayNumber() {
+  return 0;
+}
+
+function subscribeToUtcDayChange(onStoreChange: () => void) {
+  let timeoutId = 0;
+
+  const scheduleNextDay = () => {
+    const now = Date.now();
+    const nextDay = (getUtcDayNumber() + 1) * DAY_IN_MS;
+
+    timeoutId = window.setTimeout(
+      () => {
+        onStoreChange();
+        scheduleNextDay();
+      },
+      Math.max(nextDay - now, 0) + 100,
+    );
+  };
+
+  scheduleNextDay();
+
+  return () => {
+    window.clearTimeout(timeoutId);
+  };
+}
 
 export function Footer() {
   const linkSlots = linkVariants();
   const { copy, locale } = useLocale();
   const phrases = footerPhrases[locale];
-  const phrase = phrases[0];
+  const dayNumber = useSyncExternalStore(
+    subscribeToUtcDayChange,
+    getUtcDayNumber,
+    getServerUtcDayNumber,
+  );
+  const phraseIndex = dayNumber % phrases.length;
 
   return (
-    <footer className="relative border-t bg-background overflow-hidden">
-      <Container className="relative py-4 md:py-8 px-0 sm:px-0 md:px-6 lg:px-8 gap-6 flex flex-col justify-between md:flex-row">
-        <div className="flex flex-col gap-4 items-center md:items-start">
-          <Typography.Paragraph className="text-sm text-muted text-left">
+    <footer className="relative overflow-hidden border-t bg-background">
+      <Container className="relative flex flex-col justify-between gap-6 px-0 py-4 sm:px-0 md:flex-row md:px-6 md:py-8 lg:px-8">
+        <div className="flex flex-col items-center gap-4 md:items-start">
+          <Typography.Paragraph className="text-left text-sm text-muted">
             © {new Date().getFullYear()} -{' '}
-            <a className="italic">{siteConfig.name}</a>
+            <NextLink
+              href="/"
+              className={cn(linkSlots.base(), 'italic no-underline')}
+            >
+              {siteConfig.name}
+            </NextLink>
           </Typography.Paragraph>
 
-          <div className="flex flex-wrap gap-4 text-sm justify-center md:justify-start">
+          <div className="flex flex-wrap justify-center gap-4 text-sm md:justify-start">
             {footerConfig.links.map((link) => (
               <NextLink
                 key={link.href}
@@ -32,24 +76,24 @@ export function Footer() {
                   'no-underline hover:text-accent',
                 )}
               >
-                {link.icon && <link.icon className="size-4 mr-1" />}
+                {link.icon ? <link.icon className="mr-1 size-4" /> : null}
                 {link.label}
               </NextLink>
             ))}
           </div>
         </div>
 
-        <Separator className="md:hidden bg-border" />
+        <Separator className="bg-border md:hidden" />
 
-        <div className="flex flex-col justify-between min-w-0 md:max-w-[50%] md:text-right mx-0 px-4 md:px-0">
-          <span className="font-petit-formal whitespace-nowrap mx-auto md:mx-[unset]">
+        <div className="mx-0 flex min-w-0 flex-col justify-between px-4 md:max-w-[50%] md:px-0 md:text-right">
+          <span className="mx-auto whitespace-nowrap font-petit-formal md:mx-[unset]">
             {copy.footer.slogan}
           </span>
 
-          <Separator className="my-2 w-1/8 mx-auto md:mx-unset md:w-full" />
+          <Separator className="mx-auto my-2 w-1/8 md:mx-unset md:w-full" />
 
-          <Typography.Paragraph className="wrap-break-word mx-auto md:mx-[unset] flex line-clamp-7 text-center md:text-right">
-            {phrase}
+          <Typography.Paragraph className="mx-auto flex line-clamp-7 wrap-break-word text-center md:mx-[unset] md:text-right">
+            {phrases[phraseIndex]}
           </Typography.Paragraph>
         </div>
       </Container>

@@ -22,6 +22,13 @@
       "when": 1784418397743,
       "tag": "0002_create_dev_updates",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784848386997,
+      "tag": "0003_security_and_query_indexes",
+      "breakpoints": true
     }
   ]
 }

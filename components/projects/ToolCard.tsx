@@ -19,14 +19,14 @@ export function ToolCard({ tool }: ToolCardProps) {
       className={
         tool.status === 'planned'
           ? 'h-full border-2 border-dashed opacity-80'
-          : 'h-full border-2 transition-colors hover:border-accent/60'
+          : 'h-full border-2 transition-colors hover:border-muted/50'
       }
     >
       <Card.Header className="gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             {tool.icon && (
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-default-soft">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-default">
                 <tool.icon className="size-5" />
               </span>
             )}

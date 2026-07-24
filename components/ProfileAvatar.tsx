@@ -10,7 +10,10 @@ export function ProfileAvatar() {
 
   return (
     <Modal>
-      <Modal.Trigger className="h-48 w-48 select-none">
+      <Modal.Trigger
+        aria-label={copy.avatar.title}
+        className="h-48 w-48 select-none"
+      >
         <Tilt
           tiltMaxAngleX={10}
           tiltMaxAngleY={10}
@@ -32,17 +35,16 @@ export function ProfileAvatar() {
           <Modal.Dialog>
             <Modal.CloseTrigger />
             <Modal.Header>
-              <Modal.Header>
-                <Modal.Icon className="bg-default text-foreground">
-                  <FaSpotify className="size-5" />
-                </Modal.Icon>
-                <Modal.Heading>{copy.avatar.title}</Modal.Heading>
-              </Modal.Header>
+              <Modal.Icon className="bg-default text-foreground">
+                <FaSpotify className="size-5" />
+              </Modal.Icon>
+              <Modal.Heading>{copy.avatar.title}</Modal.Heading>
             </Modal.Header>
             <Modal.Body className="flex gap-4 flex-col">
               <p>{copy.avatar.description}</p>
               <div className="overflow-hidden rounded-2xl transform-gpu block border-0">
                 <iframe
+                  title={copy.avatar.spotifyTitle}
                   data-testid="embed-iframe"
                   src="https://open.spotify.com/embed/track/4VlFiY2g9ABVueOKPjyezU?utm_source=generator&si=174f48898a574e0e"
                   width="100%"

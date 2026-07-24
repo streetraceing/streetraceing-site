@@ -10,6 +10,7 @@ import {
   LOCALE_COOKIE,
 } from '@/utils/i18n';
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { cookies, headers } from 'next/headers';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -76,7 +77,9 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${petitFormal.variable} h-full antialiased`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+        <Script id="theme-bootstrap" strategy="beforeInteractive">
+          {themeBootstrapScript}
+        </Script>
         {process.env.NODE_ENV === 'production' && isVercelAnalyticsEnabled && (
           <Analytics />
         )}

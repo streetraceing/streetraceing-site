@@ -5,6 +5,7 @@ import { db } from '@/db';
 import { devUpdates } from '@/db/schema';
 import { isAdmin } from '@/utils/auth';
 import { getRequestLocale, translations } from '@/utils/i18n';
+import { parsePositiveInteger } from '@/utils/numbers';
 import {
   DEV_UPDATES_PAGE_SIZE,
   isDevUpdateSort,
@@ -13,15 +14,9 @@ import {
 
 export const runtime = 'nodejs';
 
-function getPage(value: string | null) {
-  const page = Number.parseInt(value ?? '1', 10);
-
-  return Number.isSafeInteger(page) && page > 0 ? page : 1;
-}
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const page = getPage(searchParams.get('page'));
+  const page = parsePositiveInteger(searchParams.get('page'), 1, 10_000);
   const topicValue = searchParams.get('topic');
   const topic =
     topicValue && isDevUpdateTopic(topicValue) ? topicValue : undefined;

@@ -12,9 +12,9 @@ export default function NotFound() {
 
   return (
     <Page header={<Header />} footer={<Footer />}>
-      <Container className="flex justify-center items-center">
-        <div className="flex gap-4 items-center">
-          <Typography.Heading level={4}>404</Typography.Heading>
+      <Container className="flex items-center justify-center">
+        <div className="flex items-center gap-4">
+          <Typography.Heading level={1}>404</Typography.Heading>
           <Separator orientation="vertical" />
           <Typography.Paragraph>{copy.notFound}</Typography.Paragraph>
         </div>

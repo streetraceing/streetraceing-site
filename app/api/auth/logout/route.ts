@@ -4,6 +4,7 @@ import { adminSessionCookie } from '@/utils/auth';
 
 export async function POST() {
   const response = NextResponse.json({ authenticated: false });
+  response.headers.set('Cache-Control', 'no-store');
   response.cookies.set(adminSessionCookie.name, '', {
     ...adminSessionCookie.options,
     maxAge: 0,

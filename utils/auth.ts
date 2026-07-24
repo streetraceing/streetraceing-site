@@ -1,16 +1,18 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 
 import { cookies } from 'next/headers';
 
 const ADMIN_SESSION_COOKIE = 'streetraceing_admin_session';
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+const MIN_AUTH_SECRET_LENGTH = 32;
 
 type AdminSessionPayload = {
   exp: number;
 };
 
 function getAuthSecret() {
-  return process.env.AUTH_SECRET;
+  const secret = process.env.AUTH_SECRET;
+  return secret && secret.length >= MIN_AUTH_SECRET_LENGTH ? secret : undefined;
 }
 
 function sign(payload: string, secret: string) {
@@ -27,6 +29,12 @@ function safeEqual(first: string, second: string) {
   );
 }
 
+function safePasswordEqual(first: string, second: string) {
+  const firstHash = createHash('sha256').update(first).digest();
+  const secondHash = createHash('sha256').update(second).digest();
+  return timingSafeEqual(firstHash, secondHash);
+}
+
 export function isAuthConfigured() {
   return Boolean(process.env.ADMIN_PASSWORD && getAuthSecret());
 }
@@ -34,7 +42,9 @@ export function isAuthConfigured() {
 export function isValidAdminPassword(password: string) {
   const expectedPassword = process.env.ADMIN_PASSWORD;
 
-  return Boolean(expectedPassword && safeEqual(password, expectedPassword));
+  return Boolean(
+    expectedPassword && safePasswordEqual(password, expectedPassword),
+  );
 }
 
 export function createAdminSessionToken() {
@@ -78,6 +88,7 @@ export function verifyAdminSessionToken(token: string | undefined) {
 
     return (
       typeof payload.exp === 'number' &&
+      Number.isSafeInteger(payload.exp) &&
       payload.exp > Math.floor(Date.now() / 1_000)
     );
   } catch {

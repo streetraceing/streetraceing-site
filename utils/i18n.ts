@@ -80,6 +80,8 @@ export const translations = {
     header: {
       navigation: 'Навигация',
       logoAlt: 'Логотип streetraceing',
+      openMenu: 'Открыть меню',
+      closeMenu: 'Закрыть меню',
     },
     home: {
       intro: 'Ээ даже хз что сюда писать и размещать но похъ',
@@ -176,6 +178,13 @@ export const translations = {
         'Пока ничего нет — первая запись появится здесь после сохранения.',
       visits: 'Переходов: {count}',
       copyShortUrl: 'Скопировать короткий адрес',
+      expires: 'Удалится {date}',
+      delete: 'Удалить',
+      deleteTitle: 'Удалить сохранённые данные?',
+      deleteDescription:
+        'Короткий адрес перестанет работать сразу после удаления.',
+      deleteFailed: 'Не удалось удалить сохранённые данные.',
+      cancel: 'Отмена',
     },
     stats: {
       title: 'Статистика и новости',
@@ -233,6 +242,7 @@ export const translations = {
       showFull: 'Показать полностью',
       errors: {
         login: 'Не удалось войти.',
+        logout: 'Не удалось выйти из авторского режима.',
         session: 'Не удалось проверить авторскую сессию.',
         publish: 'Не удалось опубликовать заметку.',
         publishMissing: 'Сервер не вернул опубликованную заметку.',
@@ -294,12 +304,14 @@ export const translations = {
     avatar: {
       title: 'Аватарка аккуратно взята из одной песни',
       description: 'Вот ссылочка на неё в Spotify',
+      spotifyTitle: 'Плеер Spotify с треком для аватарки',
     },
     api: {
       auth: {
         invalidRequest: 'Некорректный запрос.',
         notConfigured: 'Авторизация пока не настроена.',
         invalidPassword: 'Неверный пароль.',
+        rateLimited: 'Слишком много попыток. Повтори позже.',
         sessionCreation: 'Не удалось создать сессию.',
         required: 'Требуется авторизация.',
       },
@@ -316,6 +328,11 @@ export const translations = {
         saveFailed: 'Не удалось сохранить данные. Попробуй ещё раз.',
         codeGenerationFailed:
           'Не удалось подобрать короткий адрес. Попробуй ещё раз.',
+        rateLimited: 'Слишком много запросов. Повтори позже.',
+        quotaExceeded:
+          'Можно хранить не больше {count} активных записей. Удали одну из старых.',
+        notFound: 'Сохранённые данные не найдены.',
+        deleteFailed: 'Не удалось удалить сохранённые данные.',
       },
     },
   },
@@ -338,6 +355,8 @@ export const translations = {
     header: {
       navigation: 'Navigation',
       logoAlt: 'streetraceing logo',
+      openMenu: 'Open menu',
+      closeMenu: 'Close menu',
     },
     home: {
       intro: 'Honestly, I am not even sure what to put here yet, but whatever.',
@@ -432,6 +451,12 @@ export const translations = {
       emptyList: 'Nothing here yet — your first saved item will appear here.',
       visits: 'Visits: {count}',
       copyShortUrl: 'Copy short address',
+      expires: 'Expires {date}',
+      delete: 'Delete',
+      deleteTitle: 'Delete saved data?',
+      deleteDescription: 'The short address will stop working immediately.',
+      deleteFailed: 'Could not delete the saved data.',
+      cancel: 'Cancel',
     },
     stats: {
       title: 'Stats and news',
@@ -490,6 +515,7 @@ export const translations = {
       showFull: 'Show full post',
       errors: {
         login: 'Could not sign in.',
+        logout: 'Could not sign out of author mode.',
         session: 'Could not check the author session.',
         publish: 'Could not publish the note.',
         publishMissing: 'The server did not return the published note.',
@@ -552,12 +578,14 @@ export const translations = {
     avatar: {
       title: 'The avatar is neatly borrowed from a song',
       description: 'Here is the Spotify link to it',
+      spotifyTitle: 'Spotify player with the avatar track',
     },
     api: {
       auth: {
         invalidRequest: 'Invalid request.',
         notConfigured: 'Author mode is not configured yet.',
         invalidPassword: 'Invalid password.',
+        rateLimited: 'Too many attempts. Try again later.',
         sessionCreation: 'Could not create a session.',
         required: 'Authorization is required.',
       },
@@ -573,6 +601,11 @@ export const translations = {
         databaseMissing: 'The database is not configured. Check DATABASE_URL.',
         saveFailed: 'Could not save data. Try again.',
         codeGenerationFailed: 'Could not generate a short address. Try again.',
+        rateLimited: 'Too many requests. Try again later.',
+        quotaExceeded:
+          'You can keep up to {count} active items. Delete an older item first.',
+        notFound: 'The saved data could not be found.',
+        deleteFailed: 'Could not delete the saved data.',
       },
     },
   },

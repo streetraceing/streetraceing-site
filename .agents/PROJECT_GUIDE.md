@@ -4,35 +4,44 @@ This is a Next.js App Router personal site styled with HeroUI React v3, Tailwind
 
 ## Before changing UI
 
-- Read `AGENTS.md`: it indexes the local HeroUI documentation in `.heroui-docs/react`.
+- Use the current official HeroUI React component documentation: <https://heroui.com/en/docs/react/components>.
+- Do not generate or use local HeroUI documentation indexes for project changes.
 - HeroUI is the primary UI system. Prefer its composed components (`Card`, `Button`, `TextField`, `Modal`, etc.) over custom substitutes.
-- Keep every page and interaction mobile-friendly.
-- Make local edits with `apply_patch`, then run the relevant checks.
+- Follow the documented HeroUI compound structure and accessibility behavior instead of relying on remembered v2 APIs.
+- Keep every page and interaction mobile-friendly and keyboard-accessible.
 
-## Useful commands
+## Verification policy
+
+Assistant handoffs use static review only and must not install dependencies, start the app, run migrations, lint, tests, or builds locally. The repository CI performs executable verification on pull requests and pushes to `main`.
+
+Human maintainers can use these commands in their own prepared environment:
 
 ```powershell
 npm run dev
 npm run lint:check
+npm test
 npm run build
 npm run db:generate -- descriptive_migration_name
 npm run db:migrate
 npm run db:studio
 ```
 
-`compose.yaml` starts the local PostgreSQL database. Production migrations are applied separately with the Vercel-aware migration command configured for the deployment workflow.
+`compose.yaml` starts the local PostgreSQL database. Production and CI migrations use the checked-in Drizzle migrations through `npm run db:migrate`.
 
 ## Structure
 
 - `app/` — routes and API endpoints.
+- `components/home/` — client-side home-page project and tool sections.
 - `components/layout/` — header, footer, page shell, container.
 - `components/projects/` — project cards, modal details, and project-page client content.
 - `components/tools/` — browser-only developer tools and their page wrapper.
 - `components/tiny-url/` — Tiny URL form and shared-data views.
-- `components/stats/StatsSection.tsx` — directions, Dev Notes, author UI, filtering, and Markdown rendering.
-- `utils/config.ts` — projects, tools, links, and their localized content.
+- `components/stats/` — Dev Notes feed, Markdown renderer, and lazily loaded author controls.
+- `utils/config.ts` — projects, tools, links, and their localized content. Generic tool routes are derived from each tool's `component` field.
 - `utils/i18n.ts` — locales, translation dictionary, locale helpers, and API request language detection.
 - `utils/stats.ts` — development directions and Dev Notes topics.
+- `utils/rate-limit.ts` — process-local abuse protection for public endpoints. Keep database-level quotas as the durable backstop.
+- `tests/` — fast unit tests for shared validation and security helpers.
 
 ## i18n: RU and EN
 
@@ -53,7 +62,7 @@ The cookie makes pages dynamic on purpose: the first HTML and metadata are serve
 const { copy, locale } = useLocale();
 ```
 
-Use `copy` for UI labels. Use `locale` with `getLocaleTag(locale)` for dates/numbers.
+Use `copy` for UI labels. Use `locale` with `getLocaleTag(locale)` for dates and numbers.
 
 ### Localizing content in the config
 
@@ -75,10 +84,20 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 
 ## Adding content
 
-- Add a project or tool in `mainPageConfig` in `utils/config.ts` and provide both locales for every `LocalizedText` field.
+- Add a project or generic tool in `mainPageConfig` in `utils/config.ts` and provide both locales for every `LocalizedText` field.
+- For a generic tool, set its `component` identifier and register the implementation once in `components/tools/ToolPageContent.tsx`.
+- Tiny URL remains a dedicated route because it has server-backed behavior.
 - If a project/tool page needs a client i18n context and uses icons from the config, use a client page-content wrapper and pass only a primitive slug from the server route. React components in config objects cannot cross a Server Component → Client Component boundary as props.
-- New database schema changes need a descriptive Drizzle migration name, for example `add_project_notes`.
+- New database schema changes need a descriptive Drizzle migration name and a checked-in migration file.
 
-## Verification
+## Tiny URL lifecycle
 
-Run `npm run lint:check` and `npm run build` before handing off. Do not remove unrelated dirty-worktree changes. A warning in `ProjectCard.tsx` about an unused `CSSProperties` import is pre-existing unless the relevant card styling is being edited.
+- Public content is limited to 20,000 characters.
+- Each anonymous owner is limited to 100 active items.
+- Items expire after 30 days and can be deleted by the browser that created them.
+- History endpoints return previews and metadata, not full stored content.
+- Shared pages must remain `noindex`.
+
+## Handoff format
+
+After code changes, package only changed and newly added files while preserving their repository paths. Provide the archive under the heading `скачать архив`, followed by one concise Git commit message.

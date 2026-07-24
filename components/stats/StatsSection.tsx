@@ -2,53 +2,24 @@
 
 import {
   Alert,
-  AlertDialog,
   Button,
   Card,
   Chip,
-  Description,
-  FieldError,
-  Form,
-  Input,
   Label,
   ListBox,
-  Modal,
   Pagination,
   ProgressBar,
   Select,
   Spinner,
-  TextArea,
-  TextField,
   Typography,
 } from '@heroui/react';
-import { useLocale } from '@/app/providers';
-import {
-  AUTHOR_SESSION_CHANGED_EVENT,
-  HOME_LAYOUT_SETTLED_EVENT,
-} from '@/utils/client-events';
-import { getLocaleTag, getText } from '@/utils/i18n';
-import {
-  ChevronDown,
-  Eye,
-  EyeOff,
-  Pencil,
-  Save,
-  Send,
-  Trash2,
-  X,
-} from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import rehypeHighlight from 'rehype-highlight';
-import {
-  Fragment,
-  type FormEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { ChevronDown, X } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
+import { useAuthorSession, useLocale } from '@/app/providers';
+import { HOME_LAYOUT_SETTLED_EVENT } from '@/utils/client-events';
+import { getLocaleTag, getText } from '@/utils/i18n';
 import {
   DEV_UPDATES_PAGE_SIZE,
   developmentDirections,
@@ -58,13 +29,23 @@ import {
   type DevUpdateTopic,
 } from '@/utils/stats';
 
-type DevUpdate = {
-  id: string;
-  title: string | null;
-  content: string;
-  topic: DevUpdateTopic;
-  createdAt: string;
-};
+import { MarkdownContent } from './MarkdownContent';
+import type { DevUpdate, DevUpdateChange } from './types';
+
+const StatsAuthorControls = dynamic(() => import('./StatsAuthorControls'), {
+  loading: () => (
+    <div className="flex justify-center py-4">
+      <Spinner size="sm" />
+    </div>
+  ),
+});
+
+const DevUpdateAuthorActions = dynamic(
+  () => import('./DevUpdateAuthorActions'),
+  {
+    loading: () => <Spinner size="sm" />,
+  },
+);
 
 const ALL_FILTER_ID = 'all';
 
@@ -75,11 +56,6 @@ type FeedResponse = {
     total: number;
     totalPages: number;
   };
-};
-
-type SessionResponse = {
-  authenticated: boolean;
-  configured: boolean;
 };
 
 function formatDate(date: string, locale: string) {
@@ -97,34 +73,6 @@ function getVisiblePages(currentPage: number, totalPages: number) {
     .sort((firstPage, secondPage) => firstPage - secondPage);
 }
 
-function MarkdownContent({ content }: { content: string }) {
-  return (
-    <Typography.Prose className="max-w-none wrap-break-word text-sm leading-6 [&_a]:text-accent [&_a]:underline [&_a]:underline-offset-4 [&_blockquote]:border-l-2 [&_blockquote]:border-accent/60 [&_blockquote]:pl-3 [&_blockquote]:text-muted [&_code:not(.hljs)]:rounded-md [&_code:not(.hljs)]:bg-default-soft [&_code:not(.hljs)]:px-1.5 [&_code:not(.hljs)]:py-0.5 [&_code:not(.hljs)]:text-[0.8125rem] [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:my-3 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre_code]:min-w-max [&_ul]:list-disc [&_ul]:pl-5">
-      <ReactMarkdown
-        rehypePlugins={[[rehypeHighlight, { detect: true }]]}
-        components={{
-          a: ({ href, children }) => {
-            const isExternal =
-              href?.startsWith('https://') || href?.startsWith('http://');
-
-            return (
-              <a
-                href={href}
-                target={isExternal ? '_blank' : undefined}
-                rel={isExternal ? 'noreferrer' : undefined}
-              >
-                {children}
-              </a>
-            );
-          },
-        }}
-      >
-        {content}
-      </ReactMarkdown>
-    </Typography.Prose>
-  );
-}
-
 function isLongDevUpdate(content: string) {
   return content.length > 1_200 || content.split(/\r?\n/).length > 16;
 }
@@ -132,95 +80,14 @@ function isLongDevUpdate(content: string) {
 type DevUpdateCardProps = {
   update: DevUpdate;
   isAuthor: boolean;
-  onChanged: () => void;
+  onChanged: (change: DevUpdateChange) => void;
 };
 
 function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
   const { copy, locale } = useLocale();
-  const strings = copy.stats;
   const [isExpanded, setIsExpanded] = useState(false);
-  const [editTitle, setEditTitle] = useState(update.title ?? '');
-  const [editContent, setEditContent] = useState(update.content);
-  const [editTopic, setEditTopic] = useState<DevUpdateTopic>(update.topic);
-  const [isEditPreviewOpen, setIsEditPreviewOpen] = useState(false);
-  const [editError, setEditError] = useState<string>();
-  const [isSaving, setIsSaving] = useState(false);
-  const [deleteError, setDeleteError] = useState<string>();
-  const [isDeleting, setIsDeleting] = useState(false);
   const isLong = isLongDevUpdate(update.content);
   const isCollapsed = isLong && !isExpanded;
-
-  function resetEditor() {
-    setEditTitle(update.title ?? '');
-    setEditContent(update.content);
-    setEditTopic(update.topic);
-    setIsEditPreviewOpen(false);
-    setEditError(undefined);
-  }
-
-  async function saveUpdate(
-    event: FormEvent<HTMLFormElement>,
-    close: () => void,
-  ) {
-    event.preventDefault();
-    setIsSaving(true);
-    setEditError(undefined);
-
-    try {
-      const response = await fetch(`/api/dev-updates/${update.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: editTitle,
-          content: editContent,
-          topic: editTopic,
-        }),
-      });
-      const body = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        throw new Error(body.error ?? strings.errors.update);
-      }
-
-      close();
-      onChanged();
-    } catch (caughtError) {
-      setEditError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : strings.errors.update,
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  async function deleteUpdate(close: () => void) {
-    setIsDeleting(true);
-    setDeleteError(undefined);
-
-    try {
-      const response = await fetch(`/api/dev-updates/${update.id}`, {
-        method: 'DELETE',
-      });
-      const body = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        throw new Error(body.error ?? strings.errors.delete);
-      }
-
-      close();
-      onChanged();
-    } catch (caughtError) {
-      setDeleteError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : strings.errors.delete,
-      );
-    } finally {
-      setIsDeleting(false);
-    }
-  }
 
   return (
     <Card variant="default">
@@ -236,247 +103,7 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
           </div>
 
           {isAuthor && (
-            <div className="flex shrink-0 gap-1">
-              <Modal>
-                <Modal.Trigger>
-                  <Button
-                    aria-label={strings.edit}
-                    isIconOnly
-                    size="sm"
-                    variant="tertiary"
-                    onPress={resetEditor}
-                  >
-                    <Pencil className="size-4" />
-                  </Button>
-                </Modal.Trigger>
-                <Modal.Backdrop variant="blur">
-                  <Modal.Container size="lg" scroll="inside">
-                    <Modal.Dialog className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] sm:max-w-3xl">
-                      {({ close }) => (
-                        <Form
-                          className="flex h-full flex-col"
-                          onSubmit={(event) => void saveUpdate(event, close)}
-                        >
-                          <Modal.CloseTrigger />
-                          <Modal.Header>
-                            <Modal.Heading className="font-bold text-xl">
-                              {strings.editNote}
-                            </Modal.Heading>
-                          </Modal.Header>
-                          <Modal.Body className="flex flex-col gap-4">
-                            <TextField
-                              fullWidth
-                              name="edit-title"
-                              value={editTitle}
-                              variant="secondary"
-                              onChange={setEditTitle}
-                            >
-                              <Label>{strings.noteTitle}</Label>
-                              <Input
-                                maxLength={160}
-                                placeholder={strings.noteTitlePlaceholder}
-                              />
-                              <Description>
-                                {editTitle.length} / 160
-                              </Description>
-                            </TextField>
-
-                            <Select
-                              fullWidth
-                              value={editTopic}
-                              variant="secondary"
-                              onChange={(value) => {
-                                if (typeof value === 'string') {
-                                  setEditTopic(value as DevUpdateTopic);
-                                }
-                              }}
-                            >
-                              <Label>{strings.topic}</Label>
-                              <Select.Trigger>
-                                <Select.Value />
-                                <Select.Indicator />
-                              </Select.Trigger>
-                              <Select.Popover>
-                                <ListBox>
-                                  {devUpdateTopics.map((topic) => (
-                                    <ListBox.Item
-                                      key={topic.value}
-                                      id={topic.value}
-                                      textValue={getDevUpdateTopicLabel(
-                                        topic.value,
-                                        locale,
-                                      )}
-                                    >
-                                      {getDevUpdateTopicLabel(
-                                        topic.value,
-                                        locale,
-                                      )}
-                                      <ListBox.ItemIndicator />
-                                    </ListBox.Item>
-                                  ))}
-                                </ListBox>
-                              </Select.Popover>
-                            </Select>
-
-                            <TextField
-                              isRequired
-                              fullWidth
-                              name="edit-content"
-                              value={editContent}
-                              variant="secondary"
-                              onChange={setEditContent}
-                              validate={(value) =>
-                                value.trim() ? null : strings.noteRequired
-                              }
-                            >
-                              <Label>{strings.note}</Label>
-                              <TextArea
-                                rows={10}
-                                maxLength={8_000}
-                                placeholder={strings.notePlaceholder}
-                              />
-                              <Description>
-                                {strings.markdownHint}{' '}
-                                {editContent.length.toLocaleString(
-                                  getLocaleTag(locale),
-                                )}{' '}
-                                / 8 000
-                              </Description>
-                              <FieldError />
-                            </TextField>
-
-                            <div className="flex flex-col items-start gap-3">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="tertiary"
-                                onPress={() =>
-                                  setIsEditPreviewOpen((value) => !value)
-                                }
-                              >
-                                {isEditPreviewOpen ? <EyeOff /> : <Eye />}
-                                {isEditPreviewOpen
-                                  ? strings.hidePreview
-                                  : strings.preview}
-                              </Button>
-
-                              {isEditPreviewOpen && (
-                                <Card className="w-full" variant="transparent">
-                                  <Card.Header>
-                                    <Card.Title>
-                                      {strings.previewTitle}
-                                    </Card.Title>
-                                  </Card.Header>
-                                  <Card.Content>
-                                    {editContent.trim() ? (
-                                      <MarkdownContent content={editContent} />
-                                    ) : (
-                                      <Typography.Paragraph
-                                        className="text-muted"
-                                        size="sm"
-                                      >
-                                        {strings.previewEmpty}
-                                      </Typography.Paragraph>
-                                    )}
-                                  </Card.Content>
-                                </Card>
-                              )}
-                            </div>
-
-                            {editError && (
-                              <Alert status="danger">
-                                <Alert.Indicator />
-                                <Alert.Content>
-                                  <Alert.Title>
-                                    {strings.noteNotUpdated}
-                                  </Alert.Title>
-                                  <Alert.Description>
-                                    {editError}
-                                  </Alert.Description>
-                                </Alert.Content>
-                              </Alert>
-                            )}
-                          </Modal.Body>
-                          <Modal.Footer>
-                            <Button
-                              slot="close"
-                              type="button"
-                              variant="tertiary"
-                            >
-                              {strings.cancel}
-                            </Button>
-                            <Button type="submit" isPending={isSaving}>
-                              <Save />
-                              {strings.save}
-                            </Button>
-                          </Modal.Footer>
-                        </Form>
-                      )}
-                    </Modal.Dialog>
-                  </Modal.Container>
-                </Modal.Backdrop>
-              </Modal>
-
-              <AlertDialog>
-                <AlertDialog.Trigger>
-                  <Button
-                    aria-label={strings.delete}
-                    isIconOnly
-                    size="sm"
-                    variant="danger"
-                    onPress={() => setDeleteError(undefined)}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                </AlertDialog.Trigger>
-                <AlertDialog.Backdrop variant="blur">
-                  <AlertDialog.Container size="sm">
-                    <AlertDialog.Dialog>
-                      {({ close }) => (
-                        <>
-                          <AlertDialog.Header>
-                            <AlertDialog.Icon status="danger">
-                              <Trash2 className="size-5" />
-                            </AlertDialog.Icon>
-                            <AlertDialog.Heading>
-                              {strings.deleteNote}
-                            </AlertDialog.Heading>
-                          </AlertDialog.Header>
-                          <AlertDialog.Body>
-                            <Typography.Paragraph className="text-muted">
-                              {strings.deleteNoteDescription}
-                            </Typography.Paragraph>
-                            {deleteError && (
-                              <Alert className="mt-3" status="danger">
-                                <Alert.Indicator />
-                                <Alert.Content>
-                                  <Alert.Description>
-                                    {deleteError}
-                                  </Alert.Description>
-                                </Alert.Content>
-                              </Alert>
-                            )}
-                          </AlertDialog.Body>
-                          <AlertDialog.Footer>
-                            <Button slot="close" variant="tertiary">
-                              {strings.cancel}
-                            </Button>
-                            <Button
-                              isPending={isDeleting}
-                              variant="danger"
-                              onPress={() => void deleteUpdate(close)}
-                            >
-                              <Trash2 />
-                              {strings.delete}
-                            </Button>
-                          </AlertDialog.Footer>
-                        </>
-                      )}
-                    </AlertDialog.Dialog>
-                  </AlertDialog.Container>
-                </AlertDialog.Backdrop>
-              </AlertDialog>
-            </div>
+            <DevUpdateAuthorActions update={update} onChanged={onChanged} />
           )}
         </div>
         {update.title && <Card.Title>{update.title}</Card.Title>}
@@ -511,187 +138,10 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
   );
 }
 
-type AuthorControlsProps = {
-  onCreated: (update: DevUpdate) => void;
-};
-
-function AuthorControls({ onCreated }: AuthorControlsProps) {
-  const { copy, locale } = useLocale();
-  const strings = copy.stats;
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [topic, setTopic] = useState<DevUpdateTopic>('projects');
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [publishError, setPublishError] = useState<string>();
-  const [isPublishing, setIsPublishing] = useState(false);
-
-  async function publish(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsPublishing(true);
-    setPublishError(undefined);
-
-    try {
-      const response = await fetch('/api/dev-updates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content, topic }),
-      });
-      const body = (await response.json()) as {
-        error?: string;
-        update?: DevUpdate;
-      };
-
-      if (!response.ok) {
-        throw new Error(body.error ?? strings.errors.publish);
-      }
-
-      if (!body.update) {
-        throw new Error(strings.errors.publishMissing);
-      }
-
-      setTitle('');
-      setContent('');
-      setIsPreviewOpen(false);
-      onCreated(body.update);
-    } catch (caughtError) {
-      setPublishError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : strings.errors.publish,
-      );
-    } finally {
-      setIsPublishing(false);
-    }
-  }
-
-  return (
-    <Card variant="default">
-      <Card.Header>
-        <div>
-          <Card.Title>{strings.newNote}</Card.Title>
-          <Card.Description>{strings.authorFormDescription}</Card.Description>
-        </div>
-      </Card.Header>
-      <Card.Content>
-        <Form className="flex flex-col gap-4" onSubmit={publish}>
-          <TextField fullWidth name="title" value={title} onChange={setTitle}>
-            <Label>{strings.noteTitle}</Label>
-            <Input
-              maxLength={160}
-              placeholder={strings.noteTitlePlaceholder}
-              variant="secondary"
-            />
-            <Description>{title.length} / 160</Description>
-          </TextField>
-
-          <Select
-            fullWidth
-            value={topic}
-            variant="secondary"
-            onChange={(value) => {
-              if (typeof value === 'string') {
-                setTopic(value as DevUpdateTopic);
-              }
-            }}
-          >
-            <Label>{strings.topic}</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                {devUpdateTopics.map((item) => (
-                  <ListBox.Item
-                    key={item.value}
-                    id={item.value}
-                    textValue={getDevUpdateTopicLabel(item.value, locale)}
-                  >
-                    {getDevUpdateTopicLabel(item.value, locale)}
-                    <ListBox.ItemIndicator />
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-          </Select>
-
-          <TextField
-            isRequired
-            fullWidth
-            name="content"
-            value={content}
-            onChange={setContent}
-            validate={(value) => (value.trim() ? null : strings.noteRequired)}
-          >
-            <Label>{strings.note}</Label>
-            <TextArea
-              rows={6}
-              variant="secondary"
-              maxLength={8_000}
-              placeholder={strings.notePlaceholder}
-            />
-            <Description>
-              {strings.markdownHint}{' '}
-              {content.length.toLocaleString(getLocaleTag(locale))} / 8 000
-            </Description>
-            <FieldError />
-          </TextField>
-
-          <div className="flex flex-col items-start gap-3">
-            <Button
-              type="button"
-              size="sm"
-              variant="tertiary"
-              onPress={() => setIsPreviewOpen((value) => !value)}
-            >
-              {isPreviewOpen ? <EyeOff /> : <Eye />}
-              {isPreviewOpen ? strings.hidePreview : strings.preview}
-            </Button>
-
-            {isPreviewOpen && (
-              <Card className="w-full" variant="secondary">
-                <Card.Header>
-                  <Card.Title className="font-semibold">
-                    {strings.previewTitle}
-                  </Card.Title>
-                </Card.Header>
-                <Card.Content>
-                  {content.trim() ? (
-                    <MarkdownContent content={content} />
-                  ) : (
-                    <Typography.Paragraph className="text-muted" size="sm">
-                      {strings.previewEmpty}
-                    </Typography.Paragraph>
-                  )}
-                </Card.Content>
-              </Card>
-            )}
-          </div>
-
-          <Button className="self-start" type="submit" isPending={isPublishing}>
-            <Send />
-            {strings.publish}
-          </Button>
-        </Form>
-
-        {publishError && (
-          <Alert className="mt-4" status="danger">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{strings.noteNotPublished}</Alert.Title>
-              <Alert.Description>{publishError}</Alert.Description>
-            </Alert.Content>
-          </Alert>
-        )}
-      </Card.Content>
-    </Card>
-  );
-}
-
 export function StatsSection() {
   const { copy, locale } = useLocale();
+  const { session } = useAuthorSession();
   const strings = copy.stats;
-  const [session, setSession] = useState<SessionResponse>();
   const [updates, setUpdates] = useState<DevUpdate[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<DevUpdateTopic>();
   const [selectedSort, setSelectedSort] = useState<DevUpdateSort>('newest');
@@ -702,80 +152,6 @@ export function StatsSection() {
   const [feedRevision, setFeedRevision] = useState(0);
   const feedRequestId = useRef(0);
   const hasSettledInitialHomeLayout = useRef(false);
-
-  const refreshSession = useCallback(
-    async (signal?: AbortSignal) => {
-      try {
-        const response = await fetch('/api/auth/session', {
-          cache: 'no-store',
-          signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(strings.errors.session);
-        }
-
-        const nextSession = (await response.json()) as SessionResponse;
-
-        if (!signal?.aborted) {
-          setSession(nextSession);
-        }
-      } catch (caughtError) {
-        if (
-          signal?.aborted ||
-          (caughtError instanceof DOMException &&
-            caughtError.name === 'AbortError')
-        ) {
-          return;
-        }
-
-        setSession({ authenticated: false, configured: false });
-      }
-    },
-    [strings.errors.session],
-  );
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    fetch('/api/auth/session', { cache: 'no-store' })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(strings.errors.session);
-        }
-
-        return (await response.json()) as SessionResponse;
-      })
-      .then((nextSession) => {
-        if (!isCancelled) {
-          setSession(nextSession);
-        }
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setSession({ authenticated: false, configured: false });
-        }
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [strings.errors.session]);
-
-  useEffect(() => {
-    const handleSessionChange = () => {
-      void refreshSession();
-    };
-
-    window.addEventListener(AUTHOR_SESSION_CHANGED_EVENT, handleSessionChange);
-
-    return () => {
-      window.removeEventListener(
-        AUTHOR_SESSION_CHANGED_EVENT,
-        handleSessionChange,
-      );
-    };
-  }, [refreshSession]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -859,7 +235,7 @@ export function StatsSection() {
   }
 
   function selectPage(nextPage: number) {
-    if (nextPage === page) {
+    if (nextPage === page || nextPage < 1) {
       return;
     }
 
@@ -879,9 +255,15 @@ export function StatsSection() {
     setPage(1);
   }
 
-  function refreshFeed() {
+  function refreshFeed(change: DevUpdateChange = 'update') {
     setIsLoading(true);
     setFeedError(undefined);
+
+    if (change === 'delete' && updates.length === 1 && page > 1) {
+      setPage((currentPage) => currentPage - 1);
+      return;
+    }
+
     setFeedRevision((revision) => revision + 1);
   }
 
@@ -900,7 +282,7 @@ export function StatsSection() {
       className="scroll-mt-16 flex flex-col gap-4 border-t pt-4"
     >
       <div className="flex flex-col gap-1">
-        <Typography.Heading level={3}>{strings.title}</Typography.Heading>
+        <Typography.Heading level={2}>{strings.title}</Typography.Heading>
         <Typography.Paragraph className="text-muted">
           {strings.description}
         </Typography.Paragraph>
@@ -908,7 +290,7 @@ export function StatsSection() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {developmentDirections.map((direction) => (
-          <Card key={direction.id} variant="default">
+          <Card key={direction.id}>
             <Card.Header className="flex-row items-center justify-between gap-3">
               <Card.Title className="text-lg font-semibold">
                 {getText(direction.label, locale)}
@@ -940,7 +322,7 @@ export function StatsSection() {
       </div>
 
       {session?.authenticated && (
-        <AuthorControls
+        <StatsAuthorControls
           onCreated={(update) => {
             const belongsToCurrentFilter =
               !selectedTopic || selectedTopic === update.topic;
@@ -983,12 +365,12 @@ export function StatsSection() {
       )}
 
       <section
-        className="flex flex-col gap-3"
+        className="flex flex-col gap-3 border-t pt-4"
         aria-labelledby="updates-heading"
       >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <Typography.Heading id="updates-heading" level={4}>
+            <Typography.Heading id="updates-heading" level={2}>
               {strings.updatesTitle}
             </Typography.Heading>
             <Typography.Paragraph className="text-muted">
@@ -1007,7 +389,6 @@ export function StatsSection() {
             <Select
               className="min-w-0 flex-1"
               value={selectedTopic ?? ALL_FILTER_ID}
-              variant="secondary"
               onChange={(value) => {
                 if (value === ALL_FILTER_ID || value === null) {
                   selectTopic(undefined);
@@ -1060,7 +441,6 @@ export function StatsSection() {
             <Select
               className="min-w-0 flex-1 sm:w-72 sm:flex-none"
               value={selectedSort}
-              variant="secondary"
               onChange={(value) => {
                 if (value === 'newest' || value === 'oldest') {
                   selectSort(value);

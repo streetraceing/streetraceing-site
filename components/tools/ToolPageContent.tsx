@@ -5,34 +5,35 @@ import { Container } from '@/components/layout/Container';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
 import { Page } from '@/components/layout/Page';
-import { mainPageConfig } from '@/utils/config';
+import { mainPageConfig, type GenericToolComponent } from '@/utils/config';
 import { getText } from '@/utils/i18n';
 import { Card, Typography } from '@heroui/react';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import type { ComponentType } from 'react';
 
 import { Base64Tool } from './Base64Tool';
 import { JsonViewerTool } from './JsonViewerTool';
 import { TextToolsTool } from './TextToolsTool';
 import { UuidGeneratorTool } from './UuidGeneratorTool';
 
-const toolComponents = {
+const toolComponents: Record<GenericToolComponent, ComponentType> = {
   'json-viewer': JsonViewerTool,
   'uuid-generator': UuidGeneratorTool,
   'text-tools': TextToolsTool,
   base64: Base64Tool,
-} as const;
+};
 
-type ToolSlug = keyof typeof toolComponents;
-
-export function ToolPageContent({ slug }: { slug: ToolSlug }) {
+export function ToolPageContent({ slug }: { slug: string }) {
   const { copy, locale } = useLocale();
-  const ToolComponent = toolComponents[slug];
   const tool = mainPageConfig.tools.find(
     (currentTool) => currentTool.slug === slug,
   );
+  const ToolComponent = tool?.component
+    ? toolComponents[tool.component]
+    : undefined;
 
-  if (!tool) {
+  if (!tool || !ToolComponent) {
     return null;
   }
 
@@ -50,11 +51,11 @@ export function ToolPageContent({ slug }: { slug: ToolSlug }) {
         <Card className="mx-auto w-full max-w-4xl">
           <Card.Header className="gap-3">
             <div className="flex items-start gap-3">
-              {tool.icon && (
+              {tool.icon ? (
                 <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-default-soft">
                   <tool.icon className="size-6" />
                 </span>
-              )}
+              ) : null}
               <div className="flex min-w-0 flex-col gap-1">
                 <Typography.Heading level={1}>
                   {getText(tool.name, locale)}

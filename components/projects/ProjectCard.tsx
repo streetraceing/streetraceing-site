@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, Chip, Modal } from '@heroui/react';
+import type { CSSProperties } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 
 import type { ProjectConfig } from '@/utils/config';
@@ -19,22 +20,19 @@ type ProjectCardProps = {
 export function ProjectCard({ project }: ProjectCardProps) {
   const { copy, locale } = useLocale();
 
+  const gradient = {
+    '--project-gradient': `linear-gradient(90deg, ${project.colors.join(', ')})`,
+  } as CSSProperties;
+
   return (
     <Modal>
       <Modal.Trigger className="h-full w-full text-left">
-        <Card
-          className="project-card h-full overflow-hidden border-2 transition-colors hover:border-accent/60"
-          /*style={
-            {
-              '--project-gradient': `linear-gradient(90deg, ${project.colors.join(', ')})`,
-            } as CSSProperties
-          }*/
-        >
+        <Card className="project-card h-full overflow-hidden border-2 transition-transform hover:border-muted/50">
           <Card.Header className="gap-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
                 {project.icon && (
-                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-default-soft">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-default">
                     <project.icon className="size-5" />
                   </span>
                 )}

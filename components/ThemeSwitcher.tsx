@@ -28,35 +28,61 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
   if (!mounted) {
     if (variant === 'group') {
       return (
-        <ButtonGroup variant="tertiary" fullWidth>
-          <Button isDisabled>
+        <div
+          role="group"
+          aria-label={copy.theme.label}
+          aria-busy="true"
+          className="flex w-full"
+        >
+          <button
+            type="button"
+            disabled
+            className="button button--tertiary flex-1 rounded-r-none"
+          >
             <Monitor className="size-4" />
-            <ButtonGroup.Separator />
             {themeName['system']}
-          </Button>
+          </button>
 
-          <Button isDisabled>
+          <button
+            type="button"
+            disabled
+            className="button button--tertiary -ml-px flex-1 rounded-none"
+          >
             <Sun className="size-4" />
-            <ButtonGroup.Separator />
             {themeName['light']}
-          </Button>
+          </button>
 
-          <Button isDisabled>
+          <button
+            type="button"
+            disabled
+            className="button button--tertiary -ml-px flex-1 rounded-l-none"
+          >
             <Moon className="size-4" />
-            <ButtonGroup.Separator />
             {themeName['dark']}
-          </Button>
-        </ButtonGroup>
+          </button>
+        </div>
       );
     }
 
-    return <Button isIconOnly isDisabled variant="tertiary" />;
+    return (
+      <button
+        type="button"
+        aria-label={copy.theme.label}
+        aria-busy="true"
+        disabled
+        className="button button--icon-only button--tertiary"
+      >
+        <Monitor className="size-4.5" />
+      </button>
+    );
   }
 
   if (variant === 'group') {
     return (
       <ButtonGroup variant="tertiary" fullWidth>
         <Button
+          aria-pressed={theme === 'system'}
+          type="button"
           variant={theme === 'system' ? 'primary' : 'tertiary'}
           onPress={() => setTheme('system')}
         >
@@ -65,6 +91,8 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
         </Button>
 
         <Button
+          aria-pressed={theme === 'light'}
+          type="button"
           variant={theme === 'light' ? 'primary' : 'tertiary'}
           onPress={() => setTheme('light')}
         >
@@ -74,6 +102,8 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
         </Button>
 
         <Button
+          aria-pressed={theme === 'dark'}
+          type="button"
           variant={theme === 'dark' ? 'primary' : 'tertiary'}
           onPress={() => setTheme('dark')}
         >
@@ -92,13 +122,19 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
 
   return (
     <Tooltip>
-      <Button isIconOnly variant="tertiary" onPress={() => setTheme(nextTheme)}>
+      <Button
+        aria-label={`${copy.theme.label}: ${themeName[theme]}. ${themeName[nextTheme]}`}
+        isIconOnly
+        type="button"
+        variant="tertiary"
+        onPress={() => setTheme(nextTheme)}
+      >
         <Icon className="size-4.5" />
       </Button>
 
       <Tooltip.Content>
         {themeName[theme as Theme] ?? copy.theme.unknown}{' '}
-        {theme != 'system' ? copy.theme.themeSuffix : ''}
+        {theme !== 'system' ? copy.theme.themeSuffix : ''}
       </Tooltip.Content>
     </Tooltip>
   );

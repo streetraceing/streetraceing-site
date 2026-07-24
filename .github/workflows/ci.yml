@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: streetraceing
+          POSTGRES_USER: streetraceing
+          POSTGRES_PASSWORD: streetraceing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U streetraceing -d streetraceing"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://streetraceing:streetraceing@localhost:5432/streetraceing
+      ADMIN_PASSWORD: ci-only-password
+      AUTH_SECRET: ci-only-secret-that-is-at-least-32-characters
+      VERCEL_ANALYTICS_ENABLED: 'false'
+      VERCEL_SPEED_INSIGHTS_SAMPLE_RATE: '0'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.1
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate
+      - run: npm run lint:check
+      - run: npm test
+      - run: npm run build

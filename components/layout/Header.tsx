@@ -1,10 +1,9 @@
 'use client';
 
-import { Container } from '@/components/layout/Container';
+import { useAuthorSession, useLocale } from '@/app/providers';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { Container } from '@/components/layout/Container';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
-import { useLocale } from '@/app/providers';
-import { AUTHOR_SESSION_CHANGED_EVENT } from '@/utils/client-events';
 import { headerConfig, siteConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
 import {
@@ -21,167 +20,112 @@ import {
   TextField,
   Typography,
 } from '@heroui/react';
-import NextLink from 'next/link';
-import { Menu, LockKeyhole, ShieldCheck, X } from 'lucide-react';
+import { LockKeyhole, Menu, ShieldCheck, X } from 'lucide-react';
 import Image from 'next/image';
+import NextLink from 'next/link';
 import { usePathname } from 'next/navigation';
-import { type FormEvent, type MouseEvent, useEffect, useState } from 'react';
-
-type SessionResponse = {
-  authenticated: boolean;
-  configured: boolean;
-};
+import {
+  type FormEvent,
+  type MouseEvent,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 function AuthorMenu() {
   const { copy } = useLocale();
   const strings = copy.stats;
-  const [session, setSession] = useState<SessionResponse>();
+  const { session, isLoading, loginAsAuthor, logoutAuthor } =
+    useAuthorSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string>();
   const [isLoginPending, setIsLoginPending] = useState(false);
 
-  useEffect(() => {
-    let isCancelled = false;
-
-    fetch('/api/auth/session', { cache: 'no-store' })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(strings.errors.session);
-        }
-
-        return (await response.json()) as SessionResponse;
-      })
-      .then((nextSession) => {
-        if (!isCancelled) {
-          setSession(nextSession);
-        }
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setSession({ authenticated: false, configured: false });
-        }
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [strings.errors.session]);
-
-  async function refreshSession() {
-    try {
-      const response = await fetch('/api/auth/session', { cache: 'no-store' });
-
-      if (!response.ok) {
-        throw new Error(strings.errors.session);
-      }
-
-      setSession((await response.json()) as SessionResponse);
-    } catch {
-      setSession({ authenticated: false, configured: false });
-    }
-  }
+  const isConfigured = session?.configured ?? true;
+  const isAuthenticated = session?.authenticated ?? false;
+  const actionLabel = !isConfigured
+    ? strings.authorNotConfigured
+    : isAuthenticated
+      ? strings.logout
+      : strings.loginAsAuthor;
 
   async function login(event: FormEvent<HTMLFormElement>, close: () => void) {
     event.preventDefault();
     setIsLoginPending(true);
     setLoginError(undefined);
 
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
-      const body = (await response.json()) as { error?: string };
+    const error = await loginAsAuthor(password);
 
-      if (!response.ok) {
-        throw new Error(body.error ?? strings.errors.login);
-      }
-
-      setSession({ authenticated: true, configured: true });
-      setPassword('');
-      window.dispatchEvent(new Event(AUTHOR_SESSION_CHANGED_EVENT));
-      close();
-    } catch (caughtError) {
-      setLoginError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : strings.errors.login,
-      );
-    } finally {
+    if (error) {
+      setLoginError(error);
       setIsLoginPending(false);
+      return;
     }
+
+    setPassword('');
+    setIsLoginPending(false);
+    close();
   }
 
   async function logout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    setSession((current) => ({
-      authenticated: false,
-      configured: current?.configured ?? false,
-    }));
-    window.dispatchEvent(new Event(AUTHOR_SESSION_CHANGED_EVENT));
+    await logoutAuthor();
   }
 
   return (
-    <div className="hidden md:block">
-      <Dropdown
-        isOpen={isMenuOpen}
-        onOpenChange={(nextOpen) => {
-          setIsMenuOpen(nextOpen);
-
-          if (nextOpen) {
-            void refreshSession();
-          }
-        }}
-      >
-        <Button
-          aria-label={
-            session?.authenticated ? strings.logout : strings.loginAsAuthor
-          }
-          isIconOnly
-          size="sm"
-          variant="tertiary"
+    <div>
+      {isLoading ? (
+        <button
+          type="button"
+          aria-label={actionLabel}
+          aria-busy="true"
+          disabled
+          className="button button--icon-only button--sm button--tertiary"
         >
-          {session?.authenticated ? (
-            <ShieldCheck className="size-4" />
-          ) : (
-            <LockKeyhole className="size-4" />
-          )}
-        </Button>
-        <Dropdown.Popover placement="bottom end">
-          <Dropdown.Menu
-            onAction={(key) => {
-              if (key !== 'author-action') {
-                return;
-              }
-
-              if (session?.authenticated) {
-                void logout();
-                return;
-              }
-
-              setLoginError(undefined);
-              setIsLoginOpen(true);
-            }}
+          <LockKeyhole className="size-4" />
+        </button>
+      ) : (
+        <Dropdown isOpen={isMenuOpen} onOpenChange={setIsMenuOpen}>
+          <Dropdown.Trigger
+            aria-label={actionLabel}
+            type="button"
+            className="button button--icon-only button--sm button--tertiary flex"
           >
-            <Dropdown.Item
-              id="author-action"
-              textValue={
-                session?.authenticated ? strings.logout : strings.loginAsAuthor
-              }
-              variant={session?.authenticated ? 'danger' : 'default'}
+            {isAuthenticated ? (
+              <ShieldCheck className="size-4" />
+            ) : (
+              <LockKeyhole className="size-4" />
+            )}
+          </Dropdown.Trigger>
+          <Dropdown.Popover placement="bottom end">
+            <Dropdown.Menu
+              onAction={(key) => {
+                if (key !== 'author-action' || !isConfigured) {
+                  return;
+                }
+
+                if (isAuthenticated) {
+                  void logout();
+                  return;
+                }
+
+                setLoginError(undefined);
+                setIsLoginOpen(true);
+              }}
             >
-              <Label>
-                {session?.authenticated
-                  ? strings.logout
-                  : strings.loginAsAuthor}
-              </Label>
-            </Dropdown.Item>
-          </Dropdown.Menu>
-        </Dropdown.Popover>
-      </Dropdown>
+              <Dropdown.Item
+                id="author-action"
+                isDisabled={!isConfigured}
+                textValue={actionLabel}
+                variant={isAuthenticated ? 'danger' : 'default'}
+              >
+                <Label>{actionLabel}</Label>
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown.Popover>
+        </Dropdown>
+      )}
 
       <Modal>
         <Modal.Backdrop
@@ -198,7 +142,9 @@ function AuthorMenu() {
                 >
                   <Modal.CloseTrigger />
                   <Modal.Header>
-                    <Modal.Heading>{strings.loginAsAuthor}</Modal.Heading>
+                    <Modal.Heading className="font-semibold">
+                      {strings.loginAsAuthor}
+                    </Modal.Heading>
                   </Modal.Header>
                   <Modal.Body className="flex flex-col gap-4">
                     <TextField
@@ -210,6 +156,7 @@ function AuthorMenu() {
                       validate={(value) =>
                         value ? null : strings.enterPassword
                       }
+                      className="flex gap-1 flex-col"
                     >
                       <Label>{strings.authorPassword}</Label>
                       <Input
@@ -220,15 +167,15 @@ function AuthorMenu() {
                       <FieldError />
                     </TextField>
 
-                    {loginError && (
-                      <Alert status="danger">
+                    {loginError ? (
+                      <Alert status="danger" className="bg-surface-secondary">
                         <Alert.Indicator />
                         <Alert.Content>
                           <Alert.Title>{strings.loginFailed}</Alert.Title>
                           <Alert.Description>{loginError}</Alert.Description>
                         </Alert.Content>
                       </Alert>
-                    )}
+                    ) : null}
                   </Modal.Body>
                   <Modal.Footer>
                     <Button type="submit" isPending={isLoginPending}>
@@ -250,8 +197,35 @@ export function Header() {
   const linkSlots = linkVariants();
   const { copy, locale } = useLocale();
   const pathname = usePathname();
-
   const [open, setOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileMenuRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const firstInteractiveElement =
+      mobileMenuRef.current?.querySelector<HTMLElement>(
+        'a[href], button:not([disabled])',
+      );
+    firstInteractiveElement?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
+      event.preventDefault();
+      setOpen(false);
+      menuButtonRef.current?.focus();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
 
   function handleHomeNavigation(event: MouseEvent<HTMLAnchorElement>) {
     setOpen(false);
@@ -301,7 +275,7 @@ export function Header() {
             onClick={handleHomeNavigation}
             className={cn(
               linkSlots.base(),
-              'flex items-center gap-2 font-semibold text-lg no-underline min-w-0 justify-self-start',
+              'flex min-w-0 items-center gap-2 justify-self-start text-lg font-semibold no-underline',
             )}
           >
             <Image
@@ -311,14 +285,17 @@ export function Header() {
               height={40}
               preload
               loading="eager"
-              className="rounded-full size-6"
+              className="size-6 rounded-full"
             />
             <Typography.Paragraph className="truncate">
               {siteConfig.name}
             </Typography.Paragraph>
           </NextLink>
 
-          <nav className="hidden md:flex min-w-0 gap-4 justify-self-start">
+          <nav
+            aria-label={copy.header.navigation}
+            className="hidden min-w-0 gap-4 justify-self-start md:flex"
+          >
             {headerConfig.links.map((link) => (
               <NextLink
                 href={link.href}
@@ -326,7 +303,7 @@ export function Header() {
                 onClick={(event) => handleSectionNavigation(event, link.href)}
                 className={cn(
                   linkSlots.base(),
-                  'flex items-center gap-2 min-w-0 no-underline',
+                  'flex min-w-0 items-center gap-2 no-underline',
                 )}
                 key={link.href}
               >
@@ -338,19 +315,23 @@ export function Header() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2 shrink-0 justify-self-end">
-            <nav className="hidden md:flex min-w-0 gap-4 justify-self-start">
-              <AuthorMenu />
+          <div className="flex shrink-0 items-center gap-2 justify-self-end">
+            <AuthorMenu />
+            <div className="hidden items-center gap-2 md:flex">
               <LanguageSwitcher />
               <ThemeSwitcher />
-            </nav>
+            </div>
 
             <Button
+              ref={menuButtonRef}
+              aria-controls="mobile-navigation"
+              aria-expanded={open}
+              aria-label={open ? copy.header.closeMenu : copy.header.openMenu}
               isIconOnly
               size="sm"
               variant="tertiary"
               className="md:hidden"
-              onPress={() => setOpen((v) => !v)}
+              onPress={() => setOpen((value) => !value)}
             >
               {open ? (
                 <X className="size-4.5" />
@@ -362,10 +343,15 @@ export function Header() {
         </Container>
       </header>
 
-      {open && (
-        <div className="fixed inset-x-0 top-16 z-40 border-b border-t bg-background/70 shadow-lg backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] md:hidden">
+      {open ? (
+        <nav
+          ref={mobileMenuRef}
+          id="mobile-navigation"
+          aria-label={copy.header.navigation}
+          className="fixed inset-x-0 top-16 z-40 border-b border-t bg-background/70 shadow-lg backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] md:hidden"
+        >
           <Container className="flex flex-col gap-4 py-4">
-            <Typography.Heading level={5}>
+            <Typography.Heading level={2} className="text-base">
               {copy.header.navigation}
             </Typography.Heading>
 
@@ -384,20 +370,18 @@ export function Header() {
               </NextLink>
             ))}
 
-            <Typography.Heading level={5}>
+            <Typography.Heading level={2} className="text-base">
               {copy.theme.label}
             </Typography.Heading>
-
             <ThemeSwitcher variant="group" />
 
-            <Typography.Heading level={5}>
+            <Typography.Heading level={2} className="text-base">
               {copy.language.label}
             </Typography.Heading>
-
             <LanguageSwitcher fullWidth />
           </Container>
-        </div>
-      )}
+        </nav>
+      ) : null}
     </>
   );
 }

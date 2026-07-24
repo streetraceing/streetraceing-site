@@ -79,6 +79,8 @@ export type ProjectConfig = {
 };
 
 export type ToolStatus = 'available' | 'planned';
+export type GenericToolComponent =
+  'json-viewer' | 'uuid-generator' | 'text-tools' | 'base64';
 
 export type ToolConfig = {
   slug: string;
@@ -86,6 +88,7 @@ export type ToolConfig = {
   name: LocalizedText;
   description: LocalizedText;
   status: ToolStatus;
+  component?: GenericToolComponent;
   tags: LocalizedText[];
 };
 
@@ -263,6 +266,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'json-viewer',
+      component: 'json-viewer',
       name: text('JSON Viewer', 'JSON Viewer'),
       description: text(
         'Проверка, форматирование и удобный просмотр JSON без лишних сервисов.',
@@ -278,6 +282,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'uuid-generator',
+      component: 'uuid-generator',
       name: text('Генератор UUID', 'UUID Generator'),
       description: text(
         'Генератор UUID для тестовых данных, API и баз данных.',
@@ -293,6 +298,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'text-tools',
+      component: 'text-tools',
       name: text('Инструменты текста', 'Text tools'),
       description: text(
         'Набор маленьких операций с текстом: счётчик, очистка и преобразования.',
@@ -308,6 +314,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'base64',
+      component: 'base64',
       name: text('Base64', 'Base64'),
       description: text(
         'Кодирование и декодирование текста в Base64 прямо в браузере.',

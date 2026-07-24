@@ -23,7 +23,11 @@ export const shortUrls = pgTable(
   },
   (table) => [
     uniqueIndex('short_urls_code_unique').on(table.code),
-    index('short_urls_owner_token_idx').on(table.ownerToken),
+    index('short_urls_owner_created_at_idx').on(
+      table.ownerToken,
+      table.createdAt,
+    ),
+    index('short_urls_created_at_idx').on(table.createdAt),
   ],
 );
 
@@ -40,5 +44,6 @@ export const devUpdates = pgTable(
   },
   (table) => [
     index('dev_updates_topic_created_at_idx').on(table.topic, table.createdAt),
+    index('dev_updates_created_at_idx').on(table.createdAt),
   ],
 );

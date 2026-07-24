@@ -7,190 +7,59 @@ import { Header } from '@/components/layout/Header';
 import { HomeScrollManager } from '@/components/layout/HomeScrollManager';
 import { Page } from '@/components/layout/Page';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
-import { ProjectCard } from '@/components/projects/ProjectCard';
-import { ToolCard } from '@/components/projects/ToolCard';
-import { StatsSection } from '@/components/stats/StatsSection';
-import {
-  mainPageConfig,
-  type ProjectConfig,
-  type ProjectStatus,
-  type ToolConfig,
-} from '@/utils/config';
-import { getLocaleTag, getText } from '@/utils/i18n';
-import {
-  Button,
-  Card,
-  Label,
-  ListBox,
-  SearchField,
-  Select,
-  Typography,
-} from '@heroui/react';
-import Fuse from 'fuse.js';
-import { X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { siteConfig } from '@/utils/config';
+import { Card, Spinner, Typography } from '@heroui/react';
+import dynamic from 'next/dynamic';
 
-type ProjectSort = 'relevance' | 'progress-desc' | 'name-asc';
-type ToolSort = 'relevance' | 'name-asc';
-
-const ALL_FILTER_ID = 'all';
-
-type ProjectSearchItem = {
-  project: ProjectConfig;
-  name: string;
-  description: string;
-  technologies: string[];
-  statuses: string[];
-  highlights: string[];
-};
-
-type ToolSearchItem = {
-  tool: ToolConfig;
-  name: string;
-  description: string;
-  tags: string[];
-};
-
-const projectStatuses = Array.from(
-  new Set(mainPageConfig.projects.flatMap((project) => project.status)),
+const StatsSection = dynamic(
+  () =>
+    import('@/components/stats/StatsSection').then(
+      (module) => module.StatsSection,
+    ),
+  {
+    loading: () => (
+      <Card variant="transparent">
+        <Card.Content className="flex items-center justify-center py-8">
+          <Spinner />
+        </Card.Content>
+      </Card>
+    ),
+  },
 );
 
-const toolTags = mainPageConfig.tools
-  .flatMap((tool) => tool.tags)
-  .filter(
-    (tag, index, tags) =>
-      tags.findIndex((candidate) => candidate.ru === tag.ru) === index,
-  );
+const ProjectsSection = dynamic(() =>
+  import('@/components/home/ProjectsSection').then(
+    (module) => module.ProjectsSection,
+  ),
+);
+
+const ToolsSection = dynamic(() =>
+  import('@/components/home/ToolsSection').then(
+    (module) => module.ToolsSection,
+  ),
+);
 
 export default function HomePage() {
-  const { copy, locale } = useLocale();
-  const [projectQuery, setProjectQuery] = useState('');
-  const [selectedProjectStatus, setSelectedProjectStatus] = useState<
-    ProjectStatus | undefined
-  >();
-  const [projectSort, setProjectSort] = useState<ProjectSort>('relevance');
-  const [toolQuery, setToolQuery] = useState('');
-  const [selectedToolTag, setSelectedToolTag] = useState<string>();
-  const [toolSort, setToolSort] = useState<ToolSort>('relevance');
-
-  const projectSearch = useMemo(
-    () =>
-      new Fuse<ProjectSearchItem>(
-        mainPageConfig.projects.map((project) => ({
-          project,
-          name: project.name,
-          description: [
-            getText(project.shortDescription, locale),
-            getText(project.longDescription, locale),
-          ].join(' '),
-          technologies: project.technologies,
-          statuses: project.status.map((status) => copy.project.status[status]),
-          highlights: project.highlights.map((highlight) =>
-            getText(highlight, locale),
-          ),
-        })),
-        {
-          keys: [
-            { name: 'name', weight: 0.5 },
-            { name: 'technologies', weight: 0.2 },
-            { name: 'statuses', weight: 0.15 },
-            { name: 'description', weight: 0.1 },
-            { name: 'highlights', weight: 0.05 },
-          ],
-          threshold: 0.35,
-          ignoreLocation: true,
-        },
-      ),
-    [copy.project.status, locale],
-  );
-
-  const toolSearch = useMemo(
-    () =>
-      new Fuse<ToolSearchItem>(
-        mainPageConfig.tools.map((tool) => ({
-          tool,
-          name: getText(tool.name, locale),
-          description: getText(tool.description, locale),
-          tags: tool.tags.map((tag) => getText(tag, locale)),
-        })),
-        {
-          keys: [
-            { name: 'name', weight: 0.55 },
-            { name: 'tags', weight: 0.3 },
-            { name: 'description', weight: 0.15 },
-          ],
-          threshold: 0.35,
-          ignoreLocation: true,
-        },
-      ),
-    [locale],
-  );
-
-  const filteredProjects = useMemo(() => {
-    const projects = projectQuery.trim()
-      ? projectSearch.search(projectQuery).map(({ item }) => item.project)
-      : mainPageConfig.projects;
-
-    const filtered = projects.filter(
-      (project) =>
-        !selectedProjectStatus ||
-        project.status.includes(selectedProjectStatus),
-    );
-
-    if (projectSort === 'progress-desc') {
-      return [...filtered].sort(
-        (firstProject, secondProject) =>
-          secondProject.progress - firstProject.progress,
-      );
-    }
-
-    if (projectSort === 'name-asc') {
-      return [...filtered].sort((firstProject, secondProject) =>
-        firstProject.name.localeCompare(
-          secondProject.name,
-          getLocaleTag(locale),
-        ),
-      );
-    }
-
-    return filtered;
-  }, [locale, projectQuery, projectSearch, projectSort, selectedProjectStatus]);
-
-  const filteredTools = useMemo(() => {
-    const tools = toolQuery.trim()
-      ? toolSearch.search(toolQuery).map(({ item }) => item.tool)
-      : mainPageConfig.tools;
-
-    const filtered = tools.filter(
-      (tool) =>
-        !selectedToolTag || tool.tags.some((tag) => tag.ru === selectedToolTag),
-    );
-
-    return toolSort === 'name-asc'
-      ? [...filtered].sort((firstTool, secondTool) =>
-          getText(firstTool.name, locale).localeCompare(
-            getText(secondTool.name, locale),
-            getLocaleTag(locale),
-          ),
-        )
-      : filtered;
-  }, [locale, selectedToolTag, toolQuery, toolSearch, toolSort]);
+  const { copy } = useLocale();
 
   return (
     <Page header={<Header />} footer={<Footer />}>
       <HomeScrollManager />
-      <Container className="py-4 gap-4 flex flex-col">
+      <Container className="flex flex-col gap-4 py-4">
+        <Typography.Heading level={1} className="sr-only">
+          {siteConfig.name}
+        </Typography.Heading>
         <Typography.Paragraph>{copy.home.intro}</Typography.Paragraph>
 
         <section
           id="bio"
-          className="scroll-mt-16 flex flex-col gap-4 pt-4 border-t"
+          className="scroll-mt-16 flex flex-col gap-4 border-t pt-4"
         >
-          <Typography.Heading level={3}>
+          <Typography.Heading level={2}>
             {copy.home.bioTitle}
           </Typography.Heading>
 
-          <div className="flex gap-4 h-fit flex-col md:flex-row md:h-48">
+          <div className="flex h-fit flex-col gap-4 md:h-48 md:flex-row">
             <ProfileAvatar />
             <div className="flex flex-col gap-3">
               {copy.home.bio.map((paragraph) => (
@@ -203,309 +72,8 @@ export default function HomePage() {
         </section>
 
         <StatsSection />
-
-        <section
-          id="projects"
-          className="scroll-mt-16 flex flex-col gap-4 pt-4 border-t"
-        >
-          <Typography.Heading level={3}>
-            {copy.home.projectsTitle.replace(
-              '{count}',
-              String(mainPageConfig.projects.length),
-            )}
-          </Typography.Heading>
-
-          <div className="flex flex-col gap-3">
-            <SearchField
-              value={projectQuery}
-              onChange={setProjectQuery}
-              fullWidth
-            >
-              <Label className="sr-only">{copy.home.projectsSearchLabel}</Label>
-              <SearchField.Group>
-                <SearchField.SearchIcon />
-                <SearchField.Input
-                  placeholder={copy.home.projectsSearchPlaceholder}
-                />
-                <SearchField.ClearButton />
-              </SearchField.Group>
-            </SearchField>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="flex min-w-0 flex-1 items-end gap-2">
-                <Select
-                  className="min-w-0 flex-1"
-                  value={selectedProjectStatus ?? ALL_FILTER_ID}
-                  variant="secondary"
-                  onChange={(value) => {
-                    if (value === ALL_FILTER_ID || value === null) {
-                      setSelectedProjectStatus(undefined);
-                      return;
-                    }
-
-                    if (typeof value === 'string') {
-                      setSelectedProjectStatus(value as ProjectStatus);
-                    }
-                  }}
-                >
-                  <Label>{copy.home.projectsFilters}</Label>
-                  <Select.Trigger>
-                    <Select.Value />
-                    <Select.Indicator />
-                  </Select.Trigger>
-                  <Select.Popover>
-                    <ListBox>
-                      <ListBox.Item
-                        id={ALL_FILTER_ID}
-                        textValue={copy.home.all}
-                      >
-                        {copy.home.all}
-                        <ListBox.ItemIndicator />
-                      </ListBox.Item>
-                      {projectStatuses.map((status) => (
-                        <ListBox.Item
-                          key={status}
-                          id={status}
-                          textValue={copy.project.status[status]}
-                        >
-                          {copy.project.status[status]}
-                          <ListBox.ItemIndicator />
-                        </ListBox.Item>
-                      ))}
-                    </ListBox>
-                  </Select.Popover>
-                </Select>
-                {selectedProjectStatus && (
-                  <Button
-                    aria-label={copy.home.clearFilters}
-                    isIconOnly
-                    type="button"
-                    size="sm"
-                    variant="tertiary"
-                    onPress={() => setSelectedProjectStatus(undefined)}
-                  >
-                    <X className="size-4" />
-                  </Button>
-                )}
-              </div>
-
-              <div className="flex items-end gap-2 sm:shrink-0">
-                <Select
-                  className="min-w-0 flex-1 sm:w-72 sm:flex-none"
-                  value={projectSort}
-                  variant="secondary"
-                  onChange={(value) => {
-                    if (typeof value === 'string') {
-                      setProjectSort(value as ProjectSort);
-                    }
-                  }}
-                >
-                  <Label className="sm:sr-only">{copy.home.projectsSort}</Label>
-                  <Select.Trigger>
-                    <Select.Value />
-                    <Select.Indicator />
-                  </Select.Trigger>
-                  <Select.Popover>
-                    <ListBox>
-                      <ListBox.Item
-                        id="relevance"
-                        textValue={copy.home.sortRelevance}
-                      >
-                        {copy.home.sortRelevance}
-                        <ListBox.ItemIndicator />
-                      </ListBox.Item>
-                      <ListBox.Item
-                        id="progress-desc"
-                        textValue={copy.home.sortProgress}
-                      >
-                        {copy.home.sortProgress}
-                        <ListBox.ItemIndicator />
-                      </ListBox.Item>
-                      <ListBox.Item
-                        id="name-asc"
-                        textValue={copy.home.sortName}
-                      >
-                        {copy.home.sortName}
-                        <ListBox.ItemIndicator />
-                      </ListBox.Item>
-                    </ListBox>
-                  </Select.Popover>
-                </Select>
-                {projectSort !== 'relevance' && (
-                  <Button
-                    aria-label={copy.home.clearSort}
-                    isIconOnly
-                    type="button"
-                    size="sm"
-                    variant="tertiary"
-                    onPress={() => setProjectSort('relevance')}
-                  >
-                    <X className="size-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            {filteredProjects.map((project) => (
-              <ProjectCard key={project.slug} project={project} />
-            ))}
-            {filteredProjects.length === 0 && (
-              <Card variant="secondary">
-                <Card.Content className="text-sm text-muted">
-                  {copy.home.noProjects}
-                </Card.Content>
-              </Card>
-            )}
-          </div>
-        </section>
-
-        <section
-          id="tools"
-          className="scroll-mt-16 flex flex-col gap-4 pt-4 border-t"
-        >
-          <Typography.Heading level={3}>
-            {copy.home.toolsTitle.replace(
-              '{count}',
-              String(mainPageConfig.tools.length),
-            )}
-          </Typography.Heading>
-
-          <div className="flex flex-col gap-3">
-            <SearchField value={toolQuery} onChange={setToolQuery} fullWidth>
-              <Label className="sr-only">{copy.home.toolsSearchLabel}</Label>
-              <SearchField.Group>
-                <SearchField.SearchIcon />
-                <SearchField.Input
-                  placeholder={copy.home.toolsSearchPlaceholder}
-                />
-                <SearchField.ClearButton />
-              </SearchField.Group>
-            </SearchField>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="flex min-w-0 flex-1 items-end gap-2">
-                <Select
-                  className="min-w-0 flex-1"
-                  value={selectedToolTag ?? ALL_FILTER_ID}
-                  variant="secondary"
-                  onChange={(value) => {
-                    if (value === ALL_FILTER_ID || value === null) {
-                      setSelectedToolTag(undefined);
-                      return;
-                    }
-
-                    if (typeof value === 'string') {
-                      setSelectedToolTag(value);
-                    }
-                  }}
-                >
-                  <Label>{copy.home.toolsFilters}</Label>
-                  <Select.Trigger>
-                    <Select.Value />
-                    <Select.Indicator />
-                  </Select.Trigger>
-                  <Select.Popover>
-                    <ListBox>
-                      <ListBox.Item
-                        id={ALL_FILTER_ID}
-                        textValue={copy.home.all}
-                      >
-                        {copy.home.all}
-                        <ListBox.ItemIndicator />
-                      </ListBox.Item>
-                      {toolTags.map((tag) => (
-                        <ListBox.Item
-                          key={tag.ru}
-                          id={tag.ru}
-                          textValue={getText(tag, locale)}
-                        >
-                          {getText(tag, locale)}
-                          <ListBox.ItemIndicator />
-                        </ListBox.Item>
-                      ))}
-                    </ListBox>
-                  </Select.Popover>
-                </Select>
-                {selectedToolTag && (
-                  <Button
-                    aria-label={copy.home.clearFilters}
-                    isIconOnly
-                    type="button"
-                    size="sm"
-                    variant="tertiary"
-                    onPress={() => setSelectedToolTag(undefined)}
-                  >
-                    <X className="size-4" />
-                  </Button>
-                )}
-              </div>
-
-              <div className="flex items-end gap-2 sm:shrink-0">
-                <Select
-                  className="min-w-0 flex-1 sm:w-72 sm:flex-none"
-                  value={toolSort}
-                  variant="secondary"
-                  onChange={(value) => {
-                    if (typeof value === 'string') {
-                      setToolSort(value as ToolSort);
-                    }
-                  }}
-                >
-                  <Label className="sm:sr-only">{copy.home.toolsSort}</Label>
-                  <Select.Trigger>
-                    <Select.Value />
-                    <Select.Indicator />
-                  </Select.Trigger>
-                  <Select.Popover>
-                    <ListBox>
-                      <ListBox.Item
-                        id="relevance"
-                        textValue={copy.home.sortRelevance}
-                      >
-                        {copy.home.sortRelevance}
-                        <ListBox.ItemIndicator />
-                      </ListBox.Item>
-                      <ListBox.Item
-                        id="name-asc"
-                        textValue={copy.home.sortName}
-                      >
-                        {copy.home.sortName}
-                        <ListBox.ItemIndicator />
-                      </ListBox.Item>
-                    </ListBox>
-                  </Select.Popover>
-                </Select>
-                {toolSort !== 'relevance' && (
-                  <Button
-                    aria-label={copy.home.clearSort}
-                    isIconOnly
-                    type="button"
-                    size="sm"
-                    variant="tertiary"
-                    onPress={() => setToolSort('relevance')}
-                  >
-                    <X className="size-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            {filteredTools.map((tool) => (
-              <ToolCard key={tool.slug} tool={tool} />
-            ))}
-            {filteredTools.length === 0 && (
-              <Card variant="secondary">
-                <Card.Content className="text-sm text-muted">
-                  {copy.home.noTools}
-                </Card.Content>
-              </Card>
-            )}
-          </div>
-        </section>
+        <ProjectsSection />
+        <ToolsSection />
       </Container>
     </Page>
   );

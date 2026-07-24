@@ -12,6 +12,7 @@ import {
   TextField,
 } from '@heroui/react';
 import { KeyRound, RefreshCw } from 'lucide-react';
+import { parsePositiveInteger } from '@/utils/numbers';
 import { type FormEvent, useState } from 'react';
 
 import { ToolOutput } from './ToolOutput';
@@ -26,13 +27,9 @@ export function UuidGeneratorTool() {
   const [error, setError] = useState<string>();
 
   function generateUuids() {
-    const parsedAmount = Number.parseInt(amount, 10);
+    const parsedAmount = parsePositiveInteger(amount, 0, MAX_UUIDS);
 
-    if (
-      !Number.isInteger(parsedAmount) ||
-      parsedAmount < 1 ||
-      parsedAmount > MAX_UUIDS
-    ) {
+    if (parsedAmount === 0) {
       setError(strings.invalid.replace('{count}', String(MAX_UUIDS)));
       return;
     }
@@ -49,15 +46,15 @@ export function UuidGeneratorTool() {
   return (
     <div className="flex flex-col gap-4">
       <Form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <TextField
-          fullWidth
-          name="amount"
-          value={amount}
-          onChange={setAmount}
-          variant="secondary"
-        >
+        <TextField fullWidth name="amount" value={amount} onChange={setAmount}>
           <Label>{strings.label}</Label>
-          <Input type="number" inputMode="numeric" min={1} max={MAX_UUIDS} />
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={MAX_UUIDS}
+            variant="secondary"
+          />
           <Description>
             {strings.description.replace('{count}', String(MAX_UUIDS))}
           </Description>

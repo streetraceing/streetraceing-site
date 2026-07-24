@@ -1,12 +1,27 @@
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { and, eq, gt, sql } from 'drizzle-orm';
+
 import { SharedDataContent } from '@/components/tiny-url/SharedDataContent';
 import { db } from '@/db';
 import { shortUrls } from '@/db/schema';
-import { CODE_PATTERN } from '@/lib/tiny-url';
-import { eq, sql } from 'drizzle-orm';
-import { notFound } from 'next/navigation';
+import { CODE_PATTERN, getTinyUrlRetentionThreshold } from '@/lib/tiny-url';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
+};
 
 function getExternalUrl(content: string) {
   try {
@@ -33,7 +48,12 @@ export default async function SharedDataPage({
   const [item] = await db
     .select({ content: shortUrls.content })
     .from(shortUrls)
-    .where(eq(shortUrls.code, code))
+    .where(
+      and(
+        eq(shortUrls.code, code),
+        gt(shortUrls.createdAt, getTinyUrlRetentionThreshold()),
+      ),
+    )
     .limit(1);
 
   if (!item) {

@@ -4,6 +4,7 @@ import { useLocale } from '@/app/providers';
 import { getLocaleTag } from '@/utils/i18n';
 import {
   Alert,
+  AlertDialog,
   Button,
   Card,
   Description,
@@ -14,14 +15,17 @@ import {
   Spinner,
   TextArea,
   TextField,
+  Typography,
 } from '@heroui/react';
-import { Check, Copy, Link as LinkIcon } from 'lucide-react';
-import { FormEvent, useEffect, useState } from 'react';
+import { Check, Copy, Link as LinkIcon, Trash2 } from 'lucide-react';
+import { type FormEvent, useEffect, useState } from 'react';
 
 type TinyUrlItem = {
   code: string;
-  content: string;
+  preview: string;
+  contentLength: number;
   createdAt: string;
+  expiresAt: string;
   visitCount: number;
   shortUrl: string;
 };
@@ -30,14 +34,7 @@ type ApiErrorResponse = {
   error?: string;
 };
 
-const MAX_CONTENT_LENGTH = 100_000;
-
-function getPreview(content: string, emptyData: string) {
-  const normalizedContent = content.replace(/\s+/g, ' ').trim();
-  return normalizedContent.length > 120
-    ? `${normalizedContent.slice(0, 120)}…`
-    : normalizedContent || emptyData;
-}
+const MAX_CONTENT_LENGTH = 20_000;
 
 function formatDate(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
@@ -49,6 +46,7 @@ function formatDate(value: string, locale: string) {
 export function TinyUrlForm() {
   const { copy, locale } = useLocale();
   const strings = copy.tinyUrl;
+  const localeTag = getLocaleTag(locale);
   const [content, setContent] = useState('');
   const [items, setItems] = useState<TinyUrlItem[]>([]);
   const [createdItem, setCreatedItem] = useState<TinyUrlItem>();
@@ -56,6 +54,7 @@ export function TinyUrlForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingItems, setIsLoadingItems] = useState(true);
   const [copiedCode, setCopiedCode] = useState<string>();
+  const [deletingCode, setDeletingCode] = useState<string>();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -63,23 +62,35 @@ export function TinyUrlForm() {
     async function loadItems() {
       try {
         const response = await fetch('/api/short-urls', {
+          cache: 'no-store',
           signal: controller.signal,
         });
         const body = (await response.json()) as
           { items: TinyUrlItem[] } | ApiErrorResponse;
 
         if (!response.ok || !('items' in body)) {
-          return;
+          throw new Error(
+            'error' in body && typeof body.error === 'string'
+              ? body.error
+              : strings.loadFailed,
+          );
         }
 
         setItems(body.items);
+        setError(undefined);
       } catch (caughtError) {
-        if (!(
+        if (
           caughtError instanceof DOMException &&
           caughtError.name === 'AbortError'
-        )) {
-          setError(strings.loadFailed);
+        ) {
+          return;
         }
+
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : strings.loadFailed,
+        );
       } finally {
         if (!controller.signal.aborted) {
           setIsLoadingItems(false);
@@ -120,7 +131,10 @@ export function TinyUrlForm() {
       }
 
       setCreatedItem(body.item);
-      setItems((currentItems) => [body.item, ...currentItems]);
+      setItems((currentItems) => [
+        body.item,
+        ...currentItems.filter((item) => item.code !== body.item.code),
+      ]);
       setContent('');
     } catch (caughtError) {
       setError(
@@ -141,6 +155,39 @@ export function TinyUrlForm() {
     }
   }
 
+  async function deleteItem(item: TinyUrlItem, close: () => void) {
+    setDeletingCode(item.code);
+    setError(undefined);
+
+    try {
+      const response = await fetch(
+        `/api/short-urls?code=${encodeURIComponent(item.code)}`,
+        { method: 'DELETE' },
+      );
+      const body = (await response.json()) as ApiErrorResponse;
+
+      if (!response.ok) {
+        throw new Error(body.error ?? strings.deleteFailed);
+      }
+
+      setItems((currentItems) =>
+        currentItems.filter((currentItem) => currentItem.code !== item.code),
+      );
+      setCreatedItem((currentItem) =>
+        currentItem?.code === item.code ? undefined : currentItem,
+      );
+      close();
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : strings.deleteFailed,
+      );
+    } finally {
+      setDeletingCode(undefined);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <Form className="flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -158,7 +205,7 @@ export function TinyUrlForm() {
             if (value.length > MAX_CONTENT_LENGTH) {
               return strings.maxLength.replace(
                 '{count}',
-                MAX_CONTENT_LENGTH.toLocaleString(getLocaleTag(locale)),
+                MAX_CONTENT_LENGTH.toLocaleString(localeTag),
               );
             }
 
@@ -173,9 +220,8 @@ export function TinyUrlForm() {
             maxLength={MAX_CONTENT_LENGTH}
           />
           <Description>
-            {content.length.toLocaleString(getLocaleTag(locale))} /{' '}
-            {MAX_CONTENT_LENGTH.toLocaleString(getLocaleTag(locale))}{' '}
-            {strings.characters}
+            {content.length.toLocaleString(localeTag)} /{' '}
+            {MAX_CONTENT_LENGTH.toLocaleString(localeTag)} {strings.characters}
           </Description>
           <FieldError />
         </TextField>
@@ -206,7 +252,11 @@ export function TinyUrlForm() {
           <Alert.Content className="min-w-0">
             <Alert.Title>{strings.saved}</Alert.Title>
             <Alert.Description>
-              <Link href={createdItem.shortUrl} target="_blank">
+              <Link
+                href={createdItem.shortUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
                 {createdItem.shortUrl}
               </Link>
             </Alert.Description>
@@ -237,7 +287,7 @@ export function TinyUrlForm() {
           </div>
         ) : null}
 
-        {!isLoadingItems && items.length === 0 ? (
+        {!isLoadingItems && !error && items.length === 0 ? (
           <Card variant="transparent">
             <Card.Content className="text-sm text-muted">
               {strings.emptyList}
@@ -251,11 +301,18 @@ export function TinyUrlForm() {
               <Card key={item.code} variant="secondary">
                 <Card.Header>
                   <Card.Title className="truncate">
-                    {getPreview(item.content, strings.emptyData)}
+                    {item.preview || strings.emptyData}
                   </Card.Title>
                   <Card.Description>
-                    {formatDate(item.createdAt, getLocaleTag(locale))} ·{' '}
+                    {formatDate(item.createdAt, localeTag)} ·{' '}
+                    {item.contentLength.toLocaleString(localeTag)}{' '}
+                    {strings.characters} ·{' '}
                     {strings.visits.replace('{count}', String(item.visitCount))}
+                    {' · '}
+                    {strings.expires.replace(
+                      '{date}',
+                      formatDate(item.expiresAt, localeTag),
+                    )}
                   </Card.Description>
                 </Card.Header>
                 <Card.Footer className="justify-between gap-3">
@@ -263,18 +320,69 @@ export function TinyUrlForm() {
                     className="min-w-0 truncate"
                     href={item.shortUrl}
                     target="_blank"
+                    rel="noreferrer"
                   >
                     {item.shortUrl}
                   </Link>
-                  <Button
-                    isIconOnly
-                    aria-label={strings.copyShortUrl}
-                    size="sm"
-                    variant="tertiary"
-                    onPress={() => void copyShortUrl(item)}
-                  >
-                    {copiedCode === item.code ? <Check /> : <Copy />}
-                  </Button>
+                  <div className="flex shrink-0 gap-1">
+                    <Button
+                      isIconOnly
+                      aria-label={strings.copyShortUrl}
+                      size="sm"
+                      variant="tertiary"
+                      onPress={() => void copyShortUrl(item)}
+                    >
+                      {copiedCode === item.code ? <Check /> : <Copy />}
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialog.Trigger>
+                        <Button
+                          isIconOnly
+                          aria-label={strings.delete}
+                          size="sm"
+                          variant="danger"
+                        >
+                          <Trash2 />
+                        </Button>
+                      </AlertDialog.Trigger>
+                      <AlertDialog.Backdrop variant="blur">
+                        <AlertDialog.Container size="sm">
+                          <AlertDialog.Dialog>
+                            {({ close }) => (
+                              <>
+                                <AlertDialog.Header>
+                                  <AlertDialog.Icon status="danger">
+                                    <Trash2 />
+                                  </AlertDialog.Icon>
+                                  <AlertDialog.Heading>
+                                    {strings.deleteTitle}
+                                  </AlertDialog.Heading>
+                                </AlertDialog.Header>
+                                <AlertDialog.Body>
+                                  <Typography.Paragraph className="text-muted">
+                                    {strings.deleteDescription}
+                                  </Typography.Paragraph>
+                                </AlertDialog.Body>
+                                <AlertDialog.Footer>
+                                  <Button slot="close" variant="tertiary">
+                                    {strings.cancel}
+                                  </Button>
+                                  <Button
+                                    isPending={deletingCode === item.code}
+                                    variant="danger"
+                                    onPress={() => void deleteItem(item, close)}
+                                  >
+                                    <Trash2 />
+                                    {strings.delete}
+                                  </Button>
+                                </AlertDialog.Footer>
+                              </>
+                            )}
+                          </AlertDialog.Dialog>
+                        </AlertDialog.Container>
+                      </AlertDialog.Backdrop>
+                    </AlertDialog>
+                  </div>
                 </Card.Footer>
               </Card>
             ))}
