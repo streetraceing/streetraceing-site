@@ -99,7 +99,7 @@ export function ProjectDetails({ project }: ProjectDetailsProps) {
           <ol className="flex flex-col gap-3 border-l pl-4">
             {project.devLog.map((entry) => (
               <li key={`${entry.date}-${entry.title.ru}`} className="relative">
-                <span className="absolute -left-[1.31rem] top-1.5 size-2 rounded-full bg-accent" />
+                <span className="absolute left-[-1.31rem] top-1.5 size-2 rounded-full bg-accent" />
                 <p className="text-xs text-muted">{entry.date}</p>
                 <p className="font-medium">{getText(entry.title, locale)}</p>
                 {entry.description ? (
