@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element -- Remote media images are already compressed and served directly without invoking Vercel Image Optimization. */
 'use client';
 
 import {
@@ -17,6 +16,7 @@ import { type FormEvent, useState } from 'react';
 
 import { useAuthorSession, useLocale } from '@/app/providers';
 import { MediaAttachmentsField } from '@/components/media/MediaAttachmentsField';
+import { MediaGallery } from '@/components/media/MediaGallery';
 import { MarkdownContent } from '@/components/stats/MarkdownContent';
 import type { ProjectConfig } from '@/utils/config';
 import { uploadMediaFiles } from '@/utils/media-client';
@@ -72,14 +72,10 @@ export function ProjectContentSection({
     let uploadedUrls: string[] = [];
 
     try {
-      uploadedUrls = await uploadMediaFiles(
-        pendingFiles,
-        {
-          type: 'project',
-          projectSlug: project.slug,
-        },
-        strings.imageOptimizationFailed,
-      );
+      uploadedUrls = await uploadMediaFiles(pendingFiles, {
+        type: 'project',
+        projectSlug: project.slug,
+      });
       const imageUrls = [...existingUrls, ...uploadedUrls];
       const response = await fetch(`/api/projects/${project.slug}/content`, {
         method: 'PUT',
@@ -244,24 +240,14 @@ export function ProjectContentSection({
             <Images className="size-5" />
             <Typography.Heading level={3}>{strings.images}</Typography.Heading>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {content.imageUrls.map((url, index) => (
-              <figure
-                key={url}
-                className="aspect-video overflow-hidden rounded-xl border bg-default-soft"
-              >
-                <img
-                  src={url}
-                  alt={strings.imageAlt
-                    .replace('{name}', project.name)
-                    .replace('{index}', String(index + 1))}
-                  className="size-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </figure>
-            ))}
-          </div>
+          <MediaGallery
+            urls={content.imageUrls}
+            getAlt={(index) =>
+              strings.imageAlt
+                .replace('{name}', project.name)
+                .replace('{index}', String(index + 1))
+            }
+          />
         </div>
       ) : null}
 

@@ -114,6 +114,26 @@ export const translations = {
     footer: {
       slogan: 'life is good ❤️',
     },
+    mediaGallery: {
+      previousImage: 'Предыдущее изображение',
+      nextImage: 'Следующее изображение',
+      openImage: 'Открыть изображение {index}',
+      openFullscreen: 'На весь экран',
+      counter: '{current} из {total}',
+      thumbnails: 'Миниатюры галереи',
+      selectImage: 'Показать изображение {index}',
+      viewerTitle: 'Просмотр фотографии',
+      zoomArea:
+        'Область изображения. Колесо мыши и двойной клик изменяют масштаб.',
+      originalQuality: 'Качество оригинала',
+      loadingMetadata: 'Загружаю сведения об оригинале…',
+      metadataUnavailable: 'Сведения об оригинале недоступны',
+      zoom: 'Масштаб',
+      zoomIn: 'Увеличить',
+      zoomOut: 'Уменьшить',
+      resetZoom: 'Сбросить масштаб',
+      download: 'Скачать оригинал',
+    },
     project: {
       openDetails: 'Открыть подробности',
       allProjects: 'Ко всем проектам',
@@ -135,14 +155,12 @@ export const translations = {
         'Поддерживается Markdown. Документация отображается только на странице этого проекта.',
       images: 'Фотографии проекта',
       projectImagesDescription:
-        'До 8 фотографий. Перед загрузкой они сжимаются в WebP до 1440 px и 1,5 МБ.',
+        'До 8 фотографий. Оригинал загружается напрямую в Cloudinary, а на сайте показывается квадратное превью 1080 × 1080.',
       addImages: 'Добавить фотографии',
       removeImage: 'Удалить фотографию',
       invalidImageType: 'Поддерживаются JPEG, PNG, WebP и AVIF.',
       imageTooLarge: 'Исходный файл должен быть не больше 10 МБ.',
       imageLimit: 'Превышен лимит фотографий.',
-      imageOptimizationFailed:
-        'Не удалось оптимизировать фотографию до 1,5 МБ. Попробуй другое изображение.',
       imageAlt: 'Фотография {index} проекта {name}',
       emptyProjectContent:
         'Добавь фотографии или Markdown-документацию проекта.',
@@ -267,14 +285,12 @@ export const translations = {
       showFull: 'Показать полностью',
       images: 'Фотографии',
       newsImagesDescription:
-        'До 4 фотографий. Перед загрузкой они сжимаются в WebP до 1440 px и 1,5 МБ.',
+        'До 4 фотографий. Оригинал загружается напрямую в Cloudinary, а на сайте показывается квадратное превью 1080 × 1080.',
       addImages: 'Добавить фотографии',
       removeImage: 'Удалить фотографию',
       invalidImageType: 'Поддерживаются JPEG, PNG, WebP и AVIF.',
       imageTooLarge: 'Исходный файл должен быть не больше 10 МБ.',
       imageLimit: 'Превышен лимит фотографий.',
-      imageOptimizationFailed:
-        'Не удалось оптимизировать фотографию до 1,5 МБ. Попробуй другое изображение.',
       imageAlt: 'Фотография к новости',
       errors: {
         login: 'Не удалось войти.',
@@ -441,6 +457,26 @@ export const translations = {
     footer: {
       slogan: 'life is good ❤️',
     },
+    mediaGallery: {
+      previousImage: 'Previous image',
+      nextImage: 'Next image',
+      openImage: 'Open image {index}',
+      openFullscreen: 'Full screen',
+      counter: '{current} of {total}',
+      thumbnails: 'Gallery thumbnails',
+      selectImage: 'Show image {index}',
+      viewerTitle: 'Photo viewer',
+      zoomArea:
+        'Image area. Use the mouse wheel or double-click to change zoom.',
+      originalQuality: 'Original quality',
+      loadingMetadata: 'Loading original image details…',
+      metadataUnavailable: 'Original image details are unavailable',
+      zoom: 'Zoom',
+      zoomIn: 'Zoom in',
+      zoomOut: 'Zoom out',
+      resetZoom: 'Reset zoom',
+      download: 'Download original',
+    },
     project: {
       openDetails: 'Open details',
       allProjects: 'All projects',
@@ -462,14 +498,12 @@ export const translations = {
         'Markdown is supported. Documentation is shown only on this project page.',
       images: 'Project photos',
       projectImagesDescription:
-        'Up to 8 photos. Before upload, they are compressed to WebP, 1440 px, and 1.5 MB.',
+        'Up to 8 photos. The original is uploaded directly to Cloudinary, while the site displays a square 1080 × 1080 preview.',
       addImages: 'Add photos',
       removeImage: 'Remove photo',
       invalidImageType: 'JPEG, PNG, WebP, and AVIF are supported.',
       imageTooLarge: 'The source file must be no larger than 10 MB.',
       imageLimit: 'The photo limit has been exceeded.',
-      imageOptimizationFailed:
-        'The photo could not be optimized to 1.5 MB. Try another image.',
       imageAlt: 'Photo {index} of the {name} project',
       emptyProjectContent: 'Add project photos or Markdown documentation.',
       contentSaveFailed: 'Could not save the project materials.',
@@ -591,14 +625,12 @@ export const translations = {
       showFull: 'Show full post',
       images: 'Photos',
       newsImagesDescription:
-        'Up to 4 photos. Before upload, they are compressed to WebP, 1440 px, and 1.5 MB.',
+        'Up to 4 photos. The original is uploaded directly to Cloudinary, while the site displays a square 1080 × 1080 preview.',
       addImages: 'Add photos',
       removeImage: 'Remove photo',
       invalidImageType: 'JPEG, PNG, WebP, and AVIF are supported.',
       imageTooLarge: 'The source file must be no larger than 10 MB.',
       imageLimit: 'The photo limit has been exceeded.',
-      imageOptimizationFailed:
-        'The photo could not be optimized to 1.5 MB. Try another image.',
       imageAlt: 'News photo',
       errors: {
         login: 'Could not sign in.',

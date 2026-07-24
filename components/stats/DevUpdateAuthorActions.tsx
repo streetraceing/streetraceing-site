@@ -79,11 +79,9 @@ export default function DevUpdateAuthorActions({
     let uploadedUrls: string[] = [];
 
     try {
-      uploadedUrls = await uploadMediaFiles(
-        pendingFiles,
-        { type: 'dev-update' },
-        strings.imageOptimizationFailed,
-      );
+      uploadedUrls = await uploadMediaFiles(pendingFiles, {
+        type: 'dev-update',
+      });
       const response = await fetch(`/api/dev-updates/${update.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

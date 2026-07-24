@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  getCloudinaryDownloadUrl,
+  getCloudinaryImageInfoUrl,
   getCloudinaryPublicIdFromUrl,
+  getCloudinarySquareImageUrl,
   getMediaPublicIdPrefix,
   isAllowedMediaType,
   isCloudinaryMediaUrl,
@@ -11,7 +14,7 @@ import {
 } from '../utils/media';
 
 const firstCloudinaryUrl =
-  'https://res.cloudinary.com/student-cloud/image/upload/v1760000000/streetraceing/media/dev-updates/first.webp';
+  'https://res.cloudinary.com/student-cloud/image/upload/v1760000000/streetraceing/media/dev-updates/first.jpg';
 const secondCloudinaryUrl =
   'https://res.cloudinary.com/student-cloud/image/upload/v1760000001/streetraceing/media/dev-updates/second.webp';
 
@@ -65,5 +68,27 @@ test('media upload scopes restrict project paths and Cloudinary ownership', () =
   assert.equal(
     getCloudinaryPublicIdFromUrl(firstCloudinaryUrl, 'another-cloud'),
     undefined,
+  );
+});
+
+test('gallery transformations keep the original public ID', () => {
+  const squareUrl = getCloudinarySquareImageUrl(firstCloudinaryUrl, 1_080);
+  const thumbnailUrl = getCloudinarySquareImageUrl(firstCloudinaryUrl, 160);
+  const infoUrl = getCloudinaryImageInfoUrl(firstCloudinaryUrl);
+  const downloadUrl = getCloudinaryDownloadUrl(firstCloudinaryUrl);
+
+  assert.match(
+    squareUrl,
+    /\/image\/upload\/c_fill,g_auto,h_1080,w_1080,q_auto:good,f_auto\/v1760000000\//,
+  );
+  assert.match(
+    thumbnailUrl,
+    /\/image\/upload\/c_fill,g_auto,h_160,w_160,q_auto:good,f_auto\/v1760000000\//,
+  );
+  assert.match(infoUrl, /\/image\/upload\/fl_getinfo\/v1760000000\//);
+  assert.match(downloadUrl, /\/image\/upload\/fl_attachment\/v1760000000\//);
+  assert.equal(
+    getCloudinaryPublicIdFromUrl(squareUrl, 'student-cloud'),
+    'streetraceing/media/dev-updates/first',
   );
 });

@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element -- Remote media images are already compressed and served directly without invoking Vercel Image Optimization. */
 'use client';
 
 import {
@@ -18,6 +17,7 @@ import { ChevronDown, X } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthorSession, useLocale } from '@/app/providers';
+import { MediaGallery } from '@/components/media/MediaGallery';
 import StatsAuthorControls from '@/components/stats/StatsAuthorControls';
 import { HOME_LAYOUT_SETTLED_EVENT } from '@/utils/client-events';
 import { getLocaleTag, getText } from '@/utils/i18n';
@@ -89,22 +89,12 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
       </Card.Header>
       <Card.Content className="flex flex-col items-start gap-3">
         {update.imageUrls.length > 0 ? (
-          <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
-            {update.imageUrls.map((url, index) => (
-              <figure
-                key={url}
-                className="aspect-video overflow-hidden rounded-xl border bg-default-soft"
-              >
-                <img
-                  src={url}
-                  alt={`${update.title ?? copy.stats.updatesTitle}: ${copy.stats.imageAlt} ${index + 1}`}
-                  className="size-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </figure>
-            ))}
-          </div>
+          <MediaGallery
+            urls={update.imageUrls}
+            getAlt={(index) =>
+              `${update.title ?? copy.stats.updatesTitle}: ${copy.stats.imageAlt} ${index + 1}`
+            }
+          />
         ) : null}
 
         <div

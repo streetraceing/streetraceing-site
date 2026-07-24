@@ -1,11 +1,15 @@
-/* eslint-disable @next/next/no-img-element -- Remote media images are already compressed and served directly without invoking Vercel Image Optimization. */
+/* eslint-disable @next/next/no-img-element -- Local previews and Cloudinary assets are intentionally rendered without Next.js image proxying. */
 'use client';
 
 import { Alert, Button, Typography } from '@heroui/react';
 import { ImagePlus, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-import { isAllowedMediaType, MAX_MEDIA_SOURCE_BYTES } from '@/utils/media';
+import {
+  getCloudinarySquareImageUrl,
+  isAllowedMediaType,
+  MAX_MEDIA_SOURCE_BYTES,
+} from '@/utils/media';
 
 function PendingImagePreview({ file }: { file: File }) {
   const [previewUrl, setPreviewUrl] = useState<string>();
@@ -113,10 +117,10 @@ export function MediaAttachmentsField({
           {existingUrls.map((url) => (
             <div
               key={url}
-              className="group relative aspect-video overflow-hidden rounded-lg border bg-default-soft"
+              className="group relative aspect-square overflow-hidden rounded-lg border bg-default-soft"
             >
               <img
-                src={url}
+                src={getCloudinarySquareImageUrl(url, 320)}
                 alt=""
                 className="size-full object-cover"
                 loading="lazy"
@@ -143,7 +147,7 @@ export function MediaAttachmentsField({
           {pendingFiles.map((file, index) => (
             <div
               key={`${file.name}-${file.lastModified}-${index}`}
-              className="group relative aspect-video overflow-hidden rounded-lg border bg-default-soft"
+              className="group relative aspect-square overflow-hidden rounded-lg border bg-default-soft"
             >
               <PendingImagePreview file={file} />
               <Button

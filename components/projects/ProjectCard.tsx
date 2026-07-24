@@ -2,7 +2,7 @@
 
 import { Card, Chip, Modal } from '@heroui/react';
 import { ArrowUpRight } from 'lucide-react';
-import type { CSSProperties, MouseEvent } from 'react';
+import type { MouseEvent } from 'react';
 import { useState } from 'react';
 
 import { useLocale } from '@/app/providers';

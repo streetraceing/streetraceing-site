@@ -57,11 +57,9 @@ export default function StatsAuthorControls({
     let uploadedUrls: string[] = [];
 
     try {
-      uploadedUrls = await uploadMediaFiles(
-        pendingFiles,
-        { type: 'dev-update' },
-        strings.imageOptimizationFailed,
-      );
+      uploadedUrls = await uploadMediaFiles(pendingFiles, {
+        type: 'dev-update',
+      });
       const response = await fetch('/api/dev-updates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

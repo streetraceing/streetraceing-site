@@ -2,12 +2,8 @@
 
 import {
   getCloudinaryPublicIdFromUrl,
-  MAX_IMAGE_DIMENSION,
-  MAX_MEDIA_UPLOAD_BYTES,
   type MediaUploadScope,
 } from '@/utils/media';
-
-const MEDIA_OPTIMIZATION_ERROR = 'media-optimization-failed';
 
 type CloudinaryUploadAuthorization = {
   apiKey: string;
@@ -23,63 +19,6 @@ type CloudinaryUploadResponse = {
   secure_url?: string;
   error?: { message?: string };
 };
-
-function canvasToBlob(
-  canvas: HTMLCanvasElement,
-  quality: number,
-): Promise<Blob | null> {
-  return new Promise((resolve) => {
-    canvas.toBlob(resolve, 'image/webp', quality);
-  });
-}
-
-async function optimizeImage(file: File) {
-  if (typeof createImageBitmap !== 'function') {
-    throw new Error(MEDIA_OPTIMIZATION_ERROR);
-  }
-
-  let bitmap: ImageBitmap;
-
-  try {
-    bitmap = await createImageBitmap(file);
-  } catch {
-    throw new Error(MEDIA_OPTIMIZATION_ERROR);
-  }
-
-  const scale = Math.min(
-    1,
-    MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height),
-  );
-  const canvas = document.createElement('canvas');
-
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-
-  const context = canvas.getContext('2d', { alpha: true });
-
-  if (!context) {
-    bitmap.close();
-    throw new Error(MEDIA_OPTIMIZATION_ERROR);
-  }
-
-  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-
-  for (const quality of [0.84, 0.74, 0.64, 0.54]) {
-    const blob = await canvasToBlob(canvas, quality);
-
-    if (blob && blob.size <= MAX_MEDIA_UPLOAD_BYTES) {
-      const baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
-
-      return new File([blob], `${baseName}.webp`, {
-        type: 'image/webp',
-        lastModified: Date.now(),
-      });
-    }
-  }
-
-  throw new Error(MEDIA_OPTIMIZATION_ERROR);
-}
 
 async function requestUploadAuthorization(
   scope: MediaUploadScope,
@@ -106,7 +45,7 @@ async function requestUploadAuthorization(
   return body;
 }
 
-async function uploadOptimizedFile(
+async function uploadOriginalFile(
   file: File,
   authorization: CloudinaryUploadAuthorization,
 ) {
@@ -114,7 +53,6 @@ async function uploadOptimizedFile(
 
   body.set('api_key', authorization.apiKey);
   body.set('file', file);
-  body.set('format', 'webp');
   body.set('overwrite', 'false');
   body.set('public_id', authorization.publicId);
   body.set('signature', authorization.signature);
@@ -140,18 +78,13 @@ async function uploadOptimizedFile(
   return url;
 }
 
-export async function uploadMediaFiles(
-  files: File[],
-  scope: MediaUploadScope,
-  optimizationErrorMessage: string,
-) {
+export async function uploadMediaFiles(files: File[], scope: MediaUploadScope) {
   const uploadedUrls: string[] = [];
 
   try {
     for (const [index, file] of files.entries()) {
-      const optimizedFile = await optimizeImage(file);
       const authorization = await requestUploadAuthorization(scope, index);
-      const url = await uploadOptimizedFile(optimizedFile, authorization);
+      const url = await uploadOriginalFile(file, authorization);
 
       uploadedUrls.push(url);
     }
@@ -159,11 +92,6 @@ export async function uploadMediaFiles(
     return uploadedUrls;
   } catch (error) {
     await cleanupUploadedMedia(uploadedUrls);
-
-    if (error instanceof Error && error.message === MEDIA_OPTIMIZATION_ERROR) {
-      throw new Error(optimizationErrorMessage);
-    }
-
     throw error;
   }
 }

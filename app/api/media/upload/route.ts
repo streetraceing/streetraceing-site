@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   const publicId = createMediaPublicId(scope, index);
   const timestamp = Math.floor(Date.now() / 1_000);
   const signature = createCloudinarySignature(
-    { format: 'webp', overwrite: false, public_id: publicId, timestamp },
+    { overwrite: false, public_id: publicId, timestamp },
     config.apiSecret,
   );
 
