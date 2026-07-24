@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { deleteCloudinaryMedia } from '@/lib/cloudinary-media';
 import { isAdmin } from '@/utils/auth';
 import { getRequestLocale, translations } from '@/utils/i18n';
-import { normalizeMediaUrls } from '@/utils/media';
+import { MAX_MEDIA_IMAGES, normalizeMediaUrls } from '@/utils/media';
 
 export const runtime = 'nodejs';
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
   const urls = normalizeMediaUrls(
     body.urls,
-    20,
+    MAX_MEDIA_IMAGES,
     process.env.CLOUDINARY_CLOUD_NAME,
   );
   await deleteCloudinaryMedia(urls);

@@ -122,15 +122,17 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
 
   return (
     <Tooltip>
-      <Button
-        aria-label={`${copy.theme.label}: ${themeName[theme]}. ${themeName[nextTheme]}`}
-        isIconOnly
-        type="button"
-        variant="tertiary"
-        onPress={() => setTheme(nextTheme)}
-      >
-        <Icon className="size-4.5" />
-      </Button>
+      <Tooltip.Trigger>
+        <Button
+          aria-label={`${copy.theme.label}: ${themeName[theme]}. ${themeName[nextTheme]}`}
+          isIconOnly
+          type="button"
+          variant="tertiary"
+          onPress={() => setTheme(nextTheme)}
+        >
+          <Icon className="size-4.5" />
+        </Button>
+      </Tooltip.Trigger>
 
       <Tooltip.Content>
         {themeName[theme as Theme] ?? copy.theme.unknown}{' '}

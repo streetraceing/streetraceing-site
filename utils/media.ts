@@ -6,8 +6,9 @@ export const MEDIA_ALLOWED_TYPES = [
 ] as const;
 
 export const MAX_MEDIA_SOURCE_BYTES = 10 * 1024 * 1024;
-export const MAX_DEV_UPDATE_IMAGES = 4;
-export const MAX_PROJECT_IMAGES = 8;
+export const MAX_MEDIA_IMAGES = 20;
+export const MAX_DEV_UPDATE_IMAGES = MAX_MEDIA_IMAGES;
+export const MAX_PROJECT_IMAGES = MAX_MEDIA_IMAGES;
 
 const CLOUDINARY_HOSTNAME = 'res.cloudinary.com';
 const CLOUDINARY_MEDIA_ROOT = 'streetraceing/media';

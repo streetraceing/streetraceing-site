@@ -11,6 +11,7 @@ import {
   createMediaPublicId,
   isMediaUploadScope,
   MAX_DEV_UPDATE_IMAGES,
+  MAX_MEDIA_IMAGES,
   MAX_PROJECT_IMAGES,
 } from '@/utils/media';
 import { parseNonNegativeInteger } from '@/utils/numbers';
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
   }
 
   const scope = body.scope;
-  const index = parseNonNegativeInteger(body.index, -1, 20);
+  const index = parseNonNegativeInteger(body.index, -1, MAX_MEDIA_IMAGES - 1);
 
   if (!isMediaUploadScope(scope) || index < 0) {
     return NextResponse.json({ error: strings.invalid }, { status: 400 });

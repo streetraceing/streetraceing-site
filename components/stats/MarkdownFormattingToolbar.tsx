@@ -61,7 +61,6 @@ export function MarkdownFormattingToolbar({
         size="sm"
         variant="tertiary"
         aria-label={strings.underline}
-        title={`${strings.underline} (++text++)`}
         onPress={() => applyDecoration('++')}
       >
         <Underline className="size-4" />
@@ -72,7 +71,6 @@ export function MarkdownFormattingToolbar({
         size="sm"
         variant="tertiary"
         aria-label={strings.strikethrough}
-        title={`${strings.strikethrough} (~~text~~)`}
         onPress={() => applyDecoration('~~')}
       >
         <Strikethrough className="size-4" />

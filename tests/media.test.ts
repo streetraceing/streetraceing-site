@@ -10,6 +10,9 @@ import {
   isAllowedMediaType,
   isCloudinaryMediaUrl,
   isMediaUploadScope,
+  MAX_DEV_UPDATE_IMAGES,
+  MAX_MEDIA_IMAGES,
+  MAX_PROJECT_IMAGES,
   normalizeMediaUrls,
 } from '../utils/media';
 
@@ -17,6 +20,12 @@ const firstCloudinaryUrl =
   'https://res.cloudinary.com/student-cloud/image/upload/v1760000000/streetraceing/media/dev-updates/first.jpg';
 const secondCloudinaryUrl =
   'https://res.cloudinary.com/student-cloud/image/upload/v1760000001/streetraceing/media/dev-updates/second.webp';
+
+test('news and project media share the 20-image limit', () => {
+  assert.equal(MAX_MEDIA_IMAGES, 20);
+  assert.equal(MAX_DEV_UPDATE_IMAGES, MAX_MEDIA_IMAGES);
+  assert.equal(MAX_PROJECT_IMAGES, MAX_MEDIA_IMAGES);
+});
 
 test('media validation accepts supported source types and owned Cloudinary paths', () => {
   assert.equal(isAllowedMediaType('image/jpeg'), true);

@@ -92,7 +92,7 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 
 ## Project media and documentation
 
-- News and project originals (up to 10 MB) are uploaded directly from the browser to Cloudinary with a short-lived server signature. Public galleries use a compact horizontal tilt carousel with responsive square transformations up to 1080 × 1080; the `cover` modal viewer uses the original asset.
+- News and project originals (up to 20 images per entry, 10 MB each) are uploaded directly from the browser to Cloudinary with a short-lived server signature. Public galleries use a compact horizontal tilt carousel with responsive square transformations up to 1080 × 1080; the `cover` modal viewer uses the original asset.
 - PostgreSQL stores only validated original Cloudinary delivery URLs. Never store image binaries, transformed preview URLs, or base64 payloads in the database.
 - Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and the server-only `CLOUDINARY_API_SECRET`, then apply the checked-in Drizzle migration before using media or project documentation.
 - Removed images are destroyed through Cloudinary after the owning database record is updated. New uploads are cleaned up when a save request fails. Keep gallery previews, metadata (`fl_getinfo`), and downloads (`fl_attachment`) as URL transformations derived from the stored original URL.

@@ -159,7 +159,7 @@ export const translations = {
         'Поддерживается Markdown, включая ++подчёркивание++ и ~~зачёркивание~~. Документация отображается только на странице этого проекта.',
       images: 'Фотографии проекта',
       projectImagesDescription:
-        'До 8 фотографий. Оригинал загружается напрямую в Cloudinary, а на сайте показывается квадратное превью 1080 × 1080.',
+        'До 20 фотографий. Оригинал загружается напрямую в Cloudinary, а на сайте показывается квадратное превью 1080 × 1080.',
       addImages: 'Добавить фотографии',
       removeImage: 'Удалить фотографию',
       invalidImageType: 'Поддерживаются JPEG, PNG, WebP и AVIF.',
@@ -289,7 +289,7 @@ export const translations = {
       showFull: 'Показать полностью',
       images: 'Фотографии',
       newsImagesDescription:
-        'До 4 фотографий. Оригинал загружается напрямую в Cloudinary, а на сайте показывается квадратное превью 1080 × 1080.',
+        'До 20 фотографий. Оригинал загружается напрямую в Cloudinary, а на сайте показывается квадратное превью 1080 × 1080.',
       addImages: 'Добавить фотографии',
       removeImage: 'Удалить фотографию',
       invalidImageType: 'Поддерживаются JPEG, PNG, WebP и AVIF.',
@@ -506,7 +506,7 @@ export const translations = {
         'Markdown is supported, including ++underline++ and ~~strikethrough~~. Documentation is shown only on this project page.',
       images: 'Project photos',
       projectImagesDescription:
-        'Up to 8 photos. The original is uploaded directly to Cloudinary, while the site displays a square 1080 × 1080 preview.',
+        'Up to 20 photos. The original is uploaded directly to Cloudinary, while the site displays a square 1080 × 1080 preview.',
       addImages: 'Add photos',
       removeImage: 'Remove photo',
       invalidImageType: 'JPEG, PNG, WebP, and AVIF are supported.',
@@ -633,7 +633,7 @@ export const translations = {
       showFull: 'Show full post',
       images: 'Photos',
       newsImagesDescription:
-        'Up to 4 photos. The original is uploaded directly to Cloudinary, while the site displays a square 1080 × 1080 preview.',
+        'Up to 20 photos. The original is uploaded directly to Cloudinary, while the site displays a square 1080 × 1080 preview.',
       addImages: 'Add photos',
       removeImage: 'Remove photo',
       invalidImageType: 'JPEG, PNG, WebP, and AVIF are supported.',
