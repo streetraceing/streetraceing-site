@@ -19,3 +19,17 @@ export type DevUpdatesFeed = {
 };
 
 export type DevUpdateChange = 'delete' | 'update';
+
+export type PublicGitHubCommit = {
+  sha: string;
+  message: string;
+  url: string;
+  repository: string;
+  repositoryUrl: string;
+  committedAt: string;
+};
+
+export type PublicGitHubCommitFeed = {
+  commits: PublicGitHubCommit[];
+  available: boolean;
+};

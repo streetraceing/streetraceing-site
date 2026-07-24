@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@heroui/react';
+import { Button } from '@/components/ui/Button';
 import { Strikethrough, Underline } from 'lucide-react';
 import type { RefObject } from 'react';
 

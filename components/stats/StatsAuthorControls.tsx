@@ -1,8 +1,8 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import {
   Alert,
-  Button,
   Card,
   Description,
   FieldError,

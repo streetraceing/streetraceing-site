@@ -54,7 +54,7 @@ export function Footer() {
   const phraseIndex = hourNumber % phrases.length;
 
   return (
-    <footer className="relative overflow-hidden border-t bg-background">
+    <footer className="relative overflow-hidden border-t bg-background/75 backdrop-blur">
       <Container className="relative flex flex-col justify-between gap-6 px-0 py-4 sm:px-0 md:flex-row md:px-6 md:py-8 lg:px-8">
         <div className="flex flex-col items-center gap-4 md:items-start">
           <Typography.Paragraph className="text-left text-sm text-muted">

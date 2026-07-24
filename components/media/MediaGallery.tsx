@@ -1,7 +1,8 @@
 /* eslint-disable @next/next/no-img-element -- Cloudinary provides the optimized square previews while the modal intentionally displays the original asset. */
 'use client';
 
-import { Button, Modal } from '@heroui/react';
+import { Button, ButtonRipple } from '@/components/ui/Button';
+import { Modal } from '@heroui/react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -62,9 +63,17 @@ type DragState = {
   originY: number;
 };
 
+type SwipeState = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+};
+
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.25;
+const SWIPE_DISTANCE = 52;
+const SWIPE_AXIS_RATIO = 1.2;
 
 function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
@@ -119,6 +128,7 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
   const pendingMetadata = useRef(new Set<string>());
   const carouselRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<DragState | undefined>(undefined);
+  const swipeState = useRef<SwipeState | undefined>(undefined);
 
   if (urls.length === 0) {
     return null;
@@ -133,6 +143,7 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
     setZoom(MIN_ZOOM);
     setPan({ x: 0, y: 0 });
     dragState.current = undefined;
+    swipeState.current = undefined;
     setIsDragging(false);
   }
 
@@ -299,10 +310,20 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
   function startDragging(event: ReactPointerEvent<HTMLDivElement>) {
     const target = event.target;
 
-    if (
-      zoom <= MIN_ZOOM ||
-      (target instanceof Element && target.closest('button, a, input'))
-    ) {
+    if (target instanceof Element && target.closest('button, a, input')) {
+      return;
+    }
+
+    if (zoom <= MIN_ZOOM) {
+      if (canNavigate && event.pointerType === 'touch') {
+        event.currentTarget.setPointerCapture(event.pointerId);
+        swipeState.current = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+        };
+      }
+
       return;
     }
 
@@ -330,16 +351,52 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
     });
   }
 
+  function releasePointer(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
   function stopDragging(event: ReactPointerEvent<HTMLDivElement>) {
+    const swipe = swipeState.current;
+
+    if (swipe?.pointerId === event.pointerId) {
+      releasePointer(event);
+      swipeState.current = undefined;
+
+      const deltaX = event.clientX - swipe.startX;
+      const deltaY = event.clientY - swipe.startY;
+
+      if (
+        Math.abs(deltaX) >= SWIPE_DISTANCE &&
+        Math.abs(deltaX) >= Math.abs(deltaY) * SWIPE_AXIS_RATIO
+      ) {
+        selectImage(currentIndex + (deltaX < 0 ? 1 : -1));
+      }
+
+      return;
+    }
+
     if (dragState.current?.pointerId !== event.pointerId) {
       return;
     }
 
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
+    releasePointer(event);
+    dragState.current = undefined;
+    setIsDragging(false);
+  }
+
+  function cancelPointerInteraction(event: ReactPointerEvent<HTMLDivElement>) {
+    if (
+      dragState.current?.pointerId !== event.pointerId &&
+      swipeState.current?.pointerId !== event.pointerId
+    ) {
+      return;
     }
 
+    releasePointer(event);
     dragState.current = undefined;
+    swipeState.current = undefined;
     setIsDragging(false);
   }
 
@@ -402,7 +459,7 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
 
         <div
           ref={carouselRef}
-          className={`flex snap-x snap-mandatory gap-3 overflow-x-auto py-2 scroll-smooth ${
+          className={`flex snap-x snap-mandatory touch-pan-x gap-3 overflow-x-auto overscroll-x-contain py-2 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
             canNavigate ? 'px-10' : 'px-1'
           }`}
           role="list"
@@ -431,6 +488,7 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
                   )}
                   onClick={() => openViewer(index)}
                 >
+                  <ButtonRipple />
                   <img
                     src={getCloudinarySquareImageUrl(url, 640)}
                     srcSet={[
@@ -495,10 +553,10 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
 
               <Modal.Body className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
                 <div
-                  className={`relative flex min-h-[20rem] flex-1 items-center justify-center overflow-hidden bg-black/95 ${
+                  className={`relative flex min-h-80 flex-1 items-center justify-center overflow-hidden bg-surface-secondary ${
                     zoom > MIN_ZOOM
                       ? 'cursor-grab touch-none active:cursor-grabbing'
-                      : 'cursor-zoom-in'
+                      : 'cursor-zoom-in touch-pan-y'
                   }`}
                   role="group"
                   tabIndex={0}
@@ -511,7 +569,7 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
                   onPointerDown={startDragging}
                   onPointerMove={dragImage}
                   onPointerUp={stopDragging}
-                  onPointerCancel={stopDragging}
+                  onPointerCancel={cancelPointerInteraction}
                 >
                   <img
                     src={currentUrl}
@@ -628,6 +686,7 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
                     download
                     className="button button--primary button--sm"
                   >
+                    <ButtonRipple />
                     <Download className="size-4" />
                     {strings.download}
                   </a>

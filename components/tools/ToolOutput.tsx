@@ -1,7 +1,8 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
-import { Button, Card } from '@heroui/react';
+import { Card } from '@heroui/react';
 import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 

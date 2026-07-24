@@ -1,9 +1,9 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
 import {
   Alert,
-  Button,
   Description,
   FieldError,
   Form,

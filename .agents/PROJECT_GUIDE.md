@@ -36,7 +36,8 @@ npm run db:studio
 - `components/projects/` — project cards, modal details, and project-page client content.
 - `components/tools/` — browser-only developer tools and their page wrapper.
 - `components/tiny-url/` — Tiny URL form and shared-data views.
-- `components/stats/` — Dev Notes feed, deterministic Markdown renderer, and author controls.
+- `components/stats/` — skills chart, cached public GitHub commit history, Dev Notes feed, deterministic Markdown renderer, and author controls.
+- `components/ui/Button.tsx` — the shared HeroUI Button wrapper and composed ripple layer. Import buttons from here instead of importing `Button` directly from HeroUI.
 - `utils/config.ts` — projects, tools, links, and their localized content. Generic tool routes are derived from each tool's `component` field.
 - `utils/i18n.ts` — locales, translation dictionary, locale helpers, and API request language detection.
 - `utils/stats.ts` — development directions and Dev Notes topics.
@@ -90,9 +91,17 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 - If a project/tool page needs a client i18n context and uses icons from the config, use a client page-content wrapper and pass only a primitive slug from the server route. React components in config objects cannot cross a Server Component → Client Component boundary as props.
 - New database schema changes need a descriptive Drizzle migration name and a checked-in migration file.
 
+## Visual effects and public activity
+
+- `components/layout/Page.tsx` owns the decorative star-field backdrop. Keep it pointer-inert, theme-aware, and compatible with `prefers-reduced-motion`.
+- Custom visual colors live as light/dark CSS variables at the end of `app/globals.css`; derive accents from HeroUI semantic variables rather than hard-coding unrelated palettes.
+- Every application button uses the shared `components/ui/Button.tsx` composition. Compound HeroUI triggers and native SSR placeholders must include `ButtonRipple` directly without nesting one button inside another.
+- The statistics section renders a custom accessible bar chart and server-fetched public commits for `streetraceing`. The GitHub request is cached for one hour, fails closed to an unavailable state, and may use the optional server-only `GITHUB_TOKEN`.
+- Biography skill icons are registered once in `utils/skills.ts`.
+
 ## Project media and documentation
 
-- News and project originals (up to 20 images per entry, 10 MB each) are uploaded directly from the browser to Cloudinary with a short-lived server signature. Public galleries use a compact horizontal tilt carousel with responsive square transformations up to 1080 × 1080; the `cover` modal viewer uses the original asset.
+- News and project originals (up to 20 images per entry, 10 MB each) are uploaded directly from the browser to Cloudinary with a short-lived server signature. Public galleries use a compact horizontal tilt carousel with responsive square transformations up to 1080 × 1080; it supports native horizontal touch scrolling, while the `cover` modal viewer uses the original asset and supports swipe navigation at 100% zoom.
 - PostgreSQL stores only validated original Cloudinary delivery URLs. Never store image binaries, transformed preview URLs, or base64 payloads in the database.
 - Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and the server-only `CLOUDINARY_API_SECRET`, then apply the checked-in Drizzle migration before using media or project documentation.
 - Removed images are destroyed through Cloudinary after the owning database record is updated. New uploads are cleaned up when a save request fails. Keep gallery previews, metadata (`fl_getinfo`), and downloads (`fl_attachment`) as URL transformations derived from the stored original URL.

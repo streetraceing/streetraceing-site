@@ -1,7 +1,8 @@
 /* eslint-disable @next/next/no-img-element -- Local previews and Cloudinary assets are intentionally rendered without Next.js image proxying. */
 'use client';
 
-import { Alert, Button, Typography } from '@heroui/react';
+import { Button } from '@/components/ui/Button';
+import { Alert, Typography } from '@heroui/react';
 import { ImagePlus, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 

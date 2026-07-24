@@ -1,11 +1,11 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
 import { ToolCard } from '@/components/projects/ToolCard';
 import { mainPageConfig, type ToolConfig } from '@/utils/config';
 import { getLocaleTag, getText } from '@/utils/i18n';
 import {
-  Button,
   Card,
   Label,
   ListBox,

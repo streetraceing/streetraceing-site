@@ -1,6 +1,7 @@
 'use client';
 
 import { useLocale } from '@/app/providers';
+import { SkillsShowcase } from '@/components/home/SkillsShowcase';
 import { Container } from '@/components/layout/Container';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
@@ -8,7 +9,10 @@ import { HomeScrollManager } from '@/components/layout/HomeScrollManager';
 import { Page } from '@/components/layout/Page';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { StatsSection } from '@/components/stats/StatsSection';
-import type { DevUpdatesFeed } from '@/components/stats/types';
+import type {
+  DevUpdatesFeed,
+  PublicGitHubCommitFeed,
+} from '@/components/stats/types';
 import { siteConfig } from '@/utils/config';
 import { Typography } from '@heroui/react';
 import dynamic from 'next/dynamic';
@@ -28,9 +32,11 @@ const ToolsSection = dynamic(() =>
 export function HomePageContent({
   initialFeed,
   initialFeedLoaded,
+  githubCommitFeed,
 }: {
   initialFeed: DevUpdatesFeed;
   initialFeedLoaded: boolean;
+  githubCommitFeed: PublicGitHubCommitFeed;
 }) {
   const { copy } = useLocale();
 
@@ -51,14 +57,17 @@ export function HomePageContent({
             {copy.home.bioTitle}
           </Typography.Heading>
 
-          <div className="flex h-fit flex-col gap-4 md:h-48 md:flex-row">
+          <div className="grid gap-5 lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start">
             <ProfileAvatar />
-            <div className="flex flex-col gap-3">
-              {copy.home.bio.map((paragraph) => (
-                <Typography.Paragraph key={paragraph}>
-                  {paragraph}
-                </Typography.Paragraph>
-              ))}
+            <div className="flex min-w-0 flex-col gap-5">
+              <div className="flex flex-col gap-3">
+                {copy.home.bio.map((paragraph) => (
+                  <Typography.Paragraph key={paragraph}>
+                    {paragraph}
+                  </Typography.Paragraph>
+                ))}
+              </div>
+              <SkillsShowcase />
             </div>
           </div>
         </section>
@@ -66,6 +75,7 @@ export function HomePageContent({
         <StatsSection
           initialFeed={initialFeed}
           initialFeedLoaded={initialFeedLoaded}
+          githubCommitFeed={githubCommitFeed}
         />
         <ProjectsSection />
         <ToolsSection />

@@ -1,25 +1,26 @@
 import { HomePageContent } from '@/components/home/HomePageContent';
 import { getEmptyDevUpdatesFeed, readDevUpdatesFeed } from '@/lib/dev-updates';
+import { readPublicGitHubCommits } from '@/lib/github-activity';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  let initialFeed = getEmptyDevUpdatesFeed();
-  let initialFeedLoaded = false;
+  const devUpdatesPromise = process.env.DATABASE_URL
+    ? readDevUpdatesFeed({ page: 1, sort: 'newest' })
+        .then((feed) => ({ feed, loaded: true }))
+        .catch(() => ({ feed: getEmptyDevUpdatesFeed(), loaded: false }))
+    : Promise.resolve({ feed: getEmptyDevUpdatesFeed(), loaded: false });
 
-  if (process.env.DATABASE_URL) {
-    try {
-      initialFeed = await readDevUpdatesFeed({ page: 1, sort: 'newest' });
-      initialFeedLoaded = true;
-    } catch {
-      // The client keeps the existing retry/error UI if the database is unavailable.
-    }
-  }
+  const [devUpdates, githubCommitFeed] = await Promise.all([
+    devUpdatesPromise,
+    readPublicGitHubCommits(),
+  ]);
 
   return (
     <HomePageContent
-      initialFeed={initialFeed}
-      initialFeedLoaded={initialFeedLoaded}
+      initialFeed={devUpdates.feed}
+      initialFeedLoaded={devUpdates.loaded}
+      githubCommitFeed={githubCommitFeed}
     />
   );
 }

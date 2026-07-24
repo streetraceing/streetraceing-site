@@ -92,6 +92,9 @@ export const translations = {
         'Умею работать с git, docker, бдшками, линуском (ну так по мелочи). Из языков я знаю javascript + typescript, java, учу c#, влюблен в rust (кек).',
         'В последнее время увлекаюсь иишками и работой с ними.',
       ],
+      skillsTitle: 'Навыки и технологии',
+      skillsDescription:
+        'Стек, с которым работаю сейчас, изучаю или регулярно использую в проектах.',
       projectsTitle: 'А вот мои проекты ({count}) кста',
       toolsTitle: 'Инструменты ({count}) чиста для удобства',
       projectsSearchLabel: 'Поиск по проектам',
@@ -236,7 +239,17 @@ export const translations = {
     stats: {
       title: 'Статистика и новости',
       description:
-        'Направления, в которых сейчас больше всего практики, и заметки о разработке.',
+        'Направления, в которых сейчас больше всего практики, публичная активность и заметки о разработке.',
+      skillsChartTitle: 'Фокус разработки',
+      skillsChartDescription:
+        'Относительное распределение практики по основным направлениям.',
+      githubHistoryTitle: 'Публичная история коммитов',
+      githubHistoryDescription:
+        'Последние коммиты в открытых репозиториях профиля streetraceing.',
+      githubViewProfile: 'Открыть GitHub',
+      githubHistoryEmpty: 'Публичные коммиты пока не найдены.',
+      githubHistoryUnavailable:
+        'GitHub временно не отдал историю. Профиль всё ещё можно открыть по ссылке.',
       authorNotConfigured: 'Авторский режим пока не настроен',
       loginAsAuthor: 'Войти как автор',
       authorPassword: 'Пароль автора',
@@ -439,6 +452,9 @@ export const translations = {
         'I can work with Git, Docker, databases, and Linux (the basics). I know JavaScript and TypeScript, Java, I am learning C#, and I am in love with Rust (lol).',
         'Recently, I have also been getting deeply into AI and working with it.',
       ],
+      skillsTitle: 'Skills and technologies',
+      skillsDescription:
+        'The stack I currently use, study, or regularly apply in projects.',
       projectsTitle: 'My projects ({count})',
       toolsTitle: 'Tools ({count}) for convenience',
       projectsSearchLabel: 'Search projects',
@@ -579,7 +595,17 @@ export const translations = {
     stats: {
       title: 'Stats and news',
       description:
-        'The areas I am practicing most right now and short development notes.',
+        'The areas I am practicing most right now, public activity, and short development notes.',
+      skillsChartTitle: 'Development focus',
+      skillsChartDescription:
+        'A relative distribution of practice across the main areas.',
+      githubHistoryTitle: 'Public commit history',
+      githubHistoryDescription:
+        'Recent commits across public repositories owned by streetraceing.',
+      githubViewProfile: 'Open GitHub',
+      githubHistoryEmpty: 'No public commits were found yet.',
+      githubHistoryUnavailable:
+        'GitHub did not return the history right now. The profile is still available through the link.',
       authorNotConfigured: 'Author mode is not configured yet',
       loginAsAuthor: 'Sign in as author',
       authorPassword: 'Author password',

@@ -1,6 +1,7 @@
 'use client';
 
-import { Button, ButtonGroup, Tooltip } from '@heroui/react';
+import { Button, ButtonRipple } from '@/components/ui/Button';
+import { ButtonGroup, Tooltip } from '@heroui/react';
 import { type Theme, useLocale, useTheme } from '@/app/providers';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
@@ -39,6 +40,7 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
             disabled
             className="button button--tertiary flex-1 rounded-r-none"
           >
+            <ButtonRipple disabled />
             <Monitor className="size-4" />
             {themeName['system']}
           </button>
@@ -48,6 +50,7 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
             disabled
             className="button button--tertiary -ml-px flex-1 rounded-none"
           >
+            <ButtonRipple disabled />
             <Sun className="size-4" />
             {themeName['light']}
           </button>
@@ -57,6 +60,7 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
             disabled
             className="button button--tertiary -ml-px flex-1 rounded-l-none"
           >
+            <ButtonRipple disabled />
             <Moon className="size-4" />
             {themeName['dark']}
           </button>
@@ -72,6 +76,7 @@ export function ThemeSwitcher({ variant = 'cycle' }: ThemeSwitcherProps) {
         disabled
         className="button button--icon-only button--tertiary"
       >
+        <ButtonRipple disabled />
         <Monitor className="size-4.5" />
       </button>
     );

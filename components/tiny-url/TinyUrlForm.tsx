@@ -1,11 +1,11 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
 import { getLocaleTag } from '@/utils/i18n';
 import {
   Alert,
   AlertDialog,
-  Button,
   Card,
   Description,
   FieldError,

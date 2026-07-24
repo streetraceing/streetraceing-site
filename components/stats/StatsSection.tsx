@@ -1,14 +1,13 @@
 'use client';
 
+import { Button, ButtonRipple } from '@/components/ui/Button';
 import {
   Alert,
-  Button,
   Card,
   Chip,
   Label,
   ListBox,
   Pagination,
-  ProgressBar,
   Select,
   Spinner,
   Typography,
@@ -18,12 +17,13 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthorSession, useLocale } from '@/app/providers';
 import { MediaGallery } from '@/components/media/MediaGallery';
+import { GitHubCommitHistory } from '@/components/stats/GitHubCommitHistory';
+import { SkillsBarChart } from '@/components/stats/SkillsBarChart';
 import StatsAuthorControls from '@/components/stats/StatsAuthorControls';
 import { HOME_LAYOUT_SETTLED_EVENT } from '@/utils/client-events';
-import { getLocaleTag, getText } from '@/utils/i18n';
+import { getLocaleTag } from '@/utils/i18n';
 import {
   DEV_UPDATES_PAGE_SIZE,
-  developmentDirections,
   devUpdateTopics,
   getDevUpdateTopicLabel,
   type DevUpdateSort,
@@ -32,7 +32,12 @@ import {
 
 import DevUpdateAuthorActions from './DevUpdateAuthorActions';
 import { MarkdownContent } from './MarkdownContent';
-import type { DevUpdate, DevUpdateChange, DevUpdatesFeed } from './types';
+import type {
+  DevUpdate,
+  DevUpdateChange,
+  DevUpdatesFeed,
+  PublicGitHubCommitFeed,
+} from './types';
 
 const ALL_FILTER_ID = 'all';
 
@@ -129,9 +134,11 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
 export function StatsSection({
   initialFeed,
   initialFeedLoaded,
+  githubCommitFeed,
 }: {
   initialFeed: DevUpdatesFeed;
   initialFeedLoaded: boolean;
+  githubCommitFeed: PublicGitHubCommitFeed;
 }) {
   const { copy, locale } = useLocale();
   const { session } = useAuthorSession();
@@ -297,37 +304,9 @@ export function StatsSection({
         </Typography.Paragraph>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {developmentDirections.map((direction) => (
-          <Card key={direction.id}>
-            <Card.Header className="flex-row items-center justify-between gap-3">
-              <Card.Title className="text-lg font-semibold">
-                {getText(direction.label, locale)}
-              </Card.Title>
-              <Chip
-                color={direction.color}
-                size="sm"
-                variant="soft"
-                className="px-2"
-              >
-                {direction.value}%
-              </Chip>
-            </Card.Header>
-            <Card.Content>
-              <ProgressBar
-                value={direction.value}
-                color={direction.color}
-                size="sm"
-                valueLabel={`${direction.value}%`}
-                aria-label={`${getText(direction.label, locale)}: ${direction.value}%`}
-              >
-                <ProgressBar.Track>
-                  <ProgressBar.Fill />
-                </ProgressBar.Track>
-              </ProgressBar>
-            </Card.Content>
-          </Card>
-        ))}
+      <div className="flex flex-col gap-4">
+        <SkillsBarChart />
+        <GitHubCommitHistory feed={githubCommitFeed} />
       </div>
 
       <section
@@ -552,6 +531,7 @@ export function StatsSection({
                   isDisabled={pagination.page === 1}
                   onPress={() => selectPage(pagination.page - 1)}
                 >
+                  <ButtonRipple disabled={pagination.page === 1} />
                   <Pagination.PreviousIcon />
                   <span>{strings.previous}</span>
                 </Pagination.Previous>
@@ -568,6 +548,7 @@ export function StatsSection({
                       isActive={pagination.page === visiblePage}
                       onPress={() => selectPage(visiblePage)}
                     >
+                      <ButtonRipple />
                       {visiblePage}
                     </Pagination.Link>
                   </Pagination.Item>
@@ -578,6 +559,9 @@ export function StatsSection({
                   isDisabled={pagination.page === pagination.totalPages}
                   onPress={() => selectPage(pagination.page + 1)}
                 >
+                  <ButtonRipple
+                    disabled={pagination.page === pagination.totalPages}
+                  />
                   <span>{strings.next}</span>
                   <Pagination.NextIcon />
                 </Pagination.Next>

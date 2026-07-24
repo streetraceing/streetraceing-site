@@ -1,5 +1,6 @@
 'use client';
 
+import { Button, ButtonRipple } from '@/components/ui/Button';
 import { useAuthorSession, useLocale } from '@/app/providers';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Container } from '@/components/layout/Container';
@@ -9,7 +10,6 @@ import { getText } from '@/utils/i18n';
 import { normalizeInternalAnchorHref } from '@/utils/links';
 import {
   Alert,
-  Button,
   cn,
   Dropdown,
   FieldError,
@@ -84,6 +84,7 @@ function AuthorMenu() {
           disabled
           className="button button--icon-only button--sm button--tertiary"
         >
+          <ButtonRipple disabled />
           <LockKeyhole className="size-4" />
         </button>
       ) : (
@@ -93,6 +94,7 @@ function AuthorMenu() {
             type="button"
             className="button button--icon-only button--sm button--tertiary flex"
           >
+            <ButtonRipple />
             {isAuthenticated ? (
               <ShieldCheck className="size-4" />
             ) : (

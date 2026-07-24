@@ -1,7 +1,8 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
-import { Button, ButtonGroup } from '@heroui/react';
+import { ButtonGroup } from '@heroui/react';
 
 type LanguageSwitcherProps = {
   fullWidth?: boolean;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useLocale } from '@/app/providers';
+import { ButtonRipple } from '@/components/ui/Button';
 import { Container } from '@/components/layout/Container';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
@@ -39,6 +40,7 @@ export function ProjectPageContent({
           href="/#projects"
           className="button button--tertiary button--md self-start"
         >
+          <ButtonRipple />
           <ArrowLeft className="size-4" />
           {copy.project.allProjects}
         </Link>

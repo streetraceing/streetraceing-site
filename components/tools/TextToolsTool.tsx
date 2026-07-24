@@ -1,8 +1,8 @@
 'use client';
 
+import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
 import {
-  Button,
   Chip,
   Description,
   Form,
