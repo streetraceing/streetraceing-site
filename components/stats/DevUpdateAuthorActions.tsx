@@ -55,6 +55,8 @@ export default function DevUpdateAuthorActions({
   const [isSaving, setIsSaving] = useState(false);
   const [deleteError, setDeleteError] = useState<string>();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   function resetEditor() {
     setEditTitle(update.title ?? '');
@@ -141,15 +143,25 @@ export default function DevUpdateAuthorActions({
 
   return (
     <div className="flex shrink-0 gap-1">
+      <Button
+        type="button"
+        aria-label={strings.edit}
+        isIconOnly
+        size="sm"
+        variant="tertiary"
+        onPress={() => {
+          resetEditor();
+          setIsEditOpen(true);
+        }}
+      >
+        <Pencil className="size-4" />
+      </Button>
       <Modal>
-        <Modal.Trigger
-          aria-label={strings.edit}
-          className="button button--icon-only button--sm button--tertiary"
-          onPress={resetEditor}
+        <Modal.Backdrop
+          isOpen={isEditOpen}
+          variant="blur"
+          onOpenChange={setIsEditOpen}
         >
-          <Pencil className="size-4" />
-        </Modal.Trigger>
-        <Modal.Backdrop variant="blur">
           <Modal.Container size="lg" scroll="inside">
             <Modal.Dialog className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] sm:max-w-3xl">
               {({ close }) => (
@@ -315,15 +327,25 @@ export default function DevUpdateAuthorActions({
         </Modal.Backdrop>
       </Modal>
 
+      <Button
+        type="button"
+        aria-label={strings.delete}
+        isIconOnly
+        size="sm"
+        variant="danger"
+        onPress={() => {
+          setDeleteError(undefined);
+          setIsDeleteOpen(true);
+        }}
+      >
+        <Trash2 className="size-4" />
+      </Button>
       <AlertDialog>
-        <AlertDialog.Trigger
-          aria-label={strings.delete}
-          className="button button--icon-only button--sm button--danger"
-          onPress={() => setDeleteError(undefined)}
+        <AlertDialog.Backdrop
+          isOpen={isDeleteOpen}
+          variant="blur"
+          onOpenChange={setIsDeleteOpen}
         >
-          <Trash2 className="size-4" />
-        </AlertDialog.Trigger>
-        <AlertDialog.Backdrop variant="blur">
           <AlertDialog.Container size="sm">
             <AlertDialog.Dialog>
               {({ close }) => (

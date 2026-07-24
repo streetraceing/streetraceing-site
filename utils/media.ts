@@ -11,6 +11,9 @@ export const MAX_DEV_UPDATE_IMAGES = 4;
 export const MAX_PROJECT_IMAGES = 8;
 export const MAX_IMAGE_DIMENSION = 1_440;
 
+const CLOUDINARY_HOSTNAME = 'res.cloudinary.com';
+const CLOUDINARY_MEDIA_ROOT = 'streetraceing/media';
+
 export type MediaUploadScope =
   { type: 'dev-update' } | { type: 'project'; projectSlug: string };
 
@@ -18,34 +21,6 @@ export function isAllowedMediaType(value: string) {
   return MEDIA_ALLOWED_TYPES.includes(
     value as (typeof MEDIA_ALLOWED_TYPES)[number],
   );
-}
-
-export function isVercelBlobMediaUrl(value: string) {
-  try {
-    const url = new URL(value);
-
-    return (
-      url.protocol === 'https:' &&
-      url.hostname.endsWith('.public.blob.vercel-storage.com')
-    );
-  } catch {
-    return false;
-  }
-}
-
-export function normalizeMediaUrls(value: unknown, maximum: number) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const urls = [...new Set(value)]
-    .filter(
-      (item): item is string =>
-        typeof item === 'string' && isVercelBlobMediaUrl(item),
-    )
-    .slice(0, maximum);
-
-  return urls;
 }
 
 export function isMediaUploadScope(value: unknown): value is MediaUploadScope {
@@ -66,14 +41,70 @@ export function isMediaUploadScope(value: unknown): value is MediaUploadScope {
   );
 }
 
-export function getMediaPathPrefix(scope: MediaUploadScope) {
+export function getMediaPublicIdPrefix(scope: MediaUploadScope) {
   return scope.type === 'project'
-    ? `media/projects/${scope.projectSlug}/`
-    : 'media/dev-updates/';
+    ? `${CLOUDINARY_MEDIA_ROOT}/projects/${scope.projectSlug}/`
+    : `${CLOUDINARY_MEDIA_ROOT}/dev-updates/`;
 }
 
-export function createMediaPathname(scope: MediaUploadScope, index: number) {
-  const randomPart = crypto.randomUUID();
+export function createMediaPublicId(scope: MediaUploadScope, index: number) {
+  return `${getMediaPublicIdPrefix(scope)}${Date.now()}-${index}-${crypto.randomUUID()}`;
+}
 
-  return `${getMediaPathPrefix(scope)}${Date.now()}-${index}-${randomPart}.webp`;
+export function getCloudinaryPublicIdFromUrl(
+  value: string,
+  expectedCloudName?: string,
+) {
+  try {
+    const url = new URL(value);
+    const path = url.pathname.split('/').filter(Boolean);
+    const [cloudName, resourceType, deliveryType, version, ...assetPath] = path;
+
+    if (
+      url.protocol !== 'https:' ||
+      url.hostname !== CLOUDINARY_HOSTNAME ||
+      !cloudName ||
+      (expectedCloudName && cloudName !== expectedCloudName) ||
+      resourceType !== 'image' ||
+      deliveryType !== 'upload' ||
+      !/^v\d+$/.test(version ?? '') ||
+      assetPath.length === 0
+    ) {
+      return undefined;
+    }
+
+    const encodedPublicId = assetPath.join('/');
+    const publicId = decodeURIComponent(encodedPublicId).replace(
+      /\.webp$/i,
+      '',
+    );
+
+    return publicId.startsWith(`${CLOUDINARY_MEDIA_ROOT}/`)
+      ? publicId
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function isCloudinaryMediaUrl(value: string) {
+  return Boolean(getCloudinaryPublicIdFromUrl(value));
+}
+
+export function normalizeMediaUrls(
+  value: unknown,
+  maximum: number,
+  expectedCloudName?: string,
+) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [...new Set(value)]
+    .filter(
+      (item): item is string =>
+        typeof item === 'string' &&
+        Boolean(getCloudinaryPublicIdFromUrl(item, expectedCloudName)),
+    )
+    .slice(0, maximum);
 }

@@ -4,6 +4,9 @@ import { Typography } from '@heroui/react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 
+import { isExternalHttpHref, normalizeInternalAnchorHref } from '@/utils/links';
+import Link from 'next/link';
+
 export default function HighlightedMarkdownContent({
   content,
 }: {
@@ -14,18 +17,18 @@ export default function HighlightedMarkdownContent({
       <ReactMarkdown
         rehypePlugins={[[rehypeHighlight, { detect: true }]]}
         components={{
-          a: ({ href, children }) => {
-            const isExternal =
-              href?.startsWith('https://') || href?.startsWith('http://');
+          a: ({ href = '', children }) => {
+            const normalizedHref = normalizeInternalAnchorHref(href);
+            const isExternal = isExternalHttpHref(normalizedHref);
 
             return (
-              <a
-                href={href}
+              <Link
+                href={normalizedHref}
                 target={isExternal ? '_blank' : undefined}
                 rel={isExternal ? 'noreferrer' : undefined}
               >
                 {children}
-              </a>
+              </Link>
             );
           },
         }}

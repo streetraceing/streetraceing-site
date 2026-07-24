@@ -254,7 +254,7 @@ export const mainPageConfig: MainPageConfig = {
       ],
       relatedLinks: [],
       documentation: text(
-        `## Установка и запуск
+        `#### Установка и запуск
 
 Farsight требует Node.js 18 или новее и запускается без глобальной установки:
 
@@ -262,7 +262,7 @@ Farsight требует Node.js 18 или новее и запускается �
 npx @streetraceing/farsight --cwd /path/to/project
 \`\`\`
 
-### Полезные режимы
+#### Полезные режимы
 
 \`\`\`bash
 npx @streetraceing/farsight --cwd /path/to/project --json
@@ -271,7 +271,7 @@ npx @streetraceing/farsight --cwd /path/to/project --no-network
 \`\`\`
 
 Полный список параметров доступен через \`npx @streetraceing/farsight --help\`.`,
-        `## Install and run
+        `#### Install and run
 
 Farsight requires Node.js 18 or newer and can run without a global installation:
 
@@ -279,7 +279,7 @@ Farsight requires Node.js 18 or newer and can run without a global installation:
 npx @streetraceing/farsight --cwd /path/to/project
 \`\`\`
 
-### Useful modes
+#### Useful modes
 
 \`\`\`bash
 npx @streetraceing/farsight --cwd /path/to/project --json

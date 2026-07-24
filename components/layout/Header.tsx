@@ -6,6 +6,7 @@ import { Container } from '@/components/layout/Container';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { headerConfig, siteConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
+import { normalizeInternalAnchorHref } from '@/utils/links';
 import {
   Alert,
   Button,
@@ -197,6 +198,10 @@ export function Header() {
   const linkSlots = linkVariants();
   const { copy, locale } = useLocale();
   const pathname = usePathname();
+  const navigationLinks = headerConfig.links.map((link) => ({
+    ...link,
+    href: normalizeInternalAnchorHref(link.href),
+  }));
   const [open, setOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const mobileMenuRef = useRef<HTMLElement>(null);
@@ -296,7 +301,7 @@ export function Header() {
             aria-label={copy.header.navigation}
             className="hidden min-w-0 gap-4 justify-self-start md:flex"
           >
-            {headerConfig.links.map((link) => (
+            {navigationLinks.map((link) => (
               <NextLink
                 href={link.href}
                 scroll
@@ -355,7 +360,7 @@ export function Header() {
               {copy.header.navigation}
             </Typography.Heading>
 
-            {headerConfig.links.map((link) => (
+            {navigationLinks.map((link) => (
               <NextLink
                 key={link.href}
                 href={link.href}

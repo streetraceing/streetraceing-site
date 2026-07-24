@@ -1,94 +1,87 @@
-import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { NextResponse } from 'next/server';
 
+import {
+  createCloudinarySignature,
+  getCloudinaryConfig,
+} from '@/lib/cloudinary-media';
 import { isAdmin } from '@/utils/auth';
 import { mainPageConfig } from '@/utils/config';
 import { getRequestLocale, translations } from '@/utils/i18n';
 import {
-  getMediaPathPrefix,
+  createMediaPublicId,
   isMediaUploadScope,
-  MAX_MEDIA_UPLOAD_BYTES,
+  MAX_DEV_UPDATE_IMAGES,
+  MAX_PROJECT_IMAGES,
 } from '@/utils/media';
+import { parseNonNegativeInteger } from '@/utils/numbers';
 
 export const runtime = 'nodejs';
+
+type UploadAuthorizationRequest = {
+  scope?: unknown;
+  index?: unknown;
+};
 
 export async function POST(request: Request) {
   const apiStrings = translations[getRequestLocale(request)].api;
   const strings = apiStrings.media;
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!(await isAdmin())) {
+    return NextResponse.json(
+      { error: apiStrings.auth.required },
+      { status: 401 },
+    );
+  }
+
+  const config = getCloudinaryConfig();
+
+  if (!config) {
     return NextResponse.json({ error: strings.notConfigured }, { status: 503 });
   }
 
-  let body: HandleUploadBody;
+  let body: UploadAuthorizationRequest;
 
   try {
-    body = (await request.json()) as HandleUploadBody;
+    body = (await request.json()) as UploadAuthorizationRequest;
   } catch {
     return NextResponse.json({ error: strings.invalid }, { status: 400 });
   }
 
-  try {
-    const response = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async (pathname, clientPayload) => {
-        if (!(await isAdmin())) {
-          throw new Error(apiStrings.auth.required);
-        }
+  const scope = body.scope;
+  const index = parseNonNegativeInteger(body.index, -1, 20);
 
-        let scope: unknown;
-
-        try {
-          scope = JSON.parse(clientPayload ?? 'null');
-        } catch {
-          throw new Error(strings.invalid);
-        }
-
-        if (!isMediaUploadScope(scope)) {
-          throw new Error(strings.invalid);
-        }
-
-        if (
-          scope.type === 'project' &&
-          !mainPageConfig.projects.some(
-            (project) => project.slug === scope.projectSlug,
-          )
-        ) {
-          throw new Error(strings.invalid);
-        }
-
-        if (
-          !pathname.startsWith(getMediaPathPrefix(scope)) ||
-          !pathname.endsWith('.webp')
-        ) {
-          throw new Error(strings.invalid);
-        }
-
-        return {
-          allowedContentTypes: ['image/webp'],
-          maximumSizeInBytes: MAX_MEDIA_UPLOAD_BYTES,
-          tokenPayload: JSON.stringify(scope),
-        };
-      },
-      onUploadCompleted: async () => {
-        // The owning API stores the URL only after its database write succeeds.
-      },
-    });
-
-    return NextResponse.json(response);
-  } catch (error) {
-    const isAuthorizationError =
-      error instanceof Error && error.message === apiStrings.auth.required;
-    const errorMessage =
-      error instanceof Error &&
-      (error.message === strings.invalid || isAuthorizationError)
-        ? error.message
-        : strings.uploadFailed;
-
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: isAuthorizationError ? 401 : 400 },
-    );
+  if (!isMediaUploadScope(scope) || index < 0) {
+    return NextResponse.json({ error: strings.invalid }, { status: 400 });
   }
+
+  const maximumImages =
+    scope.type === 'project' ? MAX_PROJECT_IMAGES : MAX_DEV_UPDATE_IMAGES;
+
+  if (index >= maximumImages) {
+    return NextResponse.json({ error: strings.invalid }, { status: 400 });
+  }
+
+  if (
+    scope.type === 'project' &&
+    !mainPageConfig.projects.some(
+      (project) => project.slug === scope.projectSlug,
+    )
+  ) {
+    return NextResponse.json({ error: strings.invalid }, { status: 400 });
+  }
+
+  const publicId = createMediaPublicId(scope, index);
+  const timestamp = Math.floor(Date.now() / 1_000);
+  const signature = createCloudinarySignature(
+    { format: 'webp', overwrite: false, public_id: publicId, timestamp },
+    config.apiSecret,
+  );
+
+  return NextResponse.json({
+    apiKey: config.apiKey,
+    cloudName: config.cloudName,
+    publicId,
+    signature,
+    timestamp,
+  });
 }

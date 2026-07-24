@@ -55,6 +55,7 @@ export function TinyUrlForm() {
   const [isLoadingItems, setIsLoadingItems] = useState(true);
   const [copiedCode, setCopiedCode] = useState<string>();
   const [deletingCode, setDeletingCode] = useState<string>();
+  const [deleteDialogCode, setDeleteDialogCode] = useState<string>();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -334,18 +335,25 @@ export function TinyUrlForm() {
                     >
                       {copiedCode === item.code ? <Check /> : <Copy />}
                     </Button>
+                    <Button
+                      isIconOnly
+                      aria-label={strings.delete}
+                      size="sm"
+                      variant="danger"
+                      onPress={() => setDeleteDialogCode(item.code)}
+                    >
+                      <Trash2 />
+                    </Button>
                     <AlertDialog>
-                      <AlertDialog.Trigger>
-                        <Button
-                          isIconOnly
-                          aria-label={strings.delete}
-                          size="sm"
-                          variant="danger"
-                        >
-                          <Trash2 />
-                        </Button>
-                      </AlertDialog.Trigger>
-                      <AlertDialog.Backdrop variant="blur">
+                      <AlertDialog.Backdrop
+                        isOpen={deleteDialogCode === item.code}
+                        variant="blur"
+                        onOpenChange={(isOpen) => {
+                          if (!isOpen) {
+                            setDeleteDialogCode(undefined);
+                          }
+                        }}
+                      >
                         <AlertDialog.Container size="sm">
                           <AlertDialog.Dialog>
                             {({ close }) => (

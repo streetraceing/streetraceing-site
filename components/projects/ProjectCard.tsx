@@ -1,17 +1,19 @@
 'use client';
 
 import { Card, Chip, Modal } from '@heroui/react';
-import type { CSSProperties } from 'react';
 import { ArrowUpRight } from 'lucide-react';
+import type { CSSProperties, MouseEvent } from 'react';
+import { useState } from 'react';
 
-import type { ProjectConfig } from '@/utils/config';
 import { useLocale } from '@/app/providers';
+import type { ProjectConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
 
 import { ProjectActions } from './ProjectActions';
 import { ProjectDetails } from './ProjectDetails';
 import { ProjectProgress } from './ProjectProgress';
 import { ProjectStatusChips } from './ProjectStatusChips';
+import Link from 'next/link';
 
 type ProjectCardProps = {
   project: ProjectConfig;
@@ -19,14 +21,30 @@ type ProjectCardProps = {
 
 export function ProjectCard({ project }: ProjectCardProps) {
   const { copy, locale } = useLocale();
+  const [isOpen, setIsOpen] = useState(false);
 
-  const gradient = {
-    '--project-gradient': `linear-gradient(90deg, ${project.colors.join(', ')})`,
-  } as CSSProperties;
+  function openDetails(event: MouseEvent<HTMLAnchorElement>) {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    setIsOpen(true);
+  }
 
   return (
-    <Modal>
-      <Modal.Trigger className="h-full w-full text-left">
+    <>
+      <Link
+        href={`/project/${project.slug}`}
+        className="block h-full w-full text-left no-underline"
+        onClick={openDetails}
+      >
         <Card className="project-card h-full overflow-hidden border-2 transition-transform hover:border-muted/50">
           <Card.Header className="gap-3">
             <div className="flex items-start justify-between gap-3">
@@ -64,29 +82,31 @@ export function ProjectCard({ project }: ProjectCardProps) {
             {copy.project.openDetails}
           </Card.Footer>
         </Card>
-      </Modal.Trigger>
+      </Link>
 
-      <Modal.Backdrop variant="blur">
-        <Modal.Container size="lg" scroll="inside">
-          <Modal.Dialog className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] sm:max-w-3xl">
-            <Modal.CloseTrigger />
-            <Modal.Header>
-              {project.icon && (
-                <Modal.Icon className="bg-default text-foreground">
-                  <project.icon className="size-5" />
-                </Modal.Icon>
-              )}
-              <Modal.Heading>{project.name}</Modal.Heading>
-            </Modal.Header>
-            <Modal.Body>
-              <ProjectDetails project={project} />
-            </Modal.Body>
-            <Modal.Footer>
-              <ProjectActions project={project} />
-            </Modal.Footer>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal>
+      <Modal>
+        <Modal.Backdrop isOpen={isOpen} variant="blur" onOpenChange={setIsOpen}>
+          <Modal.Container size="lg" scroll="inside">
+            <Modal.Dialog className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] sm:max-w-3xl">
+              <Modal.CloseTrigger />
+              <Modal.Header>
+                {project.icon && (
+                  <Modal.Icon className="bg-default text-foreground">
+                    <project.icon className="size-5" />
+                  </Modal.Icon>
+                )}
+                <Modal.Heading>{project.name}</Modal.Heading>
+              </Modal.Header>
+              <Modal.Body>
+                <ProjectDetails project={project} />
+              </Modal.Body>
+              <Modal.Footer>
+                <ProjectActions project={project} />
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
+    </>
   );
 }

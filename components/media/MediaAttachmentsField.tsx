@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element -- Blob images are already compressed and served directly without invoking Vercel Image Optimization. */
+/* eslint-disable @next/next/no-img-element -- Remote media images are already compressed and served directly without invoking Vercel Image Optimization. */
 'use client';
 
 import { Alert, Button, Typography } from '@heroui/react';

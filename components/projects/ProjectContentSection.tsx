@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element -- Blob images are already compressed and served directly without invoking Vercel Image Optimization. */
+/* eslint-disable @next/next/no-img-element -- Remote media images are already compressed and served directly without invoking Vercel Image Optimization. */
 'use client';
 
 import {
@@ -46,6 +46,7 @@ export function ProjectContentSection({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [saveError, setSaveError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const documentation = content.documentation[locale];
   const hasPublicContent =
     Boolean(documentation.trim()) || content.imageUrls.length > 0;
@@ -56,6 +57,11 @@ export function ProjectContentSection({
     setExistingUrls(content.imageUrls);
     setPendingFiles([]);
     setSaveError(undefined);
+  }
+
+  function openEditor() {
+    resetEditor();
+    setIsEditorOpen(true);
   }
 
   async function save(event: FormEvent<HTMLFormElement>, close: () => void) {
@@ -122,103 +128,113 @@ export function ProjectContentSection({
         </Typography.Heading>
 
         {session?.authenticated ? (
-          <Modal>
-            <Modal.Trigger
-              className="button button--secondary button--sm"
-              onPress={resetEditor}
+          <>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onPress={openEditor}
             >
               <Pencil className="size-4" />
               {strings.editContent}
-            </Modal.Trigger>
-            <Modal.Backdrop variant="blur">
-              <Modal.Container size="lg" scroll="inside">
-                <Modal.Dialog className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] sm:max-w-4xl">
-                  {({ close }) => (
-                    <Form
-                      className="flex h-full flex-col"
-                      onSubmit={(event) => void save(event, close)}
-                    >
-                      <Modal.CloseTrigger />
-                      <Modal.Header>
-                        <Modal.Heading>{strings.editContent}</Modal.Heading>
-                      </Modal.Header>
-                      <Modal.Body className="flex flex-col gap-5">
-                        <TextField
-                          fullWidth
-                          value={documentationRu}
-                          onChange={setDocumentationRu}
-                        >
-                          <Label>{strings.documentationRu}</Label>
-                          <TextArea
-                            rows={12}
-                            maxLength={50_000}
-                            variant="secondary"
-                            placeholder={strings.documentationPlaceholder}
+            </Button>
+            <Modal>
+              <Modal.Backdrop
+                isOpen={isEditorOpen}
+                variant="blur"
+                onOpenChange={setIsEditorOpen}
+              >
+                <Modal.Container size="lg" scroll="inside">
+                  <Modal.Dialog className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] sm:max-w-4xl">
+                    {({ close }) => (
+                      <Form
+                        className="flex h-full flex-col"
+                        onSubmit={(event) => void save(event, close)}
+                      >
+                        <Modal.CloseTrigger />
+                        <Modal.Header>
+                          <Modal.Heading>{strings.editContent}</Modal.Heading>
+                        </Modal.Header>
+                        <Modal.Body className="flex flex-col gap-5">
+                          <TextField
+                            fullWidth
+                            value={documentationRu}
+                            onChange={setDocumentationRu}
+                          >
+                            <Label>{strings.documentationRu}</Label>
+                            <TextArea
+                              rows={12}
+                              maxLength={50_000}
+                              variant="secondary"
+                              placeholder={strings.documentationPlaceholder}
+                            />
+                            <Description>
+                              {strings.markdownDocumentationHint}
+                            </Description>
+                          </TextField>
+
+                          <TextField
+                            fullWidth
+                            value={documentationEn}
+                            onChange={setDocumentationEn}
+                          >
+                            <Label>{strings.documentationEn}</Label>
+                            <TextArea
+                              rows={12}
+                              maxLength={50_000}
+                              variant="secondary"
+                              placeholder={strings.documentationPlaceholder}
+                            />
+                            <Description>
+                              {strings.markdownDocumentationHint}
+                            </Description>
+                          </TextField>
+
+                          <MediaAttachmentsField
+                            existingUrls={existingUrls}
+                            pendingFiles={pendingFiles}
+                            maximum={MAX_PROJECT_IMAGES}
+                            label={strings.images}
+                            description={strings.projectImagesDescription}
+                            addLabel={strings.addImages}
+                            removeLabel={strings.removeImage}
+                            invalidTypeMessage={strings.invalidImageType}
+                            tooLargeMessage={strings.imageTooLarge}
+                            limitMessage={strings.imageLimit}
+                            onExistingUrlsChange={setExistingUrls}
+                            onPendingFilesChange={setPendingFiles}
                           />
-                          <Description>
-                            {strings.markdownDocumentationHint}
-                          </Description>
-                        </TextField>
 
-                        <TextField
-                          fullWidth
-                          value={documentationEn}
-                          onChange={setDocumentationEn}
-                        >
-                          <Label>{strings.documentationEn}</Label>
-                          <TextArea
-                            rows={12}
-                            maxLength={50_000}
-                            variant="secondary"
-                            placeholder={strings.documentationPlaceholder}
-                          />
-                          <Description>
-                            {strings.markdownDocumentationHint}
-                          </Description>
-                        </TextField>
-
-                        <MediaAttachmentsField
-                          existingUrls={existingUrls}
-                          pendingFiles={pendingFiles}
-                          maximum={MAX_PROJECT_IMAGES}
-                          label={strings.images}
-                          description={strings.projectImagesDescription}
-                          addLabel={strings.addImages}
-                          removeLabel={strings.removeImage}
-                          invalidTypeMessage={strings.invalidImageType}
-                          tooLargeMessage={strings.imageTooLarge}
-                          limitMessage={strings.imageLimit}
-                          onExistingUrlsChange={setExistingUrls}
-                          onPendingFilesChange={setPendingFiles}
-                        />
-
-                        {saveError ? (
-                          <Alert status="danger">
-                            <Alert.Indicator />
-                            <Alert.Content>
-                              <Alert.Title>
-                                {strings.contentSaveFailed}
-                              </Alert.Title>
-                              <Alert.Description>{saveError}</Alert.Description>
-                            </Alert.Content>
-                          </Alert>
-                        ) : null}
-                      </Modal.Body>
-                      <Modal.Footer>
-                        <Button slot="close" type="button" variant="tertiary">
-                          {strings.cancel}
-                        </Button>
-                        <Button type="submit" isPending={isSaving}>
-                          <Save />
-                          {strings.saveContent}
-                        </Button>
-                      </Modal.Footer>
-                    </Form>
-                  )}
-                </Modal.Dialog>
-              </Modal.Container>
-            </Modal.Backdrop>
-          </Modal>
+                          {saveError ? (
+                            <Alert status="danger">
+                              <Alert.Indicator />
+                              <Alert.Content>
+                                <Alert.Title>
+                                  {strings.contentSaveFailed}
+                                </Alert.Title>
+                                <Alert.Description>
+                                  {saveError}
+                                </Alert.Description>
+                              </Alert.Content>
+                            </Alert>
+                          ) : null}
+                        </Modal.Body>
+                        <Modal.Footer>
+                          <Button slot="close" type="button" variant="tertiary">
+                            {strings.cancel}
+                          </Button>
+                          <Button type="submit" isPending={isSaving}>
+                            <Save />
+                            {strings.saveContent}
+                          </Button>
+                        </Modal.Footer>
+                      </Form>
+                    )}
+                  </Modal.Dialog>
+                </Modal.Container>
+              </Modal.Backdrop>
+            </Modal>
+          </>
         ) : null}
       </div>
 
@@ -251,7 +267,7 @@ export function ProjectContentSection({
 
       {documentation.trim() ? (
         <article className="flex flex-col gap-3">
-          <Typography.Heading level={3}>
+          <Typography.Heading level={3} className="mb-4">
             {strings.documentation}
           </Typography.Heading>
           <MarkdownContent content={documentation} />

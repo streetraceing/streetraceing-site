@@ -4,6 +4,7 @@ import { useLocale } from '@/app/providers';
 import { Container } from '@/components/layout/Container';
 import { footerConfig, siteConfig } from '@/utils/config';
 import { footerPhrases } from '@/utils/footerPhrases';
+import { normalizeInternalAnchorHref } from '@/utils/links';
 import { cn, linkVariants, Separator, Typography } from '@heroui/react';
 import NextLink from 'next/link';
 import { useSyncExternalStore } from 'react';
@@ -67,19 +68,23 @@ export function Footer() {
           </Typography.Paragraph>
 
           <div className="flex flex-wrap justify-center gap-4 text-sm md:justify-start">
-            {footerConfig.links.map((link) => (
-              <NextLink
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  linkSlots.base(),
-                  'no-underline hover:text-accent',
-                )}
-              >
-                {link.icon ? <link.icon className="mr-1 size-4" /> : null}
-                {link.label}
-              </NextLink>
-            ))}
+            {footerConfig.links.map((link) => {
+              const href = normalizeInternalAnchorHref(link.href);
+
+              return (
+                <NextLink
+                  key={link.href}
+                  href={href}
+                  className={cn(
+                    linkSlots.base(),
+                    'no-underline hover:text-accent',
+                  )}
+                >
+                  {link.icon ? <link.icon className="mr-1 size-4" /> : null}
+                  {link.label}
+                </NextLink>
+              );
+            })}
           </div>
         </div>
 

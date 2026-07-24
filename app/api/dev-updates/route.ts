@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { devUpdates } from '@/db/schema';
-import { deleteBlobMedia } from '@/lib/blob-media';
+import { deleteCloudinaryMedia } from '@/lib/cloudinary-media';
 import { readDevUpdatesFeed } from '@/lib/dev-updates';
 import { isAdmin } from '@/utils/auth';
 import { getRequestLocale, translations } from '@/utils/i18n';
@@ -70,24 +70,29 @@ export async function POST(request: Request) {
   const title = typeof body.title === 'string' ? body.title.trim() : '';
   const content = typeof body.content === 'string' ? body.content.trim() : '';
   const topic = typeof body.topic === 'string' ? body.topic : '';
-  const imageUrls = normalizeMediaUrls(body.imageUrls, MAX_DEV_UPDATE_IMAGES);
+  const imageUrls = normalizeMediaUrls(
+    body.imageUrls,
+    MAX_DEV_UPDATE_IMAGES,
+    process.env.CLOUDINARY_CLOUD_NAME,
+  );
   const uploadedImageUrls = normalizeMediaUrls(
     body.uploadedImageUrls,
     MAX_DEV_UPDATE_IMAGES,
+    process.env.CLOUDINARY_CLOUD_NAME,
   ).filter((url) => imageUrls.includes(url));
 
   if (!content || content.length > 8_000 || !isDevUpdateTopic(topic)) {
-    await deleteBlobMedia(uploadedImageUrls);
+    await deleteCloudinaryMedia(uploadedImageUrls);
     return NextResponse.json({ error: strings.invalid }, { status: 400 });
   }
 
   if (title.length > 160) {
-    await deleteBlobMedia(uploadedImageUrls);
+    await deleteCloudinaryMedia(uploadedImageUrls);
     return NextResponse.json({ error: strings.titleTooLong }, { status: 400 });
   }
 
   if (!process.env.DATABASE_URL) {
-    await deleteBlobMedia(uploadedImageUrls);
+    await deleteCloudinaryMedia(uploadedImageUrls);
     return NextResponse.json(
       { error: strings.databaseMissing },
       { status: 503 },
@@ -106,13 +111,13 @@ export async function POST(request: Request) {
       .returning();
 
     if (!update) {
-      await deleteBlobMedia(uploadedImageUrls);
+      await deleteCloudinaryMedia(uploadedImageUrls);
       return NextResponse.json({ error: strings.saveFailed }, { status: 500 });
     }
 
     return NextResponse.json({ update }, { status: 201 });
   } catch {
-    await deleteBlobMedia(uploadedImageUrls);
+    await deleteCloudinaryMedia(uploadedImageUrls);
     return NextResponse.json({ error: strings.saveFailed }, { status: 500 });
   }
 }

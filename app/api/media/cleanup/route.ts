@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { deleteBlobMedia } from '@/lib/blob-media';
+import { deleteCloudinaryMedia } from '@/lib/cloudinary-media';
 import { isAdmin } from '@/utils/auth';
 import { getRequestLocale, translations } from '@/utils/i18n';
 import { normalizeMediaUrls } from '@/utils/media';
@@ -26,8 +26,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: strings.invalid }, { status: 400 });
   }
 
-  const urls = normalizeMediaUrls(body.urls, 20);
-  await deleteBlobMedia(urls);
+  const urls = normalizeMediaUrls(
+    body.urls,
+    20,
+    process.env.CLOUDINARY_CLOUD_NAME,
+  );
+  await deleteCloudinaryMedia(urls);
 
   return NextResponse.json({ deleted: urls.length });
 }

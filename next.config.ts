@@ -13,9 +13,9 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   scriptSource,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
+  "img-src 'self' data: blob: https://res.cloudinary.com",
   "font-src 'self' data:",
-  "connect-src 'self' https://vitals.vercel-insights.com https://blob.vercel-storage.com https://*.blob.vercel-storage.com https://*.public.blob.vercel-storage.com",
+  "connect-src 'self' https://vitals.vercel-insights.com https://api.cloudinary.com",
   'frame-src https://open.spotify.com',
   "media-src 'self' blob:",
 ].join('; ');

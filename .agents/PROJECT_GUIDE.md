@@ -92,10 +92,11 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 
 ## Project media and documentation
 
-- News and project images are compressed in the browser to WebP, capped at 1440 px and 1.5 MB, and uploaded directly to Vercel Blob.
-- PostgreSQL stores only public Blob URLs. Never store image binaries or base64 payloads in the database.
-- Keep `BLOB_READ_WRITE_TOKEN` configured in Vercel and apply the checked-in Drizzle migration before using media or project documentation.
-- Removed images are deleted from Blob after the owning database record is updated. New uploads are cleaned up when a save request fails.
+- News and project images are compressed in the browser to WebP, capped at 1440 px and 1.5 MB, and uploaded directly to Cloudinary with a short-lived server signature.
+- PostgreSQL stores only validated Cloudinary delivery URLs. Never store image binaries or base64 payloads in the database.
+- Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and the server-only `CLOUDINARY_API_SECRET`, then apply the checked-in Drizzle migration before using media or project documentation.
+- Removed images are destroyed through Cloudinary after the owning database record is updated. New uploads are cleaned up when a save request fails.
+- Internal section links must use root-qualified hashes such as `/#projects` and `/#tools`; Markdown links beginning with `#` are normalized automatically.
 - Project documentation is localized Markdown stored in `project_contents` and rendered only on `/project/[slug]`.
 - The home page reads the first Dev Notes page and author session on the server so hydration must not replace the feed or author controls with differently sized placeholders.
 

@@ -1,13 +1,13 @@
 'use client';
 
+import { cn } from '@heroui/react';
 import { ArrowUpRight, FolderOpen } from 'lucide-react';
 import Link from 'next/link';
 
-import { cn } from '@heroui/react';
-
-import type { ProjectConfig } from '@/utils/config';
 import { useLocale } from '@/app/providers';
+import type { ProjectConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
+import { isExternalHttpHref, normalizeInternalAnchorHref } from '@/utils/links';
 
 type ProjectActionsProps = {
   project: ProjectConfig;
@@ -32,32 +32,42 @@ export function ProjectActions({ project, className }: ProjectActionsProps) {
         {copy.project.projectPage}
       </Link>
 
-      {project.links.map((link) => (
-        <a
-          key={link.url}
-          href={link.url}
-          target="_blank"
-          rel="noreferrer"
-          className="button button--primary button--md w-full sm:w-auto"
-        >
-          <link.icon className="size-4" />
-          {getText(link.label, locale)}
-          <ArrowUpRight className="size-4" />
-        </a>
-      ))}
+      {project.links.map((link) => {
+        const href = normalizeInternalAnchorHref(link.url);
+        const isExternal = isExternalHttpHref(href);
 
-      {project.relatedLinks.map((link) => (
-        <a
-          key={link.url}
-          href={link.url}
-          target="_blank"
-          rel="noreferrer"
-          className="button button--tertiary button--md w-full sm:w-auto"
-        >
-          <link.icon className="size-4" />
-          {getText(link.label, locale)}
-        </a>
-      ))}
+        return (
+          <Link
+            key={link.url}
+            href={href}
+            target={isExternal ? '_blank' : undefined}
+            rel={isExternal ? 'noreferrer' : undefined}
+            className="button button--primary button--md w-full sm:w-auto"
+          >
+            <link.icon className="size-4" />
+            {getText(link.label, locale)}
+            <ArrowUpRight className="size-4" />
+          </Link>
+        );
+      })}
+
+      {project.relatedLinks.map((link) => {
+        const href = normalizeInternalAnchorHref(link.url);
+        const isExternal = isExternalHttpHref(href);
+
+        return (
+          <Link
+            key={link.url}
+            href={href}
+            target={isExternal ? '_blank' : undefined}
+            rel={isExternal ? 'noreferrer' : undefined}
+            className="button button--tertiary button--md w-full sm:w-auto"
+          >
+            <link.icon className="size-4" />
+            {getText(link.label, locale)}
+          </Link>
+        );
+      })}
 
       {project.links.length === 0 && (
         <p className="w-full text-sm text-muted">

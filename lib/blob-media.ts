@@ -1,17 +1,5 @@
-import { del } from '@vercel/blob';
-
-import { isVercelBlobMediaUrl } from '@/utils/media';
-
-export async function deleteBlobMedia(urls: string[]) {
-  const validUrls = [...new Set(urls)].filter(isVercelBlobMediaUrl);
-
-  if (validUrls.length === 0 || !process.env.BLOB_READ_WRITE_TOKEN) {
-    return;
-  }
-
-  try {
-    await del(validUrls);
-  } catch {
-    // Database changes must not be rolled back because object cleanup failed.
-  }
-}
+/**
+ * Legacy compatibility export for archives applied over older project copies.
+ * Media storage is implemented by Cloudinary; no Vercel Blob API is used.
+ */
+export { deleteCloudinaryMedia as deleteBlobMedia } from '@/lib/cloudinary-media';

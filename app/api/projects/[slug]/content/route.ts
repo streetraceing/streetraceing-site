@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { projectContents } from '@/db/schema';
-import { deleteBlobMedia } from '@/lib/blob-media';
+import { deleteCloudinaryMedia } from '@/lib/cloudinary-media';
 import { readProjectContent } from '@/lib/project-content';
 import { isAdmin } from '@/utils/auth';
 import { mainPageConfig } from '@/utils/config';
@@ -79,22 +79,27 @@ export async function PUT(request: Request, context: RouteContext) {
     typeof body.documentation?.en === 'string'
       ? body.documentation.en.trim()
       : '';
-  const imageUrls = normalizeMediaUrls(body.imageUrls, MAX_PROJECT_IMAGES);
+  const imageUrls = normalizeMediaUrls(
+    body.imageUrls,
+    MAX_PROJECT_IMAGES,
+    process.env.CLOUDINARY_CLOUD_NAME,
+  );
   const uploadedImageUrls = normalizeMediaUrls(
     body.uploadedImageUrls,
     MAX_PROJECT_IMAGES,
+    process.env.CLOUDINARY_CLOUD_NAME,
   ).filter((url) => imageUrls.includes(url));
 
   if (
     documentationRu.length > MAX_DOCUMENTATION_LENGTH ||
     documentationEn.length > MAX_DOCUMENTATION_LENGTH
   ) {
-    await deleteBlobMedia(uploadedImageUrls);
+    await deleteCloudinaryMedia(uploadedImageUrls);
     return NextResponse.json({ error: strings.tooLong }, { status: 400 });
   }
 
   if (!process.env.DATABASE_URL) {
-    await deleteBlobMedia(uploadedImageUrls);
+    await deleteCloudinaryMedia(uploadedImageUrls);
     return NextResponse.json(
       { error: strings.databaseMissing },
       { status: 503 },
@@ -129,14 +134,14 @@ export async function PUT(request: Request, context: RouteContext) {
       .returning();
 
     if (!storedContent) {
-      await deleteBlobMedia(uploadedImageUrls);
+      await deleteCloudinaryMedia(uploadedImageUrls);
       return NextResponse.json({ error: strings.saveFailed }, { status: 500 });
     }
 
     const removedUrls = (previousContent?.imageUrls ?? []).filter(
       (url) => !imageUrls.includes(url),
     );
-    await deleteBlobMedia(removedUrls);
+    await deleteCloudinaryMedia(removedUrls);
 
     try {
       revalidatePath(`/project/${slug}`);
@@ -155,7 +160,7 @@ export async function PUT(request: Request, context: RouteContext) {
       },
     });
   } catch {
-    await deleteBlobMedia(uploadedImageUrls);
+    await deleteCloudinaryMedia(uploadedImageUrls);
     return NextResponse.json({ error: strings.saveFailed }, { status: 500 });
   }
 }
