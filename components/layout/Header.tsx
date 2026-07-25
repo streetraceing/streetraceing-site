@@ -287,8 +287,8 @@ export function Header() {
   }
 
   return (
-    <>
-      <header className="sticky top-0 z-50 border-b bg-background/75 backdrop-blur">
+    <div className="sticky top-0 z-50">
+      <header className="relative z-20 border-b bg-background/75 backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)]">
         <Container className="grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-4 min-[1180px]:grid-cols-[auto_minmax(0,1fr)_auto]">
           <NextLink
             href="/"
@@ -369,9 +369,13 @@ export function Header() {
           ref={mobileMenuRef}
           id="mobile-navigation"
           aria-label={copy.header.navigation}
-          className="fixed inset-x-0 top-16 z-40 border-b border-t bg-background/70 shadow-lg backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] min-[1180px]:hidden"
+          className="absolute inset-x-0 top-full z-10 isolate max-h-[calc(100dvh-4rem)] overflow-x-hidden overflow-y-auto border-b border-t shadow-lg min-[1180px]:hidden"
         >
-          <Container className="flex flex-col gap-4 py-4">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0 bg-background/75 backdrop-blur-2xl [-webkit-backdrop-filter:blur(24px)]"
+          />
+          <Container className="relative z-10 flex flex-col gap-4 py-4">
             <Typography.Heading level={2} className="text-base">
               {copy.header.navigation}
             </Typography.Heading>
@@ -403,6 +407,6 @@ export function Header() {
           </Container>
         </nav>
       ) : null}
-    </>
+    </div>
   );
 }
