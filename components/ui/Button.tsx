@@ -16,12 +16,20 @@ export function ButtonRipple({ disabled = false }: { disabled?: boolean }) {
   const layerRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    const layer = layerRef.current;
-    const host = layer?.parentElement;
+    const currentLayer = layerRef.current;
 
-    if (!layer || !host) {
+    if (!currentLayer) {
       return;
     }
+
+    const parentHost = currentLayer.parentElement;
+
+    if (!parentHost) {
+      return;
+    }
+
+    const layer: HTMLSpanElement = currentLayer;
+    const host: HTMLElement = parentHost;
 
     function isHostDisabled() {
       return (
@@ -46,7 +54,9 @@ export function ButtonRipple({ disabled = false }: { disabled?: boolean }) {
       wave.style.height = `${size}px`;
       wave.style.left = `${x - bounds.left - size / 2}px`;
       wave.style.top = `${y - bounds.top - size / 2}px`;
+
       layer.append(wave);
+
       wave.addEventListener('animationend', () => wave.remove(), {
         once: true,
       });
@@ -68,7 +78,9 @@ export function ButtonRipple({ disabled = false }: { disabled?: boolean }) {
       addWave();
     }
 
-    host.addEventListener('pointerdown', handlePointerDown, { passive: true });
+    host.addEventListener('pointerdown', handlePointerDown, {
+      passive: true,
+    });
     host.addEventListener('keydown', handleKeyDown);
 
     return () => {
