@@ -1,3 +1,4 @@
+import { text, type LocalizedText } from '@/utils/i18n';
 import { BrainCircuit, Database } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -19,27 +20,69 @@ import {
 import type { IconType } from 'react-icons';
 
 export type SkillIcon = LucideIcon | IconType;
+export type SkillTone = 'accent' | 'success' | 'warning' | 'danger' | 'default';
 
-export const biographySkills = [
-  { id: 'typescript', label: 'TypeScript', icon: SiTypescript, tone: 'accent' },
-  { id: 'java', label: 'Java', icon: SiOpenjdk, tone: 'warning' },
-  { id: 'csharp', label: 'C#', icon: SiSharp, tone: 'success' },
-  { id: 'linux', label: 'Linux', icon: SiLinux, tone: 'default' },
-  { id: 'docker', label: 'Docker', icon: SiDocker, tone: 'accent' },
-  { id: 'git', label: 'Git', icon: SiGit, tone: 'danger' },
-  { id: 'rust', label: 'Rust', icon: SiRust, tone: 'warning' },
-  { id: 'cicd', label: 'CI/CD', icon: SiGithubactions, tone: 'success' },
-  { id: 'ai', label: 'AI', icon: BrainCircuit, tone: 'accent' },
-  { id: 'python', label: 'Python', icon: SiPython, tone: 'warning' },
-  { id: 'sql', label: 'SQL', icon: Database, tone: 'default' },
+type BiographySkill = {
+  id: string;
+  label: string;
+  icon: SkillIcon;
+};
+
+type BiographySkillGroup = {
+  id: string;
+  label: LocalizedText;
+  tone: SkillTone;
+  skills: readonly BiographySkill[];
+};
+
+export const biographySkillGroups = [
   {
-    id: 'postgresql',
-    label: 'PostgreSQL',
-    icon: SiPostgresql,
+    id: 'languages',
+    label: text('Языки программирования', 'Programming languages'),
     tone: 'accent',
+    skills: [
+      { id: 'typescript', label: 'TypeScript', icon: SiTypescript },
+      { id: 'java', label: 'Java', icon: SiOpenjdk },
+      { id: 'csharp', label: 'C#', icon: SiSharp },
+      { id: 'rust', label: 'Rust', icon: SiRust },
+      { id: 'python', label: 'Python', icon: SiPython },
+    ],
   },
-  { id: 'mongodb', label: 'MongoDB', icon: SiMongodb, tone: 'success' },
-  { id: 'mariadb', label: 'MariaDB', icon: SiMariadb, tone: 'warning' },
-  { id: 'react', label: 'React', icon: SiReact, tone: 'accent' },
-  { id: 'vite', label: 'Vite', icon: SiVite, tone: 'danger' },
-] as const;
+  {
+    id: 'frontend',
+    label: text('Фронтенд', 'Frontend'),
+    tone: 'success',
+    skills: [
+      { id: 'react', label: 'React', icon: SiReact },
+      { id: 'vite', label: 'Vite', icon: SiVite },
+    ],
+  },
+  {
+    id: 'databases',
+    label: text('Базы данных', 'Databases'),
+    tone: 'danger',
+    skills: [
+      { id: 'sql', label: 'SQL', icon: Database },
+      { id: 'postgresql', label: 'PostgreSQL', icon: SiPostgresql },
+      { id: 'mongodb', label: 'MongoDB', icon: SiMongodb },
+      { id: 'mariadb', label: 'MariaDB', icon: SiMariadb },
+    ],
+  },
+  {
+    id: 'infrastructure',
+    label: text('Инфраструктура', 'Infrastructure'),
+    tone: 'warning',
+    skills: [
+      { id: 'linux', label: 'Linux', icon: SiLinux },
+      { id: 'docker', label: 'Docker', icon: SiDocker },
+      { id: 'git', label: 'Git', icon: SiGit },
+      { id: 'cicd', label: 'CI/CD', icon: SiGithubactions },
+    ],
+  },
+  {
+    id: 'ai',
+    label: text('AI и автоматизация', 'AI and automation'),
+    tone: 'default',
+    skills: [{ id: 'ai', label: 'AI', icon: BrainCircuit }],
+  },
+] as const satisfies readonly BiographySkillGroup[];

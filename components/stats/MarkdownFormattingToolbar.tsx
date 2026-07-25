@@ -1,11 +1,30 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
-import { Strikethrough, Underline } from 'lucide-react';
+import {
+  insertMarkdownLink,
+  toggleMarkdownDecoration,
+  toggleMarkdownLinePrefix,
+  wrapMarkdownBlock,
+  type MarkdownSelectionUpdate,
+} from '@/utils/markdown';
+import { ButtonGroup, Toolbar } from '@heroui/react';
+import {
+  Bold,
+  Code,
+  Code2,
+  Heading2,
+  Italic,
+  Link,
+  List,
+  ListOrdered,
+  Quote,
+  Strikethrough,
+  Underline,
+} from 'lucide-react';
 import type { RefObject } from 'react';
 
 import { useLocale } from '@/app/providers';
-import { toggleMarkdownDecoration } from '@/utils/markdown';
 
 type MarkdownFormattingToolbarProps = {
   value: string;
@@ -21,17 +40,16 @@ export function MarkdownFormattingToolbar({
   const { copy } = useLocale();
   const strings = copy.markdownFormatting;
 
-  function applyDecoration(delimiter: '++' | '~~') {
+  function getSelection() {
     const textarea = textareaRef.current;
-    const selectionStart = textarea?.selectionStart ?? value.length;
-    const selectionEnd = textarea?.selectionEnd ?? value.length;
-    const update = toggleMarkdownDecoration(
-      value,
-      selectionStart,
-      selectionEnd,
-      delimiter,
-    );
 
+    return {
+      selectionStart: textarea?.selectionStart ?? value.length,
+      selectionEnd: textarea?.selectionEnd ?? value.length,
+    };
+  }
+
+  function applyUpdate(update: MarkdownSelectionUpdate) {
     onChange(update.value);
 
     requestAnimationFrame(() => {
@@ -49,32 +67,159 @@ export function MarkdownFormattingToolbar({
     });
   }
 
+  function applyInline(delimiter: '++' | '~~' | '**' | '*' | '`') {
+    const selection = getSelection();
+
+    applyUpdate(
+      toggleMarkdownDecoration(
+        value,
+        selection.selectionStart,
+        selection.selectionEnd,
+        delimiter,
+      ),
+    );
+  }
+
+  function applyLinePrefix(prefix: string) {
+    const selection = getSelection();
+
+    applyUpdate(
+      toggleMarkdownLinePrefix(
+        value,
+        selection.selectionStart,
+        selection.selectionEnd,
+        prefix,
+      ),
+    );
+  }
+
+  function applyCodeBlock() {
+    const selection = getSelection();
+
+    applyUpdate(
+      wrapMarkdownBlock(
+        value,
+        selection.selectionStart,
+        selection.selectionEnd,
+        '```\n',
+        '\n```',
+        strings.codePlaceholder,
+      ),
+    );
+  }
+
+  function applyLink() {
+    const selection = getSelection();
+
+    applyUpdate(
+      insertMarkdownLink(
+        value,
+        selection.selectionStart,
+        selection.selectionEnd,
+        strings.linkTextPlaceholder,
+        'https://',
+      ),
+    );
+  }
+
   return (
-    <div
-      className="flex flex-wrap items-center gap-1"
-      role="toolbar"
-      aria-label={strings.toolbar}
-    >
-      <Button
-        type="button"
-        isIconOnly
-        size="sm"
-        variant="tertiary"
-        aria-label={strings.underline}
-        onPress={() => applyDecoration('++')}
-      >
-        <Underline className="size-4" />
-      </Button>
-      <Button
-        type="button"
-        isIconOnly
-        size="sm"
-        variant="tertiary"
-        aria-label={strings.strikethrough}
-        onPress={() => applyDecoration('~~')}
-      >
-        <Strikethrough className="size-4" />
-      </Button>
-    </div>
+    <Toolbar className="flex-wrap gap-1" aria-label={strings.toolbar}>
+      <ButtonGroup size="sm" variant="tertiary">
+        <Button
+          type="button"
+          isIconOnly
+          aria-label={strings.bold}
+          onPress={() => applyInline('**')}
+        >
+          <Bold className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          isIconOnly
+          aria-label={strings.italic}
+          onPress={() => applyInline('*')}
+        >
+          <Italic className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          isIconOnly
+          aria-label={strings.underline}
+          onPress={() => applyInline('++')}
+        >
+          <Underline className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          isIconOnly
+          aria-label={strings.strikethrough}
+          onPress={() => applyInline('~~')}
+        >
+          <Strikethrough className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          isIconOnly
+          aria-label={strings.inlineCode}
+          onPress={() => applyInline('`')}
+        >
+          <Code className="size-4" />
+        </Button>
+      </ButtonGroup>
+
+      <ButtonGroup size="sm" variant="tertiary">
+        <Button
+          type="button"
+          isIconOnly
+          aria-label={strings.heading}
+          onPress={() => applyLinePrefix('## ')}
+        >
+          <Heading2 className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          isIconOnly
+          aria-label={strings.quote}
+          onPress={() => applyLinePrefix('> ')}
+        >
+          <Quote className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          isIconOnly
+          aria-label={strings.bulletedList}
+          onPress={() => applyLinePrefix('- ')}
+        >
+          <List className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          isIconOnly
+          aria-label={strings.numberedList}
+          onPress={() => applyLinePrefix('1. ')}
+        >
+          <ListOrdered className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          isIconOnly
+          aria-label={strings.codeBlock}
+          onPress={applyCodeBlock}
+        >
+          <Code2 className="size-4" />
+        </Button>
+      </ButtonGroup>
+
+      <ButtonGroup size="sm" variant="tertiary">
+        <Button
+          type="button"
+          isIconOnly
+          aria-label={strings.link}
+          onPress={applyLink}
+        >
+          <Link className="size-4" />
+        </Button>
+      </ButtonGroup>
+    </Toolbar>
   );
 }

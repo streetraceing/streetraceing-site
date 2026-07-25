@@ -59,17 +59,16 @@ export function HomePageContent({
 
           <div className="grid gap-5 lg:grid-cols-[12rem_minmax(0,1fr)] lg:items-start">
             <ProfileAvatar />
-            <div className="flex min-w-0 flex-col gap-5">
-              <div className="flex flex-col gap-3">
-                {copy.home.bio.map((paragraph) => (
-                  <Typography.Paragraph key={paragraph}>
-                    {paragraph}
-                  </Typography.Paragraph>
-                ))}
-              </div>
-              <SkillsShowcase />
+            <div className="flex min-w-0 flex-col gap-3">
+              {copy.home.bio.map((paragraph) => (
+                <Typography.Paragraph key={paragraph}>
+                  {paragraph}
+                </Typography.Paragraph>
+              ))}
             </div>
           </div>
+
+          <SkillsShowcase />
         </section>
 
         <StatsSection

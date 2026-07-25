@@ -31,11 +31,15 @@ export function GitHubCommitHistory({
   const strings = copy.stats;
 
   return (
-    <Card variant="default" aria-labelledby="github-history-heading">
-      <Card.Header className="gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <Card
+      variant="default"
+      className="min-w-0"
+      aria-labelledby="github-history-heading"
+    >
+      <Card.Header className="gap-3 sm:flex-row sm:items-start sm:justify-between border-b pb-3">
         <div className="flex min-w-0 items-start gap-3">
           <span
-            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-secondary text-accent"
+            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-secondary"
             aria-hidden="true"
           >
             <FaGithub className="size-5" />
@@ -62,9 +66,9 @@ export function GitHubCommitHistory({
         </NextLink>
       </Card.Header>
 
-      <Card.Content>
+      <Card.Content className="min-w-0 overflow-hidden">
         {feed.commits.length > 0 ? (
-          <ol className="max-h-96 overflow-y-auto pr-1">
+          <ol className="md:max-h-96 max-h-48 min-w-0 overflow-y-auto overflow-x-hidden pr-1">
             {feed.commits.map((commit, index) => (
               <li key={`${commit.repository}:${commit.sha}`}>
                 <NextLink
@@ -72,7 +76,7 @@ export function GitHubCommitHistory({
                   target="_blank"
                   rel="noreferrer"
                   prefetch={false}
-                  className="group flex items-start gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-surface-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="group flex w-full min-w-0 items-start gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-surface-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <span
                     className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-secondary text-accent transition-colors group-hover:bg-accent/10"
@@ -81,14 +85,16 @@ export function GitHubCommitHistory({
                     <GitCommitHorizontal className="size-4" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="line-clamp-2 text-sm font-medium transition-colors group-hover:text-accent">
+                    <span className="line-clamp-2 wrap-break-word text-sm font-medium transition-colors">
                       {commit.message}
                     </span>
                     <span className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted">
                       <Chip size="sm" variant="soft" className="max-w-full">
                         {commit.repository.replace('streetraceing/', '')}
                       </Chip>
-                      <code>{commit.sha.slice(0, 7)}</code>
+                      <code className="break-all">
+                        {commit.sha.slice(0, 7)}
+                      </code>
                       <time dateTime={commit.committedAt}>
                         {formatCommitDate(
                           commit.committedAt,

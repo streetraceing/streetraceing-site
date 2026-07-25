@@ -138,8 +138,19 @@ export const translations = {
     },
     markdownFormatting: {
       toolbar: 'Форматирование Markdown',
+      bold: 'Сделать выделенный текст жирным',
+      italic: 'Сделать выделенный текст курсивом',
       underline: 'Подчеркнуть выделенный текст',
       strikethrough: 'Зачеркнуть выделенный текст',
+      inlineCode: 'Оформить выделенный текст как код',
+      heading: 'Сделать строку заголовком второго уровня',
+      quote: 'Оформить строки как цитату',
+      bulletedList: 'Оформить строки как маркированный список',
+      numberedList: 'Оформить строки как нумерованный список',
+      codeBlock: 'Вставить блок кода',
+      link: 'Вставить ссылку',
+      codePlaceholder: 'код',
+      linkTextPlaceholder: 'текст ссылки',
     },
     project: {
       openDetails: 'Открыть подробности',
@@ -244,8 +255,7 @@ export const translations = {
       skillsChartDescription:
         'Относительное распределение практики по основным направлениям.',
       githubHistoryTitle: 'Публичная история коммитов',
-      githubHistoryDescription:
-        'Последние коммиты в открытых репозиториях профиля streetraceing.',
+      githubHistoryDescription: 'Последние коммиты в открытых репозиториях.',
       githubViewProfile: 'Открыть GitHub',
       githubHistoryEmpty: 'Публичные коммиты пока не найдены.',
       githubHistoryUnavailable:
@@ -498,8 +508,19 @@ export const translations = {
     },
     markdownFormatting: {
       toolbar: 'Markdown formatting',
+      bold: 'Make selected text bold',
+      italic: 'Italicize selected text',
       underline: 'Underline selected text',
       strikethrough: 'Strikethrough selected text',
+      inlineCode: 'Format selected text as inline code',
+      heading: 'Turn the line into a level-two heading',
+      quote: 'Format lines as a quote',
+      bulletedList: 'Format lines as a bulleted list',
+      numberedList: 'Format lines as a numbered list',
+      codeBlock: 'Insert a code block',
+      link: 'Insert a link',
+      codePlaceholder: 'code',
+      linkTextPlaceholder: 'link text',
     },
     project: {
       openDetails: 'Open details',
@@ -600,8 +621,7 @@ export const translations = {
       skillsChartDescription:
         'A relative distribution of practice across the main areas.',
       githubHistoryTitle: 'Public commit history',
-      githubHistoryDescription:
-        'Recent commits across public repositories owned by streetraceing.',
+      githubHistoryDescription: 'Recent commits across public repositories.',
       githubViewProfile: 'Open GitHub',
       githubHistoryEmpty: 'No public commits were found yet.',
       githubHistoryUnavailable:

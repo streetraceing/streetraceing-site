@@ -7,7 +7,7 @@ type MarkdownNode = {
   };
 };
 
-type DecorationDelimiter = '++' | '~~';
+type DecorationDelimiter = '++' | '~~' | '**' | '*' | '`';
 
 export type MarkdownSelectionUpdate = {
   value: string;
@@ -36,7 +36,7 @@ function decorateTextNode(node: MarkdownNode) {
       });
     }
 
-    const delimiter = match[1] as DecorationDelimiter;
+    const delimiter = match[1] as '++' | '~~';
 
     children.push({
       type: delimiter === '~~' ? 'strikethrough' : 'underline',
@@ -119,5 +119,89 @@ export function toggleMarkdownDecoration(
       value.slice(0, selectionStart) + inserted + value.slice(selectionEnd),
     selectionStart: selectionStart + delimiterLength,
     selectionEnd: selectionStart + delimiterLength + selectedText.length,
+  };
+}
+
+export function toggleMarkdownLinePrefix(
+  value: string,
+  selectionStart: number,
+  selectionEnd: number,
+  prefix: string,
+): MarkdownSelectionUpdate {
+  const lineStart =
+    value.lastIndexOf('\n', Math.max(selectionStart - 1, 0)) + 1;
+  const nextLineBreak = value.indexOf('\n', selectionEnd);
+  const lineEnd = nextLineBreak === -1 ? value.length : nextLineBreak;
+  const selectedLines = value.slice(lineStart, lineEnd);
+
+  if (!selectedLines) {
+    return {
+      value: value.slice(0, lineStart) + prefix + value.slice(lineStart),
+      selectionStart: lineStart + prefix.length,
+      selectionEnd: lineStart + prefix.length,
+    };
+  }
+
+  const lines = selectedLines.split('\n');
+  const contentLines = lines.filter((line) => line.length > 0);
+  const removePrefix =
+    contentLines.length > 0 &&
+    contentLines.every((line) => line.startsWith(prefix));
+  const transformedLines = lines
+    .map((line) => {
+      if (!line) {
+        return line;
+      }
+
+      return removePrefix ? line.slice(prefix.length) : `${prefix}${line}`;
+    })
+    .join('\n');
+
+  return {
+    value: value.slice(0, lineStart) + transformedLines + value.slice(lineEnd),
+    selectionStart: lineStart,
+    selectionEnd: lineStart + transformedLines.length,
+  };
+}
+
+export function wrapMarkdownBlock(
+  value: string,
+  selectionStart: number,
+  selectionEnd: number,
+  opening: string,
+  closing: string,
+  placeholder: string,
+): MarkdownSelectionUpdate {
+  const selectedText = value.slice(selectionStart, selectionEnd) || placeholder;
+  const inserted = `${opening}${selectedText}${closing}`;
+
+  return {
+    value:
+      value.slice(0, selectionStart) + inserted + value.slice(selectionEnd),
+    selectionStart: selectionStart + opening.length,
+    selectionEnd: selectionStart + opening.length + selectedText.length,
+  };
+}
+
+export function insertMarkdownLink(
+  value: string,
+  selectionStart: number,
+  selectionEnd: number,
+  labelPlaceholder: string,
+  urlPlaceholder: string,
+): MarkdownSelectionUpdate {
+  const selectedText = value.slice(selectionStart, selectionEnd);
+  const label = selectedText || labelPlaceholder;
+  const inserted = `[${label}](${urlPlaceholder})`;
+  const labelStart = selectionStart + 1;
+  const urlStart = selectionStart + label.length + 3;
+
+  return {
+    value:
+      value.slice(0, selectionStart) + inserted + value.slice(selectionEnd),
+    selectionStart: selectedText ? urlStart : labelStart,
+    selectionEnd: selectedText
+      ? urlStart + urlPlaceholder.length
+      : labelStart + label.length,
   };
 }
