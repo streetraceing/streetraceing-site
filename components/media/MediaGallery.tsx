@@ -135,7 +135,7 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
   }
 
   const currentIndex = Math.min(activeIndex, urls.length - 1);
-  const currentUrl = urls[currentIndex]!;
+  const currentUrl = urls[currentIndex];
   const currentMetadata = metadataByUrl[currentUrl];
   const canNavigate = urls.length > 1;
 
@@ -233,7 +233,7 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
     resetView();
 
     if (isViewerOpen) {
-      void loadMetadata(urls[nextIndex]!);
+      void loadMetadata(urls[nextIndex]);
     }
   }
 
@@ -243,7 +243,7 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
     setActiveIndex(nextIndex);
     resetView();
     setIsViewerOpen(true);
-    void loadMetadata(urls[nextIndex]!);
+    void loadMetadata(urls[nextIndex]);
   }
 
   function handleViewerOpenChange(isOpen: boolean) {
