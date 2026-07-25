@@ -91,6 +91,24 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 - If a project/tool page needs a client i18n context and uses icons from the config, use a client page-content wrapper and pass only a primitive slug from the server route. React components in config objects cannot cross a Server Component → Client Component boundary as props.
 - New database schema changes need a descriptive Drizzle migration name and a checked-in migration file.
 
+## SEO and metadata
+
+- `utils/seo.ts` is the single source for canonical URLs, localized page metadata, Open Graph/Twitter cards, and JSON-LD builders. Set `SITE_URL` to the production origin; Vercel URL variables are only fallbacks.
+- Keep route-specific `generateMetadata` exports in Server Component page files. Dynamic project and tool routes must provide localized titles, descriptions, canonical paths, and relevant keywords.
+- `app/robots.ts`, `app/sitemap.ts`, `app/manifest.ts`, and `app/opengraph-image.tsx` use Next.js metadata file conventions. Add every new public project/tool route to config so the sitemap remains complete.
+- Shared Tiny URL pages and 404 pages must stay `noindex`. Do not publish cookie-based locale URLs as hreflang alternatives because RU and EN currently share the same route.
+- Render structured data through the server-only `JsonLd` component and escape `<` in serialized JSON. Do not put raw script elements inside Client Components.
+
+## Responsive header
+
+- The full desktop navigation starts at 1180 px. Below that width, use the burger menu so Russian labels, language/theme controls, and author controls cannot overlap on tablets or small monitors.
+- Keep the breakpoint consistent across the header grid, desktop navigation, desktop controls, burger trigger, and mobile menu.
+
+## Skill variants
+
+- Biography skill groups use the `SkillVariant` field only. Do not reintroduce the old `tone` field.
+- `SkillsShowcase` owns the exhaustive `Record<SkillVariant, SkillStyle>` map so every variant defines chip, card-hover, and icon styling in one place.
+
 ## Visual effects and public activity
 
 - `components/layout/Page.tsx` owns the decorative star-field backdrop. It repeats `public/images/space-stars.gif` as two pointer-inert Tailwind background layers with different scales and slow built-in opacity pulses. The supplied tile is intentionally cropped to 640 × 320 so its bright lower seam does not repeat across the page. Do not add section-specific CSS keyframes or background rules to `app/globals.css`.

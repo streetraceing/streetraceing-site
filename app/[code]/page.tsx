@@ -6,22 +6,30 @@ import { SharedDataContent } from '@/components/tiny-url/SharedDataContent';
 import { db } from '@/db';
 import { shortUrls } from '@/db/schema';
 import { CODE_PATTERN, getTinyUrlRetentionThreshold } from '@/lib/tiny-url';
+import { getServerLocale } from '@/lib/server-locale';
+import { createPageMetadata } from '@/utils/seo';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  robots: {
-    index: false,
-    follow: false,
-    nocache: true,
-    googleBot: {
-      index: false,
-      follow: false,
-      noimageindex: true,
-    },
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}): Promise<Metadata> {
+  const [{ code }, locale] = await Promise.all([params, getServerLocale()]);
+
+  return createPageMetadata({
+    locale,
+    title: locale === 'ru' ? 'Общие данные' : 'Shared data',
+    description:
+      locale === 'ru'
+        ? 'Приватная страница с данными по короткой ссылке.'
+        : 'A private page containing data from a short link.',
+    path: `/${code}`,
+    noIndex: true,
+  });
+}
 
 function getExternalUrl(content: string) {
   try {

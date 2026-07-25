@@ -8,6 +8,8 @@ import {
   SiLinux,
   SiMariadb,
   SiMongodb,
+  SiNestjs,
+  SiNextdotjs,
   SiOpenjdk,
   SiPostgresql,
   SiPython,
@@ -20,7 +22,14 @@ import {
 import type { IconType } from 'react-icons';
 
 export type SkillIcon = LucideIcon | IconType;
-export type SkillTone = 'accent' | 'success' | 'warning' | 'danger' | 'default';
+export type SkillVariant =
+  'blue' | 'green' | 'red' | 'purple' | 'gray' | 'yellow';
+
+export type SkillStyle = {
+  chip: string;
+  card: string;
+  icon: string;
+};
 
 type BiographySkill = {
   id: string;
@@ -31,7 +40,7 @@ type BiographySkill = {
 type BiographySkillGroup = {
   id: string;
   label: LocalizedText;
-  tone: SkillTone;
+  variant: SkillVariant;
   skills: readonly BiographySkill[];
 };
 
@@ -39,7 +48,7 @@ export const biographySkillGroups = [
   {
     id: 'languages',
     label: text('Языки программирования', 'Programming languages'),
-    tone: 'accent',
+    variant: 'blue',
     skills: [
       { id: 'typescript', label: 'TypeScript', icon: SiTypescript },
       { id: 'java', label: 'Java', icon: SiOpenjdk },
@@ -51,16 +60,17 @@ export const biographySkillGroups = [
   {
     id: 'frontend',
     label: text('Фронтенд', 'Frontend'),
-    tone: 'success',
+    variant: 'green',
     skills: [
       { id: 'react', label: 'React', icon: SiReact },
       { id: 'vite', label: 'Vite', icon: SiVite },
+      { id: 'nextjs', label: 'next.js', icon: SiNextdotjs },
     ],
   },
   {
     id: 'databases',
     label: text('Базы данных', 'Databases'),
-    tone: 'danger',
+    variant: 'red',
     skills: [
       { id: 'sql', label: 'SQL', icon: Database },
       { id: 'postgresql', label: 'PostgreSQL', icon: SiPostgresql },
@@ -68,21 +78,28 @@ export const biographySkillGroups = [
       { id: 'mariadb', label: 'MariaDB', icon: SiMariadb },
     ],
   },
+
+  {
+    id: 'backend',
+    label: text('Бэкенд', 'Backend'),
+    variant: 'purple',
+    skills: [{ id: 'nestjs', label: 'NestJS', icon: SiNestjs }],
+  },
+  {
+    id: 'ai',
+    label: text('AI и автоматизация', 'AI and automation'),
+    variant: 'gray',
+    skills: [{ id: 'ai', label: 'AI', icon: BrainCircuit }],
+  },
   {
     id: 'infrastructure',
     label: text('Инфраструктура', 'Infrastructure'),
-    tone: 'warning',
+    variant: 'yellow',
     skills: [
       { id: 'linux', label: 'Linux', icon: SiLinux },
       { id: 'docker', label: 'Docker', icon: SiDocker },
       { id: 'git', label: 'Git', icon: SiGit },
       { id: 'cicd', label: 'CI/CD', icon: SiGithubactions },
     ],
-  },
-  {
-    id: 'ai',
-    label: text('AI и автоматизация', 'AI and automation'),
-    tone: 'default',
-    skills: [{ id: 'ai', label: 'AI', icon: BrainCircuit }],
   },
 ] as const satisfies readonly BiographySkillGroup[];

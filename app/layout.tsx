@@ -2,18 +2,18 @@ import './globals.css';
 
 import { geistMono, geistSans, petitFormal } from '@/app/fonts';
 import { Providers } from '@/app/providers';
-import { siteConfig } from '@/utils/config';
+import { JsonLd } from '@/components/seo/JsonLd';
 import { isAdmin, isAuthConfigured } from '@/utils/auth';
 import {
   getLocale,
   getLocaleFromAcceptLanguage,
-  getText,
   LOCALE_COOKIE,
 } from '@/utils/i18n';
+import { createRootMetadata, createWebsiteJsonLd } from '@/utils/seo';
 import { getTheme, THEME_COOKIE } from '@/utils/theme';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import { cookies, headers } from 'next/headers';
 
@@ -76,6 +76,16 @@ const speedInsightsSampleRate = Math.min(
   ),
 );
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  colorScheme: 'light dark',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#09090b' },
+  ],
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
   const storedLocale = cookieStore.get(LOCALE_COOKIE)?.value;
@@ -83,10 +93,7 @@ export async function generateMetadata(): Promise<Metadata> {
     ? getLocale(storedLocale)
     : getLocaleFromAcceptLanguage(headerStore.get('accept-language'));
 
-  return {
-    title: siteConfig.name,
-    description: getText(siteConfig.description, locale),
-  };
+  return createRootMetadata(locale);
 }
 
 export default async function RootLayout({
@@ -129,20 +136,13 @@ export default async function RootLayout({
       className={`${initialTheme === 'dark' ? 'dark ' : ''}${geistSans.variable} ${geistMono.variable} ${petitFormal.variable} h-full antialiased`}
     >
       <head>
-        <meta name="color-scheme" content="light dark" />
         <style>{themePrepaintStyles}</style>
         <Script id="theme-bootstrap" strategy="beforeInteractive">
           {themeBootstrapScript}
         </Script>
-        {process.env.NODE_ENV === 'production' && isVercelAnalyticsEnabled && (
-          <Analytics />
-        )}
-        {process.env.NODE_ENV === 'production' &&
-          speedInsightsSampleRate > 0 && (
-            <SpeedInsights sampleRate={speedInsightsSampleRate} />
-          )}
       </head>
       <body className="bg-background text-foreground">
+        <JsonLd data={createWebsiteJsonLd(locale)} />
         <Providers
           initialLocale={locale}
           initialTheme={initialTheme}
@@ -150,6 +150,13 @@ export default async function RootLayout({
         >
           {children}
         </Providers>
+        {process.env.NODE_ENV === 'production' && isVercelAnalyticsEnabled && (
+          <Analytics />
+        )}
+        {process.env.NODE_ENV === 'production' &&
+          speedInsightsSampleRate > 0 && (
+            <SpeedInsights sampleRate={speedInsightsSampleRate} />
+          )}
       </body>
     </html>
   );

@@ -209,6 +209,20 @@ export function Header() {
   const mobileMenuRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    const desktopMediaQuery = window.matchMedia('(min-width: 1180px)');
+    const closeMenuAtDesktopWidth = (event: MediaQueryListEvent) => {
+      if (event.matches) {
+        setOpen(false);
+      }
+    };
+
+    desktopMediaQuery.addEventListener('change', closeMenuAtDesktopWidth);
+
+    return () =>
+      desktopMediaQuery.removeEventListener('change', closeMenuAtDesktopWidth);
+  }, []);
+
+  useEffect(() => {
     if (!open) {
       return;
     }
@@ -275,14 +289,14 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 border-b bg-background/75 backdrop-blur">
-        <Container className="grid h-16 grid-cols-[auto_1fr] items-center gap-4 md:grid-cols-[auto_1fr_auto]">
+        <Container className="grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-4 min-[1180px]:grid-cols-[auto_minmax(0,1fr)_auto]">
           <NextLink
             href="/"
             scroll
             onClick={handleHomeNavigation}
             className={cn(
               linkSlots.base(),
-              'flex min-w-0 items-center gap-2 justify-self-start text-lg font-semibold no-underline',
+              'flex min-w-0 max-w-[min(64vw,18rem)] items-center gap-2 justify-self-start text-lg font-semibold no-underline min-[1180px]:max-w-none',
             )}
           >
             <Image
@@ -301,7 +315,7 @@ export function Header() {
 
           <nav
             aria-label={copy.header.navigation}
-            className="hidden min-w-0 gap-4 justify-self-start md:flex"
+            className="hidden min-w-0 items-center gap-3 justify-self-start min-[1180px]:flex"
           >
             {navigationLinks.map((link) => (
               <NextLink
@@ -324,7 +338,7 @@ export function Header() {
 
           <div className="flex shrink-0 items-center gap-2 justify-self-end">
             <AuthorMenu />
-            <div className="hidden items-center gap-2 md:flex">
+            <div className="hidden items-center gap-2 min-[1180px]:flex">
               <LanguageSwitcher />
               <ThemeSwitcher />
             </div>
@@ -337,7 +351,7 @@ export function Header() {
               isIconOnly
               size="sm"
               variant="tertiary"
-              className="md:hidden"
+              className="min-[1180px]:hidden"
               onPress={() => setOpen((value) => !value)}
             >
               {open ? (
@@ -355,7 +369,7 @@ export function Header() {
           ref={mobileMenuRef}
           id="mobile-navigation"
           aria-label={copy.header.navigation}
-          className="fixed inset-x-0 top-16 z-40 border-b border-t bg-background/70 shadow-lg backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] md:hidden"
+          className="fixed inset-x-0 top-16 z-40 border-b border-t bg-background/70 shadow-lg backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] min-[1180px]:hidden"
         >
           <Container className="flex flex-col gap-4 py-4">
             <Typography.Heading level={2} className="text-base">

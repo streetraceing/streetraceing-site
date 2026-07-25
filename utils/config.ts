@@ -20,13 +20,7 @@ import { type LocalizedText, text } from '@/utils/i18n';
 
 // global config
 
-export const siteConfig = {
-  name: 'streetraceing',
-  description: text(
-    'Мой личный (х)уютный сайтик',
-    'My personal cozy little website',
-  ),
-} as const;
+export { siteConfig } from '@/utils/site';
 
 // main page config
 
