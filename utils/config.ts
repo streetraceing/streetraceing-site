@@ -323,6 +323,100 @@ Run \`npx @streetraceing/farsight --help\` to see every option.`,
       links: [],
       relatedLinks: [],
     },
+    {
+      slug: 'galactrix',
+      name: 'Galactrix',
+      icon: Bot,
+      shortDescription: text(
+        'Локальный мультиплатформенный клиент для общения с нейросетями, roleplay и работы с разными AI-сервисами.',
+        'A local cross-platform client for AI conversations, roleplay, and multiple AI services.',
+      ),
+      longDescription: text(
+        'Galactrix - open-source лаунчер и клиент, объединяющий общение с нейросетями, roleplay-сценарии и подключение к популярным AI-провайдерам в одном локальном приложении. Проект поддерживает или планирует интеграции с Ollama, Mistral, Character.AI, Cerebras, Cloudflare Workers и NVIDIA NIM, а в будущем список сервисов будет расширяться. Приложение планируется для Windows и Android. Текущая готовность проекта - около 40%.',
+        'Galactrix is an open-source launcher and client that combines AI conversations, roleplay scenarios, and integrations with popular AI providers in one local application. The project supports or plans integrations with Ollama, Mistral, Character.AI, Cerebras, Cloudflare Workers, and NVIDIA NIM, with more services planned in the future. The application is planned for Windows and Android. The project is currently around 40% complete.',
+      ),
+      colors: ['#111827', '#2563eb', '#7c3aed'],
+      status: ['in-development', 'maintained', 'open-source'],
+      progress: 40,
+      technologies: ['Tauri', 'Rust', 'React', 'TypeScript', 'Vite', 'AI'],
+      highlights: [
+        text(
+          'Единый локальный интерфейс для общения с разными нейросетями',
+          'A unified local interface for conversations with different AI models',
+        ),
+        text(
+          'Поддержка обычных диалогов, roleplay-сценариев и разных персонажей',
+          'Support for regular conversations, roleplay scenarios, and different characters',
+        ),
+        text(
+          'Интеграции с Ollama, Mistral, Character.AI, Cerebras, Cloudflare Workers и NVIDIA NIM',
+          'Integrations with Ollama, Mistral, Character.AI, Cerebras, Cloudflare Workers, and NVIDIA NIM',
+        ),
+        text(
+          'Планируемые версии для Windows и Android',
+          'Planned releases for Windows and Android',
+        ),
+      ],
+      links: [
+        {
+          url: 'https://github.com/streetraceing/galactrix',
+          icon: FaGithub,
+          label: text('GitHub', 'GitHub'),
+        },
+      ],
+      relatedLinks: [],
+    },
+    {
+      slug: 'streetraceing-site',
+      name: 'streetraceing-site',
+      icon: Code2,
+      shortDescription: text(
+        'Мой личный open-source веб-сайт с портфолио, проектами, инструментами и заметками о разработке.',
+        'My personal open-source website with a portfolio, projects, tools, and development notes.',
+      ),
+      longDescription: text(
+        'streetraceing-site - мой личный open-source веб-сайт, объединяющий биографию, навыки, статистику разработки, портфолио проектов, инструменты и новости. Сайт поддерживает русский и английский языки, светлую и тёмную темы, отдельные страницы проектов с Markdown-документацией и изображениями, а также авторский режим для управления публикациями и материалами проектов.',
+        'streetraceing-site is my personal open-source website combining my biography, skills, development statistics, project portfolio, tools, and news. The website supports Russian and English, light and dark themes, dedicated project pages with Markdown documentation and images, and an author mode for managing posts and project content.',
+      ),
+      colors: ['#020617', '#2563eb', '#06b6d4'],
+      status: ['released', 'maintained', 'open-source'],
+      progress: 100,
+      technologies: [
+        'Next.js',
+        'React',
+        'TypeScript',
+        'Tailwind CSS',
+        'HeroUI',
+        'PostgreSQL',
+        'Drizzle ORM',
+      ],
+      highlights: [
+        text(
+          'Адаптивное портфолио с отдельными страницами и документацией проектов',
+          'A responsive portfolio with dedicated project pages and documentation',
+        ),
+        text(
+          'Новости, Markdown-редактор и управление материалами через авторский режим',
+          'News, a Markdown editor, and content management through author mode',
+        ),
+        text(
+          'Встроенные инструменты для разработчиков и сервис коротких ссылок',
+          'Built-in developer tools and a short-link service',
+        ),
+        text(
+          'Локализация, SEO, светлая и тёмная темы',
+          'Localization, SEO, and light and dark themes',
+        ),
+      ],
+      links: [
+        {
+          url: 'https://github.com/streetraceing/streetraceing-site',
+          icon: FaGithub,
+          label: text('GitHub', 'GitHub'),
+        },
+      ],
+      relatedLinks: [],
+    },
   ],
   tools: [
     {
