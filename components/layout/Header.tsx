@@ -287,8 +287,8 @@ export function Header() {
   }
 
   return (
-    <div className="sticky top-0 z-50">
-      <header className="relative z-20 border-b bg-background/75 backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)]">
+    <div className="sticky top-0 z-50 bg-background/75 backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)]">
+      <header className="relative z-20 border-b">
         <Container className="grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-4 min-[1180px]:grid-cols-[auto_minmax(0,1fr)_auto]">
           <NextLink
             href="/"
