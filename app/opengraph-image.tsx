@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const alt = 'streetraceing — developer portfolio and projects';
+export const alt = 'streetraceing - developer portfolio and projects';
 export const size = {
   width: 1200,
   height: 630,

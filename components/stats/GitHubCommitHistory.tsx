@@ -33,7 +33,7 @@ export function GitHubCommitHistory({
   return (
     <Card
       variant="default"
-      className="min-w-0"
+      className="min-w-0 dark:bg-default/20"
       aria-labelledby="github-history-heading"
     >
       <Card.Header className="gap-3 sm:flex-row sm:items-start sm:justify-between border-b pb-3">

@@ -66,7 +66,11 @@ export function SkillsBarChart() {
   }
 
   return (
-    <Card variant="default" aria-labelledby="skills-chart-heading">
+    <Card
+      variant="default"
+      aria-labelledby="skills-chart-heading"
+      className="dark:bg-default/15"
+    >
       <Card.Header>
         <Card.Title id="skills-chart-heading">
           {copy.stats.skillsChartTitle}

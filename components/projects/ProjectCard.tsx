@@ -42,10 +42,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
     <>
       <Link
         href={`/project/${project.slug}`}
-        className="block h-full w-full text-left no-underline"
+        className="group block h-full w-full rounded-2xl text-left no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         onClick={openDetails}
       >
-        <Card className="project-card h-full overflow-hidden border-2 transition-transform hover:border-muted/50">
+        <Card className="h-full overflow-hidden border-0 dark:bg-default/20 transition-colors dark:group-hover:bg-default/50 dark:group-focus-visible:bg-default/50 group-hover:bg-white/50">
           <Card.Header className="gap-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">

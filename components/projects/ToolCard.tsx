@@ -16,10 +16,11 @@ export function ToolCard({ tool }: ToolCardProps) {
   const { copy, locale } = useLocale();
   const card = (
     <Card
+      variant="secondary"
       className={
         tool.status === 'planned'
-          ? 'h-full border-2 border-dashed opacity-80'
-          : 'h-full border-2 transition-colors hover:border-muted/50'
+          ? 'h-full border border-dashed bg-white dark:bg-default/15 opacity-80 transition-colors'
+          : 'h-full border border-transparent bg-white dark:bg-default/20 transition-colors dark:group-hover:bg-default/50 group-focus-visible:bg-default/50 group-hover:bg-white/50'
       }
     >
       <Card.Header className="gap-3">
@@ -69,7 +70,10 @@ export function ToolCard({ tool }: ToolCardProps) {
   }
 
   return (
-    <Link href={`/tool/${tool.slug}`} className="block h-full">
+    <Link
+      href={`/tool/${tool.slug}`}
+      className="group block h-full rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+    >
       {card}
     </Link>
   );

@@ -95,6 +95,8 @@ export const translations = {
       skillsTitle: 'Навыки и технологии',
       skillsDescription:
         'Стек, с которым работаю сейчас, изучаю или регулярно использую в проектах.',
+      showSkills: 'Показать навыки',
+      hideSkills: 'Скрыть навыки',
       projectsTitle: 'А вот мои проекты ({count}) кста',
       toolsTitle: 'Инструменты ({count}) чиста для удобства',
       projectsSearchLabel: 'Поиск по проектам',
@@ -208,7 +210,7 @@ export const translations = {
     tinyUrl: {
       title: 'Tiny URL и другие данные',
       description:
-        'Сохрани текст, ссылку, JSON или любые другие данные — получишь короткий адрес на этом домене.',
+        'Сохрани текст, ссылку, JSON или любые другие данные - получишь короткий адрес на этом домене.',
       sharedLinkTitle: 'Ссылка',
       sharedDataTitle: 'Сохранённые данные',
       sharedLinkDescription:
@@ -236,7 +238,7 @@ export const translations = {
       ownerDescription:
         'Этот список привязан к ключу в cookie текущего браузера.',
       emptyList:
-        'Пока ничего нет — первая запись появится здесь после сохранения.',
+        'Пока ничего нет - первая запись появится здесь после сохранения.',
       visits: 'Переходов: {count}',
       copyShortUrl: 'Скопировать короткий адрес',
       expires: 'Удалится {date}',
@@ -465,6 +467,8 @@ export const translations = {
       skillsTitle: 'Skills and technologies',
       skillsDescription:
         'The stack I currently use, study, or regularly apply in projects.',
+      showSkills: 'Show skills',
+      hideSkills: 'Hide skills',
       projectsTitle: 'My projects ({count})',
       toolsTitle: 'Tools ({count}) for convenience',
       projectsSearchLabel: 'Search projects',
@@ -603,7 +607,7 @@ export const translations = {
       yourData: 'Your saved data',
       ownerDescription:
         'This list is tied to the cookie key in the current browser.',
-      emptyList: 'Nothing here yet — your first saved item will appear here.',
+      emptyList: 'Nothing here yet - your first saved item will appear here.',
       visits: 'Visits: {count}',
       copyShortUrl: 'Copy short address',
       expires: 'Expires {date}',

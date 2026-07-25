@@ -6,16 +6,6 @@
   font-family: var(--font-petit-formal), cursive;
 }
 
-.project-card::before {
-  content: '';
-  pointer-events: none;
-  position: absolute;
-  inset: 0 0 auto;
-  z-index: 1;
-  height: 2px;
-  background-image: var(--project-gradient);
-}
-
 :root {
   --ripple-hover-opacity: 0.06;
   --ripple-pressed-opacity: 0.18;

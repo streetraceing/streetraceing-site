@@ -145,7 +145,7 @@ export const mainPageConfig: MainPageConfig = {
         'A Telegram bot for quickly downloading TikTok videos from a link.',
       ),
       longDescription: text(
-        'Простой и удобный Telegram-бот: отправляешь ссылку на ролик из TikTok — получаешь видео для сохранения. Исходный код проекта закрыт.',
+        'Простой и удобный Telegram-бот: отправляешь ссылку на ролик из TikTok - получаешь видео для сохранения. Исходный код проекта закрыт.',
         'A simple, convenient Telegram bot: send a TikTok video link and get the video to save. The source code is closed.',
       ),
       colors: ['#1C2C54', '#1394a6', '#22c55e'],
@@ -180,7 +180,7 @@ export const mainPageConfig: MainPageConfig = {
         'A private AI service for natural conversations through a personal Telegram account.',
       ),
       longDescription: text(
-        'TypeScript-сервис, который работает через MTProto и @mtcute от имени авторизованного Telegram-аккаунта. Он хранит контекст в PostgreSQL и использует несколько AI-провайдеров для анализа, принятия решений и генерации ответов — чтобы переписка ощущалась живой и последовательной.',
+        'TypeScript-сервис, который работает через MTProto и @mtcute от имени авторизованного Telegram-аккаунта. Он хранит контекст в PostgreSQL и использует несколько AI-провайдеров для анализа, принятия решений и генерации ответов - чтобы переписка ощущалась живой и последовательной.',
         'A TypeScript service that uses MTProto and @mtcute on behalf of an authorized Telegram account. It stores context in PostgreSQL and uses multiple AI providers for analysis, decisions, and response generation, making conversations feel natural and consistent.',
       ),
       colors: ['#21133e', '#a855f7', '#f472b6'],
@@ -293,12 +293,12 @@ Run \`npx @streetraceing/farsight --help\` to see every option.`,
         'A future open-source VS Code extension with a free AI coding agent.',
       ),
       longDescription: text(
-        'Symmetry — будущий бесплатный AI-агент в формате расширения для VS Code. Он сможет работать с локальными моделями и бесплатными AI-сервисами, например Ollama, Mistral или Cloudflare AI, чтобы помогать с кодом прямо в редакторе.',
+        'Symmetry - будущий бесплатный AI-агент в формате расширения для VS Code. Он сможет работать с локальными моделями и бесплатными AI-сервисами, например Ollama, Mistral или Cloudflare AI, чтобы помогать с кодом прямо в редакторе.',
         'Symmetry is a future free AI agent as a VS Code extension. It will work with local models and free AI services such as Ollama, Mistral, or Cloudflare AI to help directly in the editor.',
       ),
       colors: ['#0b1f3a', '#2563eb', '#38bdf8'],
       status: ['in-development', 'maintained', 'open-source'],
-      progress: 0,
+      progress: 50,
       technologies: [
         'VS Code',
         'TypeScript',

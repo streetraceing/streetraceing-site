@@ -74,7 +74,7 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
   const isCollapsed = isLong && !isExpanded;
 
   return (
-    <Card variant="default">
+    <Card variant="default" className="dark:bg-default/20">
       <Card.Header className="gap-2">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
