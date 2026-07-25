@@ -40,7 +40,7 @@ export function ToolOutput({ content, label }: ToolOutputProps) {
         </Button>
       </Card.Header>
       <Card.Content>
-        <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-default-soft p-3 text-sm leading-6">
+        <pre className="max-h-96 overflow-auto whitespace-pre-wrap wrap-break-word rounded-lg bg-default-soft p-3 text-sm leading-6">
           {content}
         </pre>
       </Card.Content>

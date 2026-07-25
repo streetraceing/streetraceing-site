@@ -68,7 +68,7 @@ export function GitHubCommitHistory({
 
       <Card.Content className="min-w-0 overflow-hidden">
         {feed.commits.length > 0 ? (
-          <ol className="md:max-h-96 max-h-48 min-w-0 overflow-y-auto overflow-x-hidden pr-1">
+          <ol className="md:max-h-96 max-h-60 min-w-0 overflow-y-auto overflow-x-hidden pr-1">
             {feed.commits.map((commit, index) => (
               <li key={`${commit.repository}:${commit.sha}`}>
                 <NextLink

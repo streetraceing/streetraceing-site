@@ -123,7 +123,7 @@ export function MarkdownFormattingToolbar({
   }
 
   return (
-    <Toolbar className="flex-wrap gap-1" aria-label={strings.toolbar}>
+    <Toolbar className="flex-wrap gap-1 flex" aria-label={strings.toolbar}>
       <ButtonGroup size="sm" variant="tertiary">
         <Button
           type="button"
@@ -208,9 +208,6 @@ export function MarkdownFormattingToolbar({
         >
           <Code2 className="size-4" />
         </Button>
-      </ButtonGroup>
-
-      <ButtonGroup size="sm" variant="tertiary">
         <Button
           type="button"
           isIconOnly
