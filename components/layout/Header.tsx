@@ -287,7 +287,7 @@ export function Header() {
   }
 
   return (
-    <div className="sticky top-0 z-50 bg-background/75 backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)]">
+    <div className="sticky top-0 z-50 sm:bg-background/75 backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)] bg-background">
       <header className="relative z-20 border-b">
         <Container className="grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-4 min-[1180px]:grid-cols-[auto_minmax(0,1fr)_auto]">
           <NextLink
@@ -373,7 +373,7 @@ export function Header() {
         >
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-0 bg-background/75 backdrop-blur-2xl [-webkit-backdrop-filter:blur(24px)]"
+            className="pointer-events-none absolute inset-0 z-0 bg-background sm:bg-background/75 backdrop-blur-2xl [-webkit-backdrop-filter:blur(24px)]"
           />
           <Container className="relative z-10 flex flex-col gap-4 py-4">
             <Typography.Heading level={2} className="text-base">
