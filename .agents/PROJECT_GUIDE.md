@@ -93,10 +93,11 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 
 ## Visual effects and public activity
 
-- `components/layout/Page.tsx` owns the decorative star-field backdrop. Keep it pointer-inert, theme-aware, and compatible with `prefers-reduced-motion`.
-- Custom visual colors live as light/dark CSS variables at the end of `app/globals.css`; derive accents from HeroUI semantic variables rather than hard-coding unrelated palettes.
+- `components/layout/Page.tsx` owns the decorative star-field backdrop. It uses the static transparent `public/images/space-stars.png` asset through `next/image`, so the background never loops or visibly resets. Keep it pointer-inert, theme-aware, and deliberately low-contrast.
+- Statistics, public commits, and biography skill surfaces use HeroUI components plus Tailwind utilities only. Do not add section-specific classes or visual rules to `app/globals.css`.
+- Use `next/link` for navigation links and `next/image` for raster images added to application UI.
 - Every application button uses the shared `components/ui/Button.tsx` composition. Compound HeroUI triggers and native SSR placeholders must include `ButtonRipple` directly without nesting one button inside another.
-- The statistics section renders a custom accessible bar chart and server-fetched public commits for `streetraceing`. The GitHub request is cached for one hour, fails closed to an unavailable state, and may use the optional server-only `GITHUB_TOKEN`.
+- The statistics section renders an accessible Tailwind bar chart inside a HeroUI Card and server-fetched public commits inside a matching HeroUI Card. The GitHub request is cached for one hour, fails closed to an unavailable state, and may use the optional server-only `GITHUB_TOKEN`.
 - Biography skill icons are registered once in `utils/skills.ts`.
 
 ## Project media and documentation
