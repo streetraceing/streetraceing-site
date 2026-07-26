@@ -71,8 +71,8 @@ export type ProjectConfig = {
   relatedLinks: ProjectLink[];
   screenshots?: ProjectScreenshot[];
   devLog?: ProjectDevLogEntry[];
-  /** Shared Markdown rendered on the dedicated project page. */
-  documentation?: string;
+  /** HTTPS URL of the source Markdown rendered on the dedicated project page. */
+  documentationUrl?: string;
   icon?: AnyIcon;
 };
 
@@ -249,8 +249,8 @@ export const mainPageConfig: MainPageConfig = {
         },
       ],
       relatedLinks: [],
-      documentation:
-        'Read the [full Farsight documentation](https://streetraceing.github.io/farsight/).',
+      documentationUrl:
+        'https://raw.githubusercontent.com/streetraceing/farsight/refs/heads/main/docs/README.md',
     },
     {
       slug: 'package',
@@ -295,8 +295,8 @@ export const mainPageConfig: MainPageConfig = {
         },
       ],
       relatedLinks: [],
-      documentation:
-        'Read the [full Package documentation](https://streetraceing.github.io/package/).',
+      documentationUrl:
+        'https://raw.githubusercontent.com/streetraceing/package/refs/heads/main/docs/README.md',
     },
     {
       slug: 'symmetry',

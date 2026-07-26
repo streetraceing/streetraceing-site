@@ -13,7 +13,7 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   scriptSource,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://res.cloudinary.com",
+  "img-src 'self' data: blob: https://res.cloudinary.com https://raw.githubusercontent.com",
   "font-src 'self' data:",
   "connect-src 'self' https://vitals.vercel-insights.com https://api.cloudinary.com https://res.cloudinary.com",
   'frame-src https://open.spotify.com',

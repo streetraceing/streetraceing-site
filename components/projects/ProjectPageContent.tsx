@@ -10,6 +10,7 @@ import { MarkdownContent } from '@/components/stats/MarkdownContent';
 import { mainPageConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
 import type { ProjectContentData } from '@/utils/project-content';
+import type { ProjectDocumentation } from '@/lib/project-documentation';
 import { Card, Typography } from '@heroui/react';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -21,9 +22,11 @@ import { ProjectDetails } from './ProjectDetails';
 export function ProjectPageContent({
   slug,
   initialContent,
+  documentation,
 }: {
   slug: string;
   initialContent: ProjectContentData;
+  documentation?: ProjectDocumentation;
 }) {
   const { copy, locale } = useLocale();
   const project = mainPageConfig.projects.find(
@@ -72,7 +75,7 @@ export function ProjectPageContent({
           </Card.Footer>
         </Card>
 
-        {project.documentation?.trim() ? (
+        {documentation ? (
           <Card className="mx-auto w-full max-w-4xl">
             <Card.Header>
               <Typography.Heading level={2}>
@@ -80,7 +83,10 @@ export function ProjectPageContent({
               </Typography.Heading>
             </Card.Header>
             <Card.Content>
-              <MarkdownContent content={project.documentation} />
+              <MarkdownContent
+                content={documentation.content}
+                baseUrl={documentation.sourceUrl}
+              />
             </Card.Content>
           </Card>
         ) : null}

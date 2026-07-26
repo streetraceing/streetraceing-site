@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { ProjectPageContent } from '@/components/projects/ProjectPageContent';
 import { readProjectContent } from '@/lib/project-content';
+import { readProjectDocumentation } from '@/lib/project-documentation';
 import { getServerLocale } from '@/lib/server-locale';
 import { mainPageConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
@@ -46,7 +47,10 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     notFound();
   }
 
-  const content = await readProjectContent(project.slug);
+  const [content, documentation] = await Promise.all([
+    readProjectContent(project.slug),
+    readProjectDocumentation(project.documentationUrl),
+  ]);
 
   if (!content) {
     notFound();
@@ -55,7 +59,11 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   return (
     <>
       <JsonLd data={createProjectJsonLd(project, locale)} />
-      <ProjectPageContent slug={project.slug} initialContent={content} />
+      <ProjectPageContent
+        slug={project.slug}
+        initialContent={content}
+        documentation={documentation}
+      />
     </>
   );
 }
