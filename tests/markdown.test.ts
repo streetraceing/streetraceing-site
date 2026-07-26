@@ -1,12 +1,37 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { fromMarkdown } from 'mdast-util-from-markdown';
 
 import {
   insertMarkdownLink,
+  remarkGfmTables,
   toggleMarkdownDecoration,
   toggleMarkdownLinePrefix,
   wrapMarkdownBlock,
 } from '../utils/markdown';
+
+test('turns a GFM table into a table AST with aligned Markdown cells', () => {
+  const content = [
+    '| Name | State |',
+    '| :--- | :---: |',
+    '| **Package** | `ready` |',
+  ].join('\n');
+  const tree = fromMarkdown(content);
+
+  remarkGfmTables()(tree as never, { value: content });
+
+  const table = tree.children[0] as unknown as {
+    type: string;
+    align: Array<string | null>;
+    children: Array<{
+      children: Array<{ children: Array<{ type: string }> }>;
+    }>;
+  };
+
+  assert.equal(table.type, 'table');
+  assert.deepEqual(table.align, ['left', 'center']);
+  assert.equal(table.children[1]?.children[0]?.children[0]?.type, 'strong');
+});
 
 test('wraps a selected Markdown fragment with underline delimiters', () => {
   assert.deepEqual(toggleMarkdownDecoration('hello', 0, 5, '++'), {

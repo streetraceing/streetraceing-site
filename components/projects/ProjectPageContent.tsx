@@ -77,11 +77,6 @@ export function ProjectPageContent({
 
         {documentation ? (
           <Card className="mx-auto w-full max-w-4xl">
-            <Card.Header>
-              <Typography.Heading level={2}>
-                {copy.project.documentation}
-              </Typography.Heading>
-            </Card.Header>
             <Card.Content>
               <MarkdownContent
                 content={documentation.content}

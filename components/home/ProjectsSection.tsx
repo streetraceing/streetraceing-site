@@ -41,7 +41,7 @@ export function ProjectsSection() {
   const { copy, locale } = useLocale();
   const [query, setQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<ProjectStatus>();
-  const [sort, setSort] = useState<ProjectSort>('relevance');
+  const [sort, setSort] = useState<ProjectSort>('progress-desc');
 
   const search = useMemo(
     () =>

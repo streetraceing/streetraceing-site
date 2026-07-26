@@ -32,6 +32,7 @@
     "fuse.js": "^7.5.0",
     "highlight.js": "^11.11.1",
     "lucide-react": "^1.26.0",
+    "mdast-util-from-markdown": "^2.0.3",
     "next": "16.2.11",
     "pg": "^8.22.0",
     "react": "19.2.8",
