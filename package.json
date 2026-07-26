@@ -16,7 +16,6 @@
     "db:studio": "drizzle-kit studio --port 7777",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "package:archive": "tsx scripts/package-archive",
     "test": "tsx --test tests/*.test.ts"
   },
   "lint-staged": {
@@ -45,17 +44,14 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/archiver": "^8.0.0",
     "@types/node": "^20.19.43",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "archiver": "^8.0.0",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.2.11",
-    "globby": "^16.2.2",
     "husky": "^9.1.7",
     "lint-staged": "^17.2.0",
     "prettier": "3.9.6",
