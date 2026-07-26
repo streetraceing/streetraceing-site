@@ -1,4 +1,3 @@
-import { useMediaQuery } from '@heroui/react';
 import clsx from 'clsx';
 
 export interface PageProps extends React.ComponentPropsWithoutRef<'main'> {

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { after } from 'next/server';
 import { and, eq, gt, sql } from 'drizzle-orm';
 
 import { SharedDataContent } from '@/components/tiny-url/SharedDataContent';
@@ -53,13 +54,14 @@ export default async function SharedDataPage({
     notFound();
   }
 
+  const retentionThreshold = getTinyUrlRetentionThreshold();
   const [item] = await db
     .select({ content: shortUrls.content })
     .from(shortUrls)
     .where(
       and(
         eq(shortUrls.code, code),
-        gt(shortUrls.createdAt, getTinyUrlRetentionThreshold()),
+        gt(shortUrls.createdAt, retentionThreshold),
       ),
     )
     .limit(1);
@@ -68,10 +70,21 @@ export default async function SharedDataPage({
     notFound();
   }
 
-  await db
-    .update(shortUrls)
-    .set({ visitCount: sql`${shortUrls.visitCount} + 1` })
-    .where(eq(shortUrls.code, code));
+  after(async () => {
+    try {
+      await db
+        .update(shortUrls)
+        .set({ visitCount: sql`${shortUrls.visitCount} + 1` })
+        .where(
+          and(
+            eq(shortUrls.code, code),
+            gt(shortUrls.createdAt, retentionThreshold),
+          ),
+        );
+    } catch (error) {
+      console.error('Could not increment the Tiny URL visit counter.', error);
+    }
+  });
 
   const externalUrl = getExternalUrl(item.content);
 

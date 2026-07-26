@@ -10,6 +10,18 @@ type CloudinaryConfig = {
 
 type CloudinarySignatureValue = boolean | number | string;
 
+type CloudinaryDestroyResponse = {
+  result?: unknown;
+  error?: { message?: unknown };
+};
+
+export type CloudinaryDeleteResult = {
+  requested: number;
+  deleted: number;
+  notFound: number;
+  failed: number;
+};
+
 export function getCloudinaryConfig(): CloudinaryConfig | undefined {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
   const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
@@ -39,7 +51,7 @@ export function createCloudinarySignature(
 async function deleteCloudinaryAsset(
   config: CloudinaryConfig,
   publicId: string,
-) {
+): Promise<'deleted' | 'not-found'> {
   const timestamp = Math.floor(Date.now() / 1_000);
   const parameters = {
     invalidate: true,
@@ -57,21 +69,56 @@ async function deleteCloudinaryAsset(
   );
   body.set('timestamp', String(timestamp));
 
-  await fetch(
+  const response = await fetch(
     `https://api.cloudinary.com/v1_1/${encodeURIComponent(config.cloudName)}/image/destroy`,
     {
       method: 'POST',
       body,
       cache: 'no-store',
+      signal: AbortSignal.timeout(10_000),
     },
   );
+  const result = (await response
+    .json()
+    .catch(() => ({}))) as CloudinaryDestroyResponse;
+  const destroyResult =
+    typeof result.result === 'string' ? result.result.toLowerCase() : undefined;
+
+  if (!response.ok) {
+    const message =
+      typeof result.error?.message === 'string'
+        ? result.error.message
+        : `Cloudinary returned HTTP ${response.status}.`;
+
+    throw new Error(message);
+  }
+
+  if (destroyResult === 'ok') {
+    return 'deleted';
+  }
+
+  if (destroyResult === 'not found') {
+    return 'not-found';
+  }
+
+  throw new Error('Cloudinary returned an unexpected destroy result.');
 }
 
-export async function deleteCloudinaryMedia(urls: string[]) {
+export async function deleteCloudinaryMedia(
+  urls: string[],
+): Promise<CloudinaryDeleteResult> {
   const config = getCloudinaryConfig();
 
   if (!config) {
-    return;
+    const requested = new Set(urls).size;
+
+    if (requested > 0) {
+      console.error(
+        'Cloudinary deletion is unavailable because its credentials are incomplete.',
+      );
+    }
+
+    return { requested, deleted: 0, notFound: 0, failed: requested };
   }
 
   const publicIds = [
@@ -81,8 +128,24 @@ export async function deleteCloudinaryMedia(urls: string[]) {
         .filter((publicId): publicId is string => Boolean(publicId)),
     ),
   ];
-
-  await Promise.allSettled(
-    publicIds.map((publicId) => deleteCloudinaryAsset(config, publicId)),
+  const outcomes = await Promise.all(
+    publicIds.map(async (publicId) => {
+      try {
+        return await deleteCloudinaryAsset(config, publicId);
+      } catch (error) {
+        console.error(
+          `Could not delete Cloudinary asset "${publicId}".`,
+          error,
+        );
+        return 'failed' as const;
+      }
+    }),
   );
+
+  return {
+    requested: publicIds.length,
+    deleted: outcomes.filter((outcome) => outcome === 'deleted').length,
+    notFound: outcomes.filter((outcome) => outcome === 'not-found').length,
+    failed: outcomes.filter((outcome) => outcome === 'failed').length,
+  };
 }

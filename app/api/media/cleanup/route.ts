@@ -31,7 +31,14 @@ export async function POST(request: Request) {
     MAX_MEDIA_IMAGES,
     process.env.CLOUDINARY_CLOUD_NAME,
   );
-  await deleteCloudinaryMedia(urls);
+  const result = await deleteCloudinaryMedia(urls);
 
-  return NextResponse.json({ deleted: urls.length });
+  if (result.failed > 0) {
+    return NextResponse.json(
+      { error: strings.cleanupFailed, ...result },
+      { status: 502 },
+    );
+  }
+
+  return NextResponse.json(result);
 }

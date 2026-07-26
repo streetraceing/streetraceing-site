@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gt, lte, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gt, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
@@ -87,8 +87,6 @@ export async function GET(request: NextRequest) {
   const threshold = getTinyUrlRetentionThreshold();
 
   try {
-    await db.delete(shortUrls).where(lte(shortUrls.createdAt, threshold));
-
     const items = await db
       .select({
         code: shortUrls.code,
@@ -197,10 +195,6 @@ export async function POST(request: NextRequest) {
           await transaction.execute(
             sql`select pg_advisory_xact_lock(hashtext(${ownerToken}))`,
           );
-          await transaction
-            .delete(shortUrls)
-            .where(lte(shortUrls.createdAt, threshold));
-
           const [ownerCount] = await transaction
             .select({ total: count() })
             .from(shortUrls)

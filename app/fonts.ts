@@ -1,5 +1,4 @@
-import { Geist, Geist_Mono } from 'next/font/google';
-import localFont from 'next/font/local';
+import { Geist, Geist_Mono, Petit_Formal_Script } from 'next/font/google';
 
 export const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -11,13 +10,8 @@ export const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-export const petitFormal = localFont({
-  src: [
-    {
-      path: '../public/fonts/PetitFormalScript.ttf',
-      weight: '400',
-      style: 'normal',
-    },
-  ],
+export const petitFormal = Petit_Formal_Script({
   variable: '--font-petit-formal',
+  subsets: ['latin'],
+  weight: '400',
 });

@@ -13,13 +13,13 @@ import {
   Typography,
 } from '@heroui/react';
 import { ChevronDown, X } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthorSession, useLocale } from '@/app/providers';
 import { MediaGallery } from '@/components/media/MediaGallery';
 import { GitHubCommitHistory } from '@/components/stats/GitHubCommitHistory';
 import { SkillsBarChart } from '@/components/stats/SkillsBarChart';
-import StatsAuthorControls from '@/components/stats/StatsAuthorControls';
 import { HOME_LAYOUT_SETTLED_EVENT } from '@/utils/client-events';
 import { getLocaleTag } from '@/utils/i18n';
 import {
@@ -30,7 +30,6 @@ import {
   type DevUpdateTopic,
 } from '@/utils/stats';
 
-import DevUpdateAuthorActions from './DevUpdateAuthorActions';
 import { MarkdownContent } from './MarkdownContent';
 import type {
   DevUpdate,
@@ -38,6 +37,13 @@ import type {
   DevUpdatesFeed,
   PublicGitHubCommitFeed,
 } from './types';
+
+const StatsAuthorControls = dynamic(
+  () => import('@/components/stats/StatsAuthorControls'),
+);
+const DevUpdateAuthorActions = dynamic(
+  () => import('./DevUpdateAuthorActions'),
+);
 
 const ALL_FILTER_ID = 'all';
 

@@ -12,17 +12,27 @@ import {
   Typography,
 } from '@heroui/react';
 import { Images, Pencil, Save } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { type FormEvent, useRef, useState } from 'react';
 
 import { useAuthorSession, useLocale } from '@/app/providers';
-import { MediaAttachmentsField } from '@/components/media/MediaAttachmentsField';
 import { MediaGallery } from '@/components/media/MediaGallery';
 import { MarkdownContent } from '@/components/stats/MarkdownContent';
-import { MarkdownFormattingToolbar } from '@/components/stats/MarkdownFormattingToolbar';
 import type { ProjectConfig } from '@/utils/config';
 import { uploadMediaFiles } from '@/utils/media-client';
 import { MAX_PROJECT_IMAGES } from '@/utils/media';
 import type { ProjectContentData } from '@/utils/project-content';
+
+const MediaAttachmentsField = dynamic(() =>
+  import('@/components/media/MediaAttachmentsField').then(
+    (module) => module.MediaAttachmentsField,
+  ),
+);
+const MarkdownFormattingToolbar = dynamic(() =>
+  import('@/components/stats/MarkdownFormattingToolbar').then(
+    (module) => module.MarkdownFormattingToolbar,
+  ),
+);
 
 type ProjectContentSectionProps = {
   project: ProjectConfig;

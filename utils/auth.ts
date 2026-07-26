@@ -4,11 +4,19 @@ import { cookies } from 'next/headers';
 
 const ADMIN_SESSION_COOKIE = 'streetraceing_admin_session';
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+const MIN_ADMIN_PASSWORD_LENGTH = 12;
 const MIN_AUTH_SECRET_LENGTH = 32;
 
 type AdminSessionPayload = {
   exp: number;
 };
+
+function getAdminPassword() {
+  const password = process.env.ADMIN_PASSWORD;
+  return password && password.length >= MIN_ADMIN_PASSWORD_LENGTH
+    ? password
+    : undefined;
+}
 
 function getAuthSecret() {
   const secret = process.env.AUTH_SECRET;
@@ -36,11 +44,11 @@ function safePasswordEqual(first: string, second: string) {
 }
 
 export function isAuthConfigured() {
-  return Boolean(process.env.ADMIN_PASSWORD && getAuthSecret());
+  return Boolean(getAdminPassword() && getAuthSecret());
 }
 
 export function isValidAdminPassword(password: string) {
-  const expectedPassword = process.env.ADMIN_PASSWORD;
+  const expectedPassword = getAdminPassword();
 
   return Boolean(
     expectedPassword && safePasswordEqual(password, expectedPassword),

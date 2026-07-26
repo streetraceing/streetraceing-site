@@ -133,9 +133,10 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 - Public content is limited to 20,000 characters.
 - Each anonymous owner is limited to 100 active items.
 - Items expire after 30 days and can be deleted by the browser that created them.
+- `vercel.json` invokes `/api/cron/short-urls` daily; configure `CRON_SECRET` so expired database rows are removed outside user requests.
 - History endpoints return previews and metadata, not full stored content.
 - Shared pages must remain `noindex`.
 
 ## Handoff format
 
-After code changes, package only changed and newly added files while preserving their repository paths. Provide the archive under the heading `скачать архив`, followed by one concise Git commit message.
+After code changes, package only changed and newly added files while preserving their repository paths. Static files under `public/` are application sources and must not be excluded. Provide the archive under the heading `скачать архив`, followed by one concise Git commit message.

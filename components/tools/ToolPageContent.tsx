@@ -10,19 +10,23 @@ import { mainPageConfig, type GenericToolComponent } from '@/utils/config';
 import { getText } from '@/utils/i18n';
 import { Card, Typography } from '@heroui/react';
 import { ArrowLeft } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import type { ComponentType } from 'react';
 
-import { Base64Tool } from './Base64Tool';
-import { JsonViewerTool } from './JsonViewerTool';
-import { TextToolsTool } from './TextToolsTool';
-import { UuidGeneratorTool } from './UuidGeneratorTool';
-
 const toolComponents: Record<GenericToolComponent, ComponentType> = {
-  'json-viewer': JsonViewerTool,
-  'uuid-generator': UuidGeneratorTool,
-  'text-tools': TextToolsTool,
-  base64: Base64Tool,
+  'json-viewer': dynamic(() =>
+    import('./JsonViewerTool').then((module) => module.JsonViewerTool),
+  ),
+  'uuid-generator': dynamic(() =>
+    import('./UuidGeneratorTool').then((module) => module.UuidGeneratorTool),
+  ),
+  'text-tools': dynamic(() =>
+    import('./TextToolsTool').then((module) => module.TextToolsTool),
+  ),
+  base64: dynamic(() =>
+    import('./Base64Tool').then((module) => module.Base64Tool),
+  ),
 };
 
 export function ToolPageContent({ slug }: { slug: string }) {

@@ -416,6 +416,7 @@ export const translations = {
         notConfigured: 'Хранилище фотографий не настроено.',
         invalid: 'Некорректный запрос загрузки.',
         uploadFailed: 'Не удалось загрузить фотографию.',
+        cleanupFailed: 'Не удалось удалить часть фотографий из хранилища.',
       },
       tinyUrl: {
         loadFailed: 'Не удалось загрузить сохранённые данные.',
@@ -786,6 +787,7 @@ export const translations = {
         notConfigured: 'Photo storage is not configured.',
         invalid: 'Invalid upload request.',
         uploadFailed: 'Could not upload the photo.',
+        cleanupFailed: 'Could not remove some photos from storage.',
       },
       tinyUrl: {
         loadFailed: 'Could not load saved data.',

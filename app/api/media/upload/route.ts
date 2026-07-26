@@ -18,6 +18,8 @@ import { parseNonNegativeInteger } from '@/utils/numbers';
 
 export const runtime = 'nodejs';
 
+const CLOUDINARY_ALLOWED_FORMATS = 'avif,jpeg,jpg,png,webp';
+
 type UploadAuthorizationRequest = {
   scope?: unknown;
   index?: unknown;
@@ -74,11 +76,17 @@ export async function POST(request: Request) {
   const publicId = createMediaPublicId(scope, index);
   const timestamp = Math.floor(Date.now() / 1_000);
   const signature = createCloudinarySignature(
-    { overwrite: false, public_id: publicId, timestamp },
+    {
+      allowed_formats: CLOUDINARY_ALLOWED_FORMATS,
+      overwrite: false,
+      public_id: publicId,
+      timestamp,
+    },
     config.apiSecret,
   );
 
   return NextResponse.json({
+    allowedFormats: CLOUDINARY_ALLOWED_FORMATS,
     apiKey: config.apiKey,
     cloudName: config.cloudName,
     publicId,

@@ -6,6 +6,7 @@ import {
 } from '@/utils/media';
 
 type CloudinaryUploadAuthorization = {
+  allowedFormats: string;
   apiKey: string;
   cloudName: string;
   publicId: string;
@@ -33,6 +34,7 @@ async function requestUploadAuthorization(
 
   if (
     !response.ok ||
+    !body.allowedFormats ||
     !body.apiKey ||
     !body.cloudName ||
     !body.publicId ||
@@ -51,6 +53,7 @@ async function uploadOriginalFile(
 ) {
   const body = new FormData();
 
+  body.set('allowed_formats', authorization.allowedFormats);
   body.set('api_key', authorization.apiKey);
   body.set('file', file);
   body.set('overwrite', 'false');
@@ -79,21 +82,49 @@ async function uploadOriginalFile(
 }
 
 export async function uploadMediaFiles(files: File[], scope: MediaUploadScope) {
-  const uploadedUrls: string[] = [];
+  const uploadedUrls = new Array<string | undefined>(files.length);
+  const maximumConcurrency = Math.min(3, files.length);
+  let nextIndex = 0;
+  let firstError: unknown;
 
-  try {
-    for (const [index, file] of files.entries()) {
-      const authorization = await requestUploadAuthorization(scope, index);
-      const url = await uploadOriginalFile(file, authorization);
+  async function uploadNextFile() {
+    while (!firstError) {
+      const index = nextIndex;
+      nextIndex += 1;
 
-      uploadedUrls.push(url);
+      if (index >= files.length) {
+        return;
+      }
+
+      const file = files[index];
+
+      if (!file) {
+        return;
+      }
+
+      try {
+        const authorization = await requestUploadAuthorization(scope, index);
+        uploadedUrls[index] = await uploadOriginalFile(file, authorization);
+      } catch (error) {
+        firstError = error;
+      }
     }
-
-    return uploadedUrls;
-  } catch (error) {
-    await cleanupUploadedMedia(uploadedUrls);
-    throw error;
   }
+
+  await Promise.all(
+    Array.from({ length: maximumConcurrency }, () => uploadNextFile()),
+  );
+
+  const completedUrls = uploadedUrls.filter(
+    (url): url is string => typeof url === 'string',
+  );
+
+  if (firstError) {
+    await cleanupUploadedMedia(completedUrls);
+    throw firstError;
+  }
+
+  return completedUrls;
 }
 
 export async function cleanupUploadedMedia(urls: string[]) {
@@ -102,12 +133,17 @@ export async function cleanupUploadedMedia(urls: string[]) {
   }
 
   try {
-    await fetch('/api/media/cleanup', {
+    const response = await fetch('/api/media/cleanup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ urls }),
     });
-  } catch {
+
+    if (!response.ok) {
+      console.error('Could not clean up uploaded media.');
+    }
+  } catch (error) {
+    console.error('Could not clean up uploaded media.', error);
     // Cleanup is best-effort. The saved database record remains the source of truth.
   }
 }
