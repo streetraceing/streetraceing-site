@@ -164,15 +164,9 @@ export const translations = {
       highlights: 'Что умеет',
       screenshots: 'Скриншоты',
       devLog: 'Dev log',
-      projectContent: 'Материалы проекта',
-      editContent: 'Редактировать материалы',
+      projectContent: 'Галерея проекта',
+      editContent: 'Редактировать фотографии',
       documentation: 'Документация',
-      documentationRu: 'Документация на русском',
-      documentationEn: 'Документация на английском',
-      documentationPlaceholder:
-        'Описание, установка, использование, примеры и другие детали проекта…',
-      markdownDocumentationHint:
-        'Поддерживается Markdown, включая ++подчёркивание++ и ~~зачёркивание~~. Документация отображается только на странице этого проекта.',
       images: 'Фотографии проекта',
       projectImagesDescription:
         'До 20 фотографий. Оригинал загружается напрямую в Cloudinary, а на сайте показывается квадратное превью 1080 × 1080.',
@@ -182,11 +176,9 @@ export const translations = {
       imageTooLarge: 'Исходный файл должен быть не больше 10 МБ.',
       imageLimit: 'Превышен лимит фотографий.',
       imageAlt: 'Фотография {index} проекта {name}',
-      emptyProjectContent:
-        'Добавь фотографии или Markdown-документацию проекта.',
-      contentSaveFailed: 'Не удалось сохранить материалы проекта.',
+      contentSaveFailed: 'Не удалось сохранить фотографии проекта.',
       cancel: 'Отмена',
-      saveContent: 'Сохранить материалы',
+      saveContent: 'Сохранить фотографии',
       status: {
         'in-development': 'В разработке',
         released: 'Готов',
@@ -407,10 +399,9 @@ export const translations = {
       },
       projectContent: {
         notFound: 'Проект не найден.',
-        invalid: 'Некорректные материалы проекта.',
-        tooLong: 'Документация проекта слишком длинная.',
+        invalid: 'Некорректные данные галереи проекта.',
         databaseMissing: 'База данных не настроена. Проверь DATABASE_URL.',
-        saveFailed: 'Не удалось сохранить материалы проекта.',
+        saveFailed: 'Не удалось сохранить фотографии проекта.',
       },
       media: {
         notConfigured: 'Хранилище фотографий не настроено.',
@@ -537,15 +528,9 @@ export const translations = {
       highlights: 'Highlights',
       screenshots: 'Screenshots',
       devLog: 'Dev log',
-      projectContent: 'Project materials',
-      editContent: 'Edit materials',
+      projectContent: 'Project gallery',
+      editContent: 'Edit photos',
       documentation: 'Documentation',
-      documentationRu: 'Documentation in Russian',
-      documentationEn: 'Documentation in English',
-      documentationPlaceholder:
-        'Overview, installation, usage, examples, and other project details…',
-      markdownDocumentationHint:
-        'Markdown is supported, including ++underline++ and ~~strikethrough~~. Documentation is shown only on this project page.',
       images: 'Project photos',
       projectImagesDescription:
         'Up to 20 photos. The original is uploaded directly to Cloudinary, while the site displays a square 1080 × 1080 preview.',
@@ -555,10 +540,9 @@ export const translations = {
       imageTooLarge: 'The source file must be no larger than 10 MB.',
       imageLimit: 'The photo limit has been exceeded.',
       imageAlt: 'Photo {index} of the {name} project',
-      emptyProjectContent: 'Add project photos or Markdown documentation.',
-      contentSaveFailed: 'Could not save the project materials.',
+      contentSaveFailed: 'Could not save the project photos.',
       cancel: 'Cancel',
-      saveContent: 'Save materials',
+      saveContent: 'Save photos',
       status: {
         'in-development': 'In development',
         released: 'Released',
@@ -778,10 +762,9 @@ export const translations = {
       },
       projectContent: {
         notFound: 'Project not found.',
-        invalid: 'Invalid project materials.',
-        tooLong: 'Project documentation is too long.',
+        invalid: 'Invalid project gallery data.',
         databaseMissing: 'The database is not configured. Check DATABASE_URL.',
-        saveFailed: 'Could not save the project materials.',
+        saveFailed: 'Could not save the project photos.',
       },
       media: {
         notConfigured: 'Photo storage is not configured.',

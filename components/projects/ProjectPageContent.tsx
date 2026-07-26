@@ -6,6 +6,7 @@ import { Container } from '@/components/layout/Container';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
 import { Page } from '@/components/layout/Page';
+import { MarkdownContent } from '@/components/stats/MarkdownContent';
 import { mainPageConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
 import type { ProjectContentData } from '@/utils/project-content';
@@ -70,6 +71,19 @@ export function ProjectPageContent({
             <ProjectActions project={project} />
           </Card.Footer>
         </Card>
+
+        {project.documentation?.trim() ? (
+          <Card className="mx-auto w-full max-w-4xl">
+            <Card.Header>
+              <Typography.Heading level={2}>
+                {copy.project.documentation}
+              </Typography.Heading>
+            </Card.Header>
+            <Card.Content>
+              <MarkdownContent content={project.documentation} />
+            </Card.Content>
+          </Card>
+        ) : null}
 
         <div className="mx-auto w-full max-w-4xl">
           <ProjectContentSection

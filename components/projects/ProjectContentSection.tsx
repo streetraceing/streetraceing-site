@@ -1,23 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/Button';
-import {
-  Alert,
-  Description,
-  Form,
-  Label,
-  Modal,
-  TextArea,
-  TextField,
-  Typography,
-} from '@heroui/react';
+import { Alert, Form, Modal, Typography } from '@heroui/react';
 import { Images, Pencil, Save } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { type FormEvent, useRef, useState } from 'react';
+import { type FormEvent, useState } from 'react';
 
 import { useAuthorSession, useLocale } from '@/app/providers';
 import { MediaGallery } from '@/components/media/MediaGallery';
-import { MarkdownContent } from '@/components/stats/MarkdownContent';
 import type { ProjectConfig } from '@/utils/config';
 import { uploadMediaFiles } from '@/utils/media-client';
 import { MAX_PROJECT_IMAGES } from '@/utils/media';
@@ -26,11 +16,6 @@ import type { ProjectContentData } from '@/utils/project-content';
 const MediaAttachmentsField = dynamic(() =>
   import('@/components/media/MediaAttachmentsField').then(
     (module) => module.MediaAttachmentsField,
-  ),
-);
-const MarkdownFormattingToolbar = dynamic(() =>
-  import('@/components/stats/MarkdownFormattingToolbar').then(
-    (module) => module.MarkdownFormattingToolbar,
   ),
 );
 
@@ -43,30 +28,18 @@ export function ProjectContentSection({
   project,
   initialContent,
 }: ProjectContentSectionProps) {
-  const { copy, locale } = useLocale();
+  const { copy } = useLocale();
   const { session } = useAuthorSession();
   const strings = copy.project;
   const [content, setContent] = useState(initialContent);
-  const [documentationRu, setDocumentationRu] = useState(
-    initialContent.documentation.ru,
-  );
-  const [documentationEn, setDocumentationEn] = useState(
-    initialContent.documentation.en,
-  );
   const [existingUrls, setExistingUrls] = useState(initialContent.imageUrls);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [saveError, setSaveError] = useState<string>();
   const [isSaving, setIsSaving] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const documentationRuRef = useRef<HTMLTextAreaElement>(null);
-  const documentationEnRef = useRef<HTMLTextAreaElement>(null);
-  const documentation = content.documentation[locale];
-  const hasPublicContent =
-    Boolean(documentation.trim()) || content.imageUrls.length > 0;
+  const hasPublicContent = content.imageUrls.length > 0;
 
   function resetEditor() {
-    setDocumentationRu(content.documentation.ru);
-    setDocumentationEn(content.documentation.en);
     setExistingUrls(content.imageUrls);
     setPendingFiles([]);
     setSaveError(undefined);
@@ -94,10 +67,6 @@ export function ProjectContentSection({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          documentation: {
-            ru: documentationRu,
-            en: documentationEn,
-          },
           imageUrls,
           uploadedImageUrls: uploadedUrls,
         }),
@@ -165,56 +134,6 @@ export function ProjectContentSection({
                           <Modal.Heading>{strings.editContent}</Modal.Heading>
                         </Modal.Header>
                         <Modal.Body className="flex flex-col gap-5">
-                          <div className="flex flex-col gap-2">
-                            <TextField
-                              fullWidth
-                              value={documentationRu}
-                              onChange={setDocumentationRu}
-                            >
-                              <Label>{strings.documentationRu}</Label>
-                              <TextArea
-                                ref={documentationRuRef}
-                                rows={12}
-                                maxLength={50_000}
-                                variant="secondary"
-                                placeholder={strings.documentationPlaceholder}
-                              />
-                              <Description>
-                                {strings.markdownDocumentationHint}
-                              </Description>
-                            </TextField>
-                            <MarkdownFormattingToolbar
-                              value={documentationRu}
-                              onChange={setDocumentationRu}
-                              textareaRef={documentationRuRef}
-                            />
-                          </div>
-
-                          <div className="flex flex-col gap-2">
-                            <TextField
-                              fullWidth
-                              value={documentationEn}
-                              onChange={setDocumentationEn}
-                            >
-                              <Label>{strings.documentationEn}</Label>
-                              <TextArea
-                                ref={documentationEnRef}
-                                rows={12}
-                                maxLength={50_000}
-                                variant="secondary"
-                                placeholder={strings.documentationPlaceholder}
-                              />
-                              <Description>
-                                {strings.markdownDocumentationHint}
-                              </Description>
-                            </TextField>
-                            <MarkdownFormattingToolbar
-                              value={documentationEn}
-                              onChange={setDocumentationEn}
-                              textareaRef={documentationEnRef}
-                            />
-                          </div>
-
                           <MediaAttachmentsField
                             existingUrls={existingUrls}
                             pendingFiles={pendingFiles}
@@ -278,19 +197,6 @@ export function ProjectContentSection({
             }
           />
         </div>
-      ) : null}
-
-      {documentation.trim() ? (
-        <article className="flex flex-col gap-3">
-          <Typography.Heading level={3} className="mb-4">
-            {strings.documentation}
-          </Typography.Heading>
-          <MarkdownContent content={documentation} />
-        </article>
-      ) : session?.authenticated ? (
-        <Typography.Paragraph className="text-sm text-muted">
-          {strings.emptyProjectContent}
-        </Typography.Paragraph>
       ) : null}
     </section>
   );

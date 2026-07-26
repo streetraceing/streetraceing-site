@@ -10,6 +10,7 @@ import {
   Home,
   KeyRound,
   LucideIcon,
+  Package,
   PackageSearch,
   Sparkles,
 } from 'lucide-react';
@@ -70,7 +71,8 @@ export type ProjectConfig = {
   relatedLinks: ProjectLink[];
   screenshots?: ProjectScreenshot[];
   devLog?: ProjectDevLogEntry[];
-  documentation?: LocalizedText;
+  /** Shared Markdown rendered on the dedicated project page. */
+  documentation?: string;
   icon?: AnyIcon;
 };
 
@@ -247,42 +249,54 @@ export const mainPageConfig: MainPageConfig = {
         },
       ],
       relatedLinks: [],
-      documentation: text(
-        `#### Установка и запуск
-
-Farsight требует Node.js 18 или новее и запускается без глобальной установки:
-
-\`\`\`bash
-npx @streetraceing/farsight --cwd /path/to/project
-\`\`\`
-
-#### Полезные режимы
-
-\`\`\`bash
-npx @streetraceing/farsight --cwd /path/to/project --json
-npx @streetraceing/farsight --cwd /path/to/project --since=30 --top=5
-npx @streetraceing/farsight --cwd /path/to/project --no-network
-\`\`\`
-
-Полный список параметров доступен через \`npx @streetraceing/farsight --help\`.`,
-        `#### Install and run
-
-Farsight requires Node.js 18 or newer and can run without a global installation:
-
-\`\`\`bash
-npx @streetraceing/farsight --cwd /path/to/project
-\`\`\`
-
-#### Useful modes
-
-\`\`\`bash
-npx @streetraceing/farsight --cwd /path/to/project --json
-npx @streetraceing/farsight --cwd /path/to/project --since=30 --top=5
-npx @streetraceing/farsight --cwd /path/to/project --no-network
-\`\`\`
-
-Run \`npx @streetraceing/farsight --help\` to see every option.`,
+      documentation:
+        'Read the [full Farsight documentation](https://streetraceing.github.io/farsight/).',
+    },
+    {
+      slug: 'package',
+      name: 'Package',
+      icon: Package,
+      shortDescription: text(
+        'TypeScript CLI для ZIP-упаковки и управления проектами.',
+        'A TypeScript CLI for ZIP packaging and project management.',
       ),
+      longDescription: text(
+        'Package помогает собирать проекты в ZIP-архивы и управлять настройками упаковки через понятный конфиг.',
+        'Package helps bundle projects into ZIP archives and manage packaging through a clear configuration file.',
+      ),
+      colors: ['#0f172a', '#0ea5e9', '#8b5cf6'],
+      status: ['released', 'maintained', 'open-source'],
+      progress: 100,
+      technologies: ['TypeScript', 'Node.js', 'npm', 'CLI', 'ZIP'],
+      highlights: [
+        text(
+          'Собирает проекты в ZIP-архивы по настраиваемым правилам',
+          'Packages projects into ZIP archives with configurable rules',
+        ),
+        text(
+          'Хранит параметры упаковки рядом с исходным кодом проекта',
+          'Keeps packaging settings alongside project source code',
+        ),
+        text(
+          'Подходит для повторяемой подготовки и передачи проектов',
+          'Makes project preparation and handoff repeatable',
+        ),
+      ],
+      links: [
+        {
+          url: 'https://github.com/streetraceing/package',
+          icon: FaGithub,
+          label: text('GitHub', 'GitHub'),
+        },
+        {
+          url: 'https://www.npmjs.com/package/@streetraceing/package',
+          icon: Package,
+          label: text('npm', 'npm'),
+        },
+      ],
+      relatedLinks: [],
+      documentation:
+        'Read the [full Package documentation](https://streetraceing.github.io/package/).',
     },
     {
       slug: 'symmetry',

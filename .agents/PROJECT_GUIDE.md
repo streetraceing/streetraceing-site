@@ -122,10 +122,10 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 
 - News and project originals (up to 20 images per entry, 10 MB each) are uploaded directly from the browser to Cloudinary with a short-lived server signature. Public galleries use a compact horizontal tilt carousel with responsive square transformations up to 1080 × 1080; it supports native horizontal touch scrolling, while the `cover` modal viewer uses the original asset and supports swipe navigation at 100% zoom.
 - PostgreSQL stores only validated original Cloudinary delivery URLs. Never store image binaries, transformed preview URLs, or base64 payloads in the database.
-- Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and the server-only `CLOUDINARY_API_SECRET`, then apply the checked-in Drizzle migration before using media or project documentation.
+- Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and the server-only `CLOUDINARY_API_SECRET`, then apply the checked-in Drizzle migration before using project media.
 - Removed images are destroyed through Cloudinary after the owning database record is updated. New uploads are cleaned up when a save request fails. Keep gallery previews, metadata (`fl_getinfo`), and downloads (`fl_attachment`) as URL transformations derived from the stored original URL.
 - Internal section links must use root-qualified hashes such as `/#projects` and `/#tools`; Markdown links beginning with `#` are normalized automatically.
-- Project documentation is localized Markdown stored in `project_contents` and rendered only on `/project/[slug]`. The shared renderer supports `++underline++` and `~~strikethrough~~` without enabling arbitrary raw HTML.
+- Project documentation is optional shared Markdown in the `documentation` field of `ProjectConfig` and is rendered only on `/project/[slug]`. Keep it language-neutral or in the documentation's native language; do not store it in PostgreSQL. The shared renderer supports `++underline++` and `~~strikethrough~~` without enabling arbitrary raw HTML.
 - The home page reads the first Dev Notes page and author session on the server so hydration must not replace the feed or author controls with differently sized placeholders.
 
 ## Tiny URL lifecycle

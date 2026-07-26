@@ -19,7 +19,7 @@ export async function readProjectContent(
     return undefined;
   }
 
-  const fallback = getDefaultProjectContent(project);
+  const fallback = getDefaultProjectContent();
 
   if (!process.env.DATABASE_URL) {
     return fallback;
@@ -27,7 +27,10 @@ export async function readProjectContent(
 
   try {
     const [storedContent] = await db
-      .select()
+      .select({
+        imageUrls: projectContents.imageUrls,
+        updatedAt: projectContents.updatedAt,
+      })
       .from(projectContents)
       .where(eq(projectContents.projectSlug, slug))
       .limit(1);
@@ -37,10 +40,6 @@ export async function readProjectContent(
     }
 
     return {
-      documentation: {
-        ru: storedContent.documentationRu,
-        en: storedContent.documentationEn,
-      },
       imageUrls: storedContent.imageUrls,
       updatedAt: storedContent.updatedAt.toISOString(),
     };
