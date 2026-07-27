@@ -21,8 +21,16 @@
   "preserveMode": true,
   "preserveMtime": false,
   "sensitiveFiles": "warn",
-  "backupOnApply": false,
   "conflictStrategy": "abort",
   "renameDetection": true,
-  "renameThreshold": 0.8
+  "renameThreshold": 0.8,
+  "backupOnApply": true,
+  "afterApply": [
+    "npm install",
+    "npm run prettier:write",
+    "npm run lint",
+    "npm run test"
+  ],
+  "deletePackageOnApply": true,
+  "deleteSourcePackageOnApply": true
 }
