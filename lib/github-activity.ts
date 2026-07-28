@@ -2,7 +2,10 @@ import type {
   PublicGitHubCommit,
   PublicGitHubCommitFeed,
 } from '@/components/stats/types';
-import { GITHUB_USERNAME } from '@/utils/github';
+import {
+  GITHUB_ACTIVITY_REVALIDATE_SECONDS,
+  GITHUB_USERNAME,
+} from '@/utils/github';
 
 const DEFAULT_COMMIT_LIMIT = 16;
 
@@ -97,7 +100,10 @@ export async function readPublicGitHubCommits(
       {
         headers,
         signal: AbortSignal.timeout(4_500),
-        next: { revalidate: 60 * 60 },
+        next: {
+          revalidate: GITHUB_ACTIVITY_REVALIDATE_SECONDS,
+          tags: ['github-activity'],
+        },
       },
     );
 

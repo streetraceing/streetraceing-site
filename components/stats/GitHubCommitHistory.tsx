@@ -2,12 +2,19 @@
 
 import { useLocale } from '@/app/providers';
 import type { PublicGitHubCommitFeed } from '@/components/stats/types';
-import { GITHUB_PROFILE_URL } from '@/utils/github';
+import {
+  GITHUB_ACTIVITY_POLL_INTERVAL_MS,
+  GITHUB_ACTIVITY_ROUTE,
+  GITHUB_PROFILE_URL,
+} from '@/utils/github';
 import { getLocaleTag } from '@/utils/i18n';
 import { Card, Chip, Separator } from '@heroui/react';
 import { ArrowUpRight, GitCommitHorizontal } from 'lucide-react';
 import NextLink from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import { FaGithub } from 'react-icons/fa6';
+
+const MINIMUM_REFRESH_GAP_MS = 30_000;
 
 function formatCommitDate(value: string, locale: string) {
   const date = new Date(value);
@@ -22,13 +29,115 @@ function formatCommitDate(value: string, locale: string) {
   }).format(date);
 }
 
+function isPublicGitHubCommitFeed(
+  value: unknown,
+): value is PublicGitHubCommitFeed {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const feed = value as Partial<PublicGitHubCommitFeed>;
+
+  return typeof feed.available === 'boolean' && Array.isArray(feed.commits);
+}
+
+function getGitHubCommitFeedKey(feed: PublicGitHubCommitFeed) {
+  return [
+    feed.available ? 'available' : 'unavailable',
+    ...feed.commits.map((commit) => `${commit.repository}:${commit.sha}`),
+  ].join('|');
+}
+
 export function GitHubCommitHistory({
   feed,
 }: {
   feed: PublicGitHubCommitFeed;
 }) {
+  return (
+    <GitHubCommitHistoryContent
+      key={getGitHubCommitFeedKey(feed)}
+      initialFeed={feed}
+    />
+  );
+}
+
+function GitHubCommitHistoryContent({
+  initialFeed,
+}: {
+  initialFeed: PublicGitHubCommitFeed;
+}) {
   const { copy, locale } = useLocale();
   const strings = copy.stats;
+  const [currentFeed, setCurrentFeed] =
+    useState<PublicGitHubCommitFeed>(initialFeed);
+  const lastRefreshAt = useRef(0);
+
+  useEffect(() => {
+    let active = true;
+    let requestController: AbortController | undefined;
+
+    async function refreshFeed() {
+      if (
+        document.visibilityState !== 'visible' ||
+        Date.now() - lastRefreshAt.current < MINIMUM_REFRESH_GAP_MS
+      ) {
+        return;
+      }
+
+      lastRefreshAt.current = Date.now();
+      requestController?.abort();
+      requestController = new AbortController();
+
+      try {
+        const response = await fetch(GITHUB_ACTIVITY_ROUTE, {
+          cache: 'no-store',
+          signal: requestController.signal,
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const nextFeed: unknown = await response.json();
+
+        if (!active || !isPublicGitHubCommitFeed(nextFeed)) {
+          return;
+        }
+
+        setCurrentFeed((previousFeed) =>
+          nextFeed.available || previousFeed.commits.length === 0
+            ? nextFeed
+            : previousFeed,
+        );
+      } catch {
+        return;
+      }
+    }
+
+    const intervalId = window.setInterval(
+      () => void refreshFeed(),
+      GITHUB_ACTIVITY_POLL_INTERVAL_MS,
+    );
+    const refreshOnFocus = () => void refreshFeed();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshFeed();
+      }
+    };
+
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    void refreshFeed();
+
+    return () => {
+      active = false;
+      lastRefreshAt.current = 0;
+      requestController?.abort();
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, []);
 
   return (
     <Card
@@ -67,9 +176,9 @@ export function GitHubCommitHistory({
       </Card.Header>
 
       <Card.Content className="min-w-0 overflow-hidden">
-        {feed.commits.length > 0 ? (
+        {currentFeed.commits.length > 0 ? (
           <ol className="md:max-h-96 max-h-60 min-w-0 overflow-y-auto overflow-x-hidden pr-1">
-            {feed.commits.map((commit, index) => (
+            {currentFeed.commits.map((commit, index) => (
               <li key={`${commit.repository}:${commit.sha}`}>
                 <NextLink
                   href={commit.url}
@@ -105,7 +214,7 @@ export function GitHubCommitHistory({
                   </span>
                   <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted transition-colors group-hover:text-accent" />
                 </NextLink>
-                {index < feed.commits.length - 1 ? (
+                {index < currentFeed.commits.length - 1 ? (
                   <Separator className="ml-11" />
                 ) : null}
               </li>
@@ -113,7 +222,7 @@ export function GitHubCommitHistory({
           </ol>
         ) : (
           <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted">
-            {feed.available
+            {currentFeed.available
               ? strings.githubHistoryEmpty
               : strings.githubHistoryUnavailable}
           </div>

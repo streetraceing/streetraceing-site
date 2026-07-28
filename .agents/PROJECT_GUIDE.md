@@ -115,7 +115,7 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 - Statistics, public commits, and biography skill surfaces use HeroUI components plus Tailwind utilities only. Do not add section-specific classes or visual rules to `app/globals.css`.
 - Use `next/link` for navigation links and `next/image` for raster images added to application UI.
 - Every application button uses the shared `components/ui/Button.tsx` composition. Compound HeroUI triggers and native SSR placeholders must include `ButtonRipple` directly without nesting one button inside another.
-- The statistics section renders an accessible Tailwind/SVG circular focus chart inside a HeroUI Card and server-fetched public commits inside a matching HeroUI Card. The GitHub request is cached for one hour, fails closed to an unavailable state, and may use the optional server-only `GITHUB_TOKEN`.
+- The statistics section renders an accessible Tailwind/SVG circular focus chart inside a HeroUI Card and server-fetched public commits inside a matching HeroUI Card. The GitHub request uses a shared two-minute server cache, fails closed to an unavailable state, and may use the optional server-only `GITHUB_TOKEN`. The client refreshes the public feed while the page is visible and when the tab regains focus; the token must never be exposed to the browser.
 - Biography skill icons are registered once in `utils/skills.ts`.
 
 ## Project media and documentation
