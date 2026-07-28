@@ -58,7 +58,7 @@ export function ProjectPageContent({
                 </span>
               )}
               <div className="flex min-w-0 flex-col gap-1">
-                <Typography.Heading level={1}>
+                <Typography.Heading level={2}>
                   {project.name}
                 </Typography.Heading>
                 <Card.Description>

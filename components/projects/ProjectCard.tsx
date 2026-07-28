@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, Chip, Modal } from '@heroui/react';
+import { Card, Chip, Modal, Typography } from '@heroui/react';
 import { ArrowUpRight } from 'lucide-react';
 import type { MouseEvent } from 'react';
 import { useState } from 'react';
@@ -95,7 +95,12 @@ export function ProjectCard({ project }: ProjectCardProps) {
                     <project.icon className="size-5" />
                   </Modal.Icon>
                 )}
-                <Modal.Heading>{project.name}</Modal.Heading>
+                <Modal.Heading>
+                  {' '}
+                  <Typography.Heading level={2}>
+                    {project.name}
+                  </Typography.Heading>
+                </Modal.Heading>
               </Modal.Header>
               <Modal.Body>
                 <ProjectDetails project={project} />
