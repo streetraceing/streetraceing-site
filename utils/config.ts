@@ -299,45 +299,6 @@ export const mainPageConfig: MainPageConfig = {
         'https://raw.githubusercontent.com/streetraceing/package/refs/heads/main/docs/README.md',
     },
     {
-      slug: 'symmetry',
-      name: 'Symmetry',
-      icon: Bot,
-      shortDescription: text(
-        'Будущее open-source расширение VS Code с бесплатным AI-агентом для разработки.',
-        'A future open-source VS Code extension with a free AI coding agent.',
-      ),
-      longDescription: text(
-        'Symmetry - будущий бесплатный AI-агент в формате расширения для VS Code. Он сможет работать с локальными моделями и бесплатными AI-сервисами, например Ollama, Mistral или Cloudflare AI, чтобы помогать с кодом прямо в редакторе.',
-        'Symmetry is a future free AI agent as a VS Code extension. It will work with local models and free AI services such as Ollama, Mistral, or Cloudflare AI to help directly in the editor.',
-      ),
-      colors: ['#0b1f3a', '#2563eb', '#38bdf8'],
-      status: ['in-development', 'maintained', 'open-source'],
-      progress: 50,
-      technologies: [
-        'VS Code',
-        'TypeScript',
-        'Ollama',
-        'Mistral',
-        'Cloudflare AI',
-      ],
-      highlights: [
-        text(
-          'Локальные модели через Ollama без обязательной оплаты',
-          'Local models through Ollama without mandatory payment',
-        ),
-        text(
-          'Подключение бесплатных AI-провайдеров как альтернатива локальной модели',
-          'Free AI providers as an alternative to a local model',
-        ),
-        text(
-          'Агентный интерфейс для помощи с кодом прямо в VS Code',
-          'An agent interface that helps with code directly in VS Code',
-        ),
-      ],
-      links: [],
-      relatedLinks: [],
-    },
-    {
       slug: 'galactrix',
       name: 'Galactrix',
       icon: Bot,
