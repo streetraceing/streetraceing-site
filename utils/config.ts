@@ -137,6 +137,8 @@ export const mainPageConfig: MainPageConfig = {
           label: text('Spicetify', 'Spicetify'),
         },
       ],
+      documentationUrl:
+        'https://raw.githubusercontent.com/streetraceing/luminous/refs/heads/main/docs/README.md',
     },
     {
       slug: 'tikflowlybot',
