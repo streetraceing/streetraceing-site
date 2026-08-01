@@ -10,11 +10,7 @@ import Fuse from 'fuse.js';
 import { X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import {
-  toolFieldClassName,
-  toolPanelClassName,
-  toolSelectTriggerClassName,
-} from './toolStyles';
+import { toolPanelClassName } from './toolStyles';
 
 type ToolSort = 'relevance' | 'name-asc';
 type ToolSearchItem = {
@@ -82,14 +78,9 @@ export function ToolsDirectory() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-3">
-        <SearchField
-          value={query}
-          onChange={setQuery}
-          fullWidth
-          variant="secondary"
-        >
+        <SearchField value={query} onChange={setQuery} fullWidth>
           <Label className="sr-only">{strings.searchLabel}</Label>
-          <SearchField.Group className={toolFieldClassName}>
+          <SearchField.Group>
             <SearchField.SearchIcon />
             <SearchField.Input placeholder={strings.searchPlaceholder} />
             <SearchField.ClearButton />
@@ -113,7 +104,7 @@ export function ToolsDirectory() {
               }}
             >
               <Label>{strings.filters}</Label>
-              <Select.Trigger className={toolSelectTriggerClassName}>
+              <Select.Trigger>
                 <Select.Value />
                 <Select.Indicator />
               </Select.Trigger>
@@ -161,7 +152,7 @@ export function ToolsDirectory() {
               }}
             >
               <Label className="sm:sr-only">{strings.sort}</Label>
-              <Select.Trigger className={toolSelectTriggerClassName}>
+              <Select.Trigger>
                 <Select.Value />
                 <Select.Indicator />
               </Select.Trigger>

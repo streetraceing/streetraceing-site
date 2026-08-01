@@ -87,8 +87,9 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 
 - Add a project or generic tool in `mainPageConfig` in `utils/config.ts` and provide both locales for every `LocalizedText` field.
 - For a generic tool, set its `component` identifier and register the implementation once in `components/tools/ToolPageContent.tsx`; the searchable `/tools` directory is generated from the same config.
-- Tiny URL remains a dedicated route because it has server-backed behavior, but its page must use the same `ToolPageFrame`, field surfaces, result panels, and border-light visual hierarchy as the browser-only tools.
+- Tiny URL remains a dedicated route because it has server-backed behavior, but its page must use the same `ToolPageFrame`, field surfaces, result panels, and borderless semantic-surface hierarchy as the browser-only tools.
 - Tool results should go through `ToolOutput` with the closest format variant (`json`, `typescript`, `diff`, `key-value`, `jwt`, `regex`, `hash`, and so on) instead of adding one-off `<pre>` blocks. Keep highlighting React-rendered; do not inject highlighted HTML.
+- Keep the `/tools` search and filters on the standard primary HeroUI `SearchField` and `Select` appearance. Tool-card icons use semantic surface colors; do not add availability chips or translucent border/ring overrides.
 - If a project/tool page needs a client i18n context and uses icons from the config, use a client page-content wrapper and pass only a primitive slug from the server route. React components in config objects cannot cross a Server Component → Client Component boundary as props.
 - New database schema changes need a descriptive Drizzle migration name and a checked-in migration file.
 

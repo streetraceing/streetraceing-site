@@ -204,7 +204,7 @@ export function ColorContrastTool() {
             onChange={(event) =>
               setForeground(event.currentTarget.value.toUpperCase())
             }
-            className="size-10 cursor-pointer rounded-xl bg-surface-tertiary/90 p-1 shadow-sm ring-2 ring-transparent transition-shadow focus-visible:ring-accent/30 dark:bg-white/[0.095]"
+            className="size-10 cursor-pointer rounded-xl bg-surface-tertiary p-1 shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           />
           {strings.foregroundPicker}
         </label>
@@ -215,7 +215,7 @@ export function ColorContrastTool() {
             onChange={(event) =>
               setBackground(event.currentTarget.value.toUpperCase())
             }
-            className="size-10 cursor-pointer rounded-xl bg-surface-tertiary/90 p-1 shadow-sm ring-2 ring-transparent transition-shadow focus-visible:ring-accent/30 dark:bg-white/[0.095]"
+            className="size-10 cursor-pointer rounded-xl bg-surface-tertiary p-1 shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           />
           {strings.backgroundPicker}
         </label>
@@ -226,7 +226,7 @@ export function ColorContrastTool() {
           <Card variant="secondary" className={toolPanelClassName}>
             <Card.Content>
               <div
-                className="rounded-2xl p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_12px_32px_rgba(15,23,42,0.14)]"
+                className="rounded-2xl p-6"
                 style={{
                   color: result.foreground,
                   backgroundColor: result.background,

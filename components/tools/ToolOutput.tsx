@@ -352,7 +352,7 @@ export function ToolOutput({
         <div className="flex min-w-0 items-center gap-2.5">
           <span
             aria-hidden="true"
-            className={`size-2.5 shrink-0 rounded-full shadow-[0_0_18px_currentColor] ${
+            className={`size-2.5 shrink-0 rounded-full ${
               tone === 'success'
                 ? 'bg-emerald-500 text-emerald-500'
                 : 'bg-accent text-accent'
@@ -378,11 +378,11 @@ export function ToolOutput({
         >
           <div
             aria-hidden="true"
-            className={`pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-current to-transparent opacity-50 ${
+            className={`pointer-events-none absolute inset-x-5 top-0 h-px bg-linear-to-r from-transparent via-current to-transparent opacity-50 ${
               tone === 'success' ? 'text-emerald-500' : 'text-accent'
             }`}
           />
-          <code className="block min-w-full whitespace-pre-wrap break-words">
+          <code className="block min-w-full whitespace-pre-wrap wrap-break-word">
             {lines.map((line, index) => (
               <span
                 key={`${index}-${line}`}
