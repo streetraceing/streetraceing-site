@@ -1,12 +1,10 @@
 'use client';
 
 import { Alert, Breadcrumbs, Typography } from '@heroui/react';
-import { ArrowLeft } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useLocale } from '@/app/providers';
 import { MarkdownContent } from '@/components/stats/MarkdownContent';
-import { Button } from '@/components/ui/Button';
 import type { ProjectDocumentation } from '@/lib/project-documentation';
 import {
   createMarkdownHeadingId,
@@ -31,7 +29,7 @@ function decodePathPart(value: string) {
 function getDocumentationPath(sourceUrl: string) {
   try {
     const url = new URL(sourceUrl);
-    const path = url.pathname.split('/').filter(Boolean);
+    const path = url.pathname.split('/').filter(Boolean).map(decodePathPart);
 
     if (url.hostname === 'raw.githubusercontent.com' && path[0] && path[1]) {
       const documentPath =
@@ -41,12 +39,14 @@ function getDocumentationPath(sourceUrl: string) {
           ? path.slice(5)
           : path.slice(3);
 
-      return [`${decodePathPart(path[0])}/${decodePathPart(path[1])}`]
-        .concat(documentPath.map(decodePathPart))
-        .filter(Boolean);
+      return [path[1], ...documentPath].filter(Boolean);
     }
 
-    return [url.hostname, ...path.map(decodePathPart)].filter(Boolean);
+    if (url.hostname.endsWith('.github.io') && path.length > 0) {
+      return path;
+    }
+
+    return path.length > 0 ? path : [url.hostname];
   } catch {
     return [sourceUrl];
   }
@@ -82,6 +82,8 @@ export function ProjectDocumentationViewer({
     () => extractMarkdownHeadings(documentation.content),
     [documentation.content],
   );
+  const isInitialDocument =
+    documentation.sourceUrl === initialDocumentation.sourceUrl;
 
   useEffect(
     () => () => {
@@ -142,6 +144,22 @@ export function ProjectDocumentationViewer({
       return;
     }
 
+    const existingIndex = documentHistory.findIndex(
+      (item) => item.sourceUrl === targetUrl.toString(),
+    );
+
+    if (existingIndex >= 0) {
+      activeRequestRef.current?.abort();
+      activeRequestRef.current = null;
+      setDocumentHistory((currentHistory) =>
+        currentHistory.slice(0, existingIndex + 1),
+      );
+      setLoadError(undefined);
+      setIsLoading(false);
+      setPendingFragment(fragment);
+      return;
+    }
+
     activeRequestRef.current?.abort();
     const controller = new AbortController();
     activeRequestRef.current = controller;
@@ -161,12 +179,12 @@ export function ProjectDocumentationViewer({
       }
 
       setDocumentHistory((currentHistory) => {
-        const existingIndex = currentHistory.findIndex(
+        const loadedIndex = currentHistory.findIndex(
           (item) => item.sourceUrl === nextDocumentation.sourceUrl,
         );
 
-        return existingIndex >= 0
-          ? currentHistory.slice(0, existingIndex + 1)
+        return loadedIndex >= 0
+          ? currentHistory.slice(0, loadedIndex + 1)
           : [...currentHistory, nextDocumentation];
       });
       setPendingFragment(fragment);
@@ -188,55 +206,44 @@ export function ProjectDocumentationViewer({
     }
   }
 
-  function openPreviousDocument() {
-    if (documentHistory.length <= 1) {
-      return;
-    }
-
-    activeRequestRef.current?.abort();
-    activeRequestRef.current = null;
-    setDocumentHistory((currentHistory) => currentHistory.slice(0, -1));
-    setLoadError(undefined);
-    setIsLoading(false);
-    setPendingFragment('');
-  }
-
   return (
     <div
       ref={viewerRef}
-      className="flex scroll-mt-24 flex-col gap-4"
+      className="flex scroll-mt-24 flex-col gap-5"
       aria-busy={isLoading}
     >
       <div className="flex flex-col gap-3 rounded-xl border bg-default-soft/40 p-3">
-        <div className="flex items-start gap-2">
-          {documentHistory.length > 1 ? (
-            <Button
-              size="sm"
-              variant="tertiary"
-              type="button"
-              onPress={openPreviousDocument}
-              aria-label={strings.documentationBack}
-            >
-              <ArrowLeft className="size-4" />
-              <span className="hidden sm:inline">
-                {strings.documentationBack}
-              </span>
-            </Button>
-          ) : null}
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Typography.Paragraph size="sm" className="font-medium">
+            {strings.documentationPath}
+          </Typography.Paragraph>
+          <div className="max-w-full overflow-x-auto pb-1">
+            <Breadcrumbs aria-label={strings.documentationPath}>
+              {documentPath.map((part, index) => {
+                const canOpenRoot = index === 0 && !isInitialDocument;
 
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <Typography.Paragraph size="sm" className="font-medium">
-              {strings.documentationPath}
-            </Typography.Paragraph>
-            <div className="max-w-full overflow-x-auto pb-1">
-              <Breadcrumbs aria-label={strings.documentationPath}>
-                {documentPath.map((part, index) => (
-                  <Breadcrumbs.Item key={`${part}-${index}`}>
+                return (
+                  <Breadcrumbs.Item
+                    key={`${part}-${index}`}
+                    href={
+                      canOpenRoot ? initialDocumentation.sourceUrl : undefined
+                    }
+                    onClick={
+                      canOpenRoot
+                        ? (event) => {
+                            event.preventDefault();
+                            void openDocumentation(
+                              initialDocumentation.sourceUrl,
+                            );
+                          }
+                        : undefined
+                    }
+                  >
                     {part}
                   </Breadcrumbs.Item>
-                ))}
-              </Breadcrumbs>
-            </div>
+                );
+              })}
+            </Breadcrumbs>
           </div>
         </div>
 
@@ -245,9 +252,6 @@ export function ProjectDocumentationViewer({
             aria-label={strings.documentationSections}
             className="flex max-w-full items-center gap-2 overflow-x-auto pb-1"
           >
-            <span className="shrink-0 text-sm font-medium text-muted">
-              {strings.documentationSections}:
-            </span>
             {headings.map((heading) => (
               <a
                 key={heading.slug}

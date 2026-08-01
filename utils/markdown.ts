@@ -1,5 +1,7 @@
 import { fromMarkdown } from 'mdast-util-from-markdown';
 
+import { parseSafeHtmlFragment, type SafeHtmlNode } from './safe-html';
+
 type MarkdownNode = {
   type: string;
   depth?: number;
@@ -8,9 +10,8 @@ type MarkdownNode = {
   align?: Array<'center' | 'left' | 'right' | null>;
   data?: {
     hName?: string;
-    hProperties?: {
-      id?: string;
-    };
+    hProperties?: Record<string, unknown>;
+    hChildren?: SafeHtmlNode[];
   };
   position?: {
     start?: { offset?: number };
@@ -100,6 +101,55 @@ function transformDecorations(node: MarkdownNode) {
 export function remarkTextDecorations() {
   return (tree: MarkdownNode) => {
     transformDecorations(tree);
+  };
+}
+
+function createMarkdownNodeFromSafeHtml(node: SafeHtmlNode): MarkdownNode {
+  if (node.type === 'text') {
+    return { type: 'text', value: node.value };
+  }
+
+  const headingDepth = /^h([1-6])$/.exec(node.tagName)?.[1];
+
+  return {
+    type: headingDepth ? 'heading' : 'safeHtmlElement',
+    depth: headingDepth ? Number.parseInt(headingDepth, 10) : undefined,
+    children: node.children.map(createMarkdownNodeFromSafeHtml),
+    data: {
+      hName: node.tagName,
+      hProperties: node.properties,
+      hChildren: node.children,
+    },
+  };
+}
+
+function transformSafeHtml(node: MarkdownNode) {
+  if (!node.children) {
+    return;
+  }
+
+  const nextChildren: MarkdownNode[] = [];
+
+  for (const child of node.children) {
+    if (child.type === 'html' && typeof child.value === 'string') {
+      nextChildren.push(
+        ...parseSafeHtmlFragment(child.value).map(
+          createMarkdownNodeFromSafeHtml,
+        ),
+      );
+      continue;
+    }
+
+    transformSafeHtml(child);
+    nextChildren.push(child);
+  }
+
+  node.children = nextChildren;
+}
+
+export function remarkSafeHtml() {
+  return (tree: MarkdownNode) => {
+    transformSafeHtml(tree);
   };
 }
 
@@ -399,9 +449,10 @@ function collectMarkdownHeadings(tree: MarkdownNode) {
 }
 
 export function extractMarkdownHeadings(content: string) {
-  return collectMarkdownHeadings(
-    fromMarkdown(content) as unknown as MarkdownNode,
-  );
+  const tree = fromMarkdown(content) as unknown as MarkdownNode;
+
+  transformSafeHtml(tree);
+  return collectMarkdownHeadings(tree);
 }
 
 export function createMarkdownHeadingId(prefix: string, fragment: string) {
