@@ -28,11 +28,10 @@ import {
 import { type FormEvent, useState } from 'react';
 
 import { ToolOutput } from './ToolOutput';
-import { toolAlertClassName, toolFieldClassName } from './toolStyles';
 
 function ErrorAlert({ title, message }: { title: string; message: string }) {
   return (
-    <Alert status="danger" className={toolAlertClassName}>
+    <Alert status="danger">
       <Alert.Indicator />
       <Alert.Content>
         <Alert.Title>{title}</Alert.Title>
@@ -118,19 +117,11 @@ export function RegexTesterTool() {
             onChange={setPattern}
           >
             <Label>{strings.pattern}</Label>
-            <Input
-              variant="secondary"
-              className={toolFieldClassName}
-              spellCheck={false}
-            />
+            <Input variant="secondary" spellCheck={false} />
           </TextField>
           <TextField fullWidth name="flags" value={flags} onChange={setFlags}>
             <Label>{strings.flags}</Label>
-            <Input
-              variant="secondary"
-              className={toolFieldClassName}
-              spellCheck={false}
-            />
+            <Input variant="secondary" spellCheck={false} />
           </TextField>
         </div>
 
@@ -141,12 +132,7 @@ export function RegexTesterTool() {
           onChange={setSource}
         >
           <Label>{strings.text}</Label>
-          <TextArea
-            rows={10}
-            variant="secondary"
-            className={toolFieldClassName}
-            spellCheck={false}
-          />
+          <TextArea rows={10} variant="secondary" spellCheck={false} />
           <Description>{strings.description}</Description>
         </TextField>
 
@@ -239,12 +225,7 @@ export function UrlInspectorTool() {
       <Form className="flex flex-col gap-4" onSubmit={inspect}>
         <TextField fullWidth name="url" value={source} onChange={setSource}>
           <Label>{strings.label}</Label>
-          <Input
-            type="url"
-            variant="secondary"
-            className={toolFieldClassName}
-            spellCheck={false}
-          />
+          <Input type="url" variant="secondary" spellCheck={false} />
           <Description>{strings.description}</Description>
         </TextField>
         <div className="flex flex-wrap gap-2">
@@ -308,11 +289,7 @@ export function JsonToTypeScriptTool() {
           onChange={setRootName}
         >
           <Label>{strings.rootName}</Label>
-          <Input
-            variant="secondary"
-            className={toolFieldClassName}
-            spellCheck={false}
-          />
+          <Input variant="secondary" spellCheck={false} />
         </TextField>
         <TextField
           fullWidth
@@ -321,12 +298,7 @@ export function JsonToTypeScriptTool() {
           onChange={setSource}
         >
           <Label>{strings.label}</Label>
-          <TextArea
-            rows={12}
-            variant="secondary"
-            className={toolFieldClassName}
-            spellCheck={false}
-          />
+          <TextArea rows={12} variant="secondary" spellCheck={false} />
           <Description>{strings.description}</Description>
         </TextField>
         <div className="flex flex-wrap gap-2">
@@ -407,12 +379,7 @@ export function TextDiffTool() {
             onChange={setBeforeValue}
           >
             <Label>{strings.before}</Label>
-            <TextArea
-              rows={14}
-              variant="secondary"
-              className={toolFieldClassName}
-              spellCheck={false}
-            />
+            <TextArea rows={14} variant="secondary" spellCheck={false} />
           </TextField>
           <TextField
             fullWidth
@@ -421,12 +388,7 @@ export function TextDiffTool() {
             onChange={setAfterValue}
           >
             <Label>{strings.after}</Label>
-            <TextArea
-              rows={14}
-              variant="secondary"
-              className={toolFieldClassName}
-              spellCheck={false}
-            />
+            <TextArea rows={14} variant="secondary" spellCheck={false} />
           </TextField>
         </div>
         <Typography.Paragraph size="sm" className="text-muted">

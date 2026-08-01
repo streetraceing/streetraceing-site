@@ -33,13 +33,6 @@ import {
 } from 'react';
 
 import { ToolOutput } from './ToolOutput';
-import {
-  toolAlertClassName,
-  toolChoiceClassName,
-  toolFieldClassName,
-  toolPanelClassName,
-  toolSelectTriggerClassName,
-} from './toolStyles';
 
 type HashAlgorithm = 'SHA-256' | 'SHA-384' | 'SHA-512';
 
@@ -51,7 +44,7 @@ type ToggleFieldProps = {
 
 function ToggleField({ checked, label, onChange }: ToggleFieldProps) {
   return (
-    <label className={toolChoiceClassName}>
+    <label className="flex cursor-pointer items-center gap-2 text-sm">
       <input
         type="checkbox"
         checked={checked}
@@ -65,7 +58,7 @@ function ToggleField({ checked, label, onChange }: ToggleFieldProps) {
 
 function ErrorAlert({ title, message }: { title: string; message: string }) {
   return (
-    <Alert status="danger" className={toolAlertClassName}>
+    <Alert status="danger">
       <Alert.Indicator />
       <Alert.Content>
         <Alert.Title>{title}</Alert.Title>
@@ -138,7 +131,6 @@ export function PasswordGeneratorTool() {
             min={8}
             max={128}
             variant="secondary"
-            className={toolFieldClassName}
           />
           <Description>{strings.lengthHint}</Description>
         </TextField>
@@ -187,28 +179,22 @@ export function PasswordGeneratorTool() {
       {result ? (
         <div className="flex flex-col gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Card variant="secondary" className={toolPanelClassName}>
+            <Card variant="secondary">
               <Card.Content>
                 <Typography.Paragraph size="sm" className="text-muted">
                   {strings.entropy}
                 </Typography.Paragraph>
-                <Typography.Heading
-                  level={3}
-                  className="text-xl text-sky-700 dark:text-sky-300"
-                >
+                <Typography.Heading level={3} className="text-xl">
                   {strings.bits.replace('{count}', String(result.entropyBits))}
                 </Typography.Heading>
               </Card.Content>
             </Card>
-            <Card variant="secondary" className={toolPanelClassName}>
+            <Card variant="secondary">
               <Card.Content>
                 <Typography.Paragraph size="sm" className="text-muted">
                   {strings.pool}
                 </Typography.Paragraph>
-                <Typography.Heading
-                  level={3}
-                  className="text-xl text-violet-700 dark:text-violet-300"
-                >
+                <Typography.Heading level={3} className="text-xl">
                   {result.poolSize}
                 </Typography.Heading>
               </Card.Content>
@@ -293,7 +279,7 @@ export function JwtInspectorTool() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Alert status="warning" className={toolAlertClassName}>
+      <Alert status="warning">
         <Alert.Indicator />
         <Alert.Content>
           <Alert.Title>{strings.warningTitle}</Alert.Title>
@@ -307,7 +293,6 @@ export function JwtInspectorTool() {
           <TextArea
             rows={8}
             variant="secondary"
-            className={toolFieldClassName}
             spellCheck={false}
             placeholder={strings.placeholder}
           />
@@ -384,6 +369,7 @@ export function HashGeneratorTool() {
       >
         <Select
           value={algorithm}
+          variant="secondary"
           onChange={(value) => {
             if (
               value === 'SHA-256' ||
@@ -395,7 +381,7 @@ export function HashGeneratorTool() {
           }}
         >
           <Label>{strings.algorithm}</Label>
-          <Select.Trigger className={toolSelectTriggerClassName}>
+          <Select.Trigger>
             <Select.Value />
             <Select.Indicator />
           </Select.Trigger>
@@ -421,7 +407,6 @@ export function HashGeneratorTool() {
           <TextArea
             rows={7}
             variant="secondary"
-            className={toolFieldClassName}
             spellCheck={false}
             placeholder={strings.placeholder}
           />

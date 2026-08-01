@@ -10,7 +10,7 @@ import Fuse from 'fuse.js';
 import { X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { toolPanelClassName } from './toolStyles';
+import { toolDirectoryEmptyStateClassName } from './toolsDirectoryStyles';
 
 type ToolSort = 'relevance' | 'name-asc';
 type ToolSearchItem = {
@@ -195,7 +195,7 @@ export function ToolsDirectory() {
         {tools.length === 0 ? (
           <Card
             variant="secondary"
-            className={`${toolPanelClassName} md:col-span-2 xl:col-span-3`}
+            className={`${toolDirectoryEmptyStateClassName} md:col-span-2 xl:col-span-3`}
           >
             <Card.Content className="text-sm text-muted">
               {strings.noTools}

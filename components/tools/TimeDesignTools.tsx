@@ -25,19 +25,13 @@ import { CalendarClock, Clock3, RefreshCw } from 'lucide-react';
 import { type FormEvent, useMemo, useState } from 'react';
 
 import { ToolOutput } from './ToolOutput';
-import {
-  toolAlertClassName,
-  toolFieldClassName,
-  toolPanelClassName,
-  toolSelectTriggerClassName,
-} from './toolStyles';
 
 type CronFrequency =
   'hourly' | 'daily' | 'weekdays' | 'weekends' | 'weekly' | 'monthly';
 
 function ErrorAlert({ title, message }: { title: string; message: string }) {
   return (
-    <Alert status="danger" className={toolAlertClassName}>
+    <Alert status="danger">
       <Alert.Indicator />
       <Alert.Content>
         <Alert.Title>{title}</Alert.Title>
@@ -115,7 +109,6 @@ export function TimestampConverterTool() {
           <Label>{strings.label}</Label>
           <Input
             variant="secondary"
-            className={toolFieldClassName}
             spellCheck={false}
             placeholder={strings.placeholder}
           />
@@ -173,11 +166,7 @@ export function ColorContrastTool() {
           onChange={setForeground}
         >
           <Label>{strings.foreground}</Label>
-          <Input
-            variant="secondary"
-            className={toolFieldClassName}
-            spellCheck={false}
-          />
+          <Input variant="secondary" spellCheck={false} />
           <Description>{strings.hexHint}</Description>
         </TextField>
         <TextField
@@ -187,11 +176,7 @@ export function ColorContrastTool() {
           onChange={setBackground}
         >
           <Label>{strings.background}</Label>
-          <Input
-            variant="secondary"
-            className={toolFieldClassName}
-            spellCheck={false}
-          />
+          <Input variant="secondary" spellCheck={false} />
           <Description>{strings.hexHint}</Description>
         </TextField>
       </div>
@@ -204,7 +189,7 @@ export function ColorContrastTool() {
             onChange={(event) =>
               setForeground(event.currentTarget.value.toUpperCase())
             }
-            className="size-10 cursor-pointer rounded-xl bg-surface-tertiary p-1 shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="size-10 cursor-pointer rounded border bg-transparent"
           />
           {strings.foregroundPicker}
         </label>
@@ -215,7 +200,7 @@ export function ColorContrastTool() {
             onChange={(event) =>
               setBackground(event.currentTarget.value.toUpperCase())
             }
-            className="size-10 cursor-pointer rounded-xl bg-surface-tertiary p-1 shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="size-10 cursor-pointer rounded border bg-transparent"
           />
           {strings.backgroundPicker}
         </label>
@@ -223,14 +208,16 @@ export function ColorContrastTool() {
 
       {result ? (
         <>
-          <Card variant="secondary" className={toolPanelClassName}>
+          <Card variant="secondary">
             <Card.Content>
               <div
-                className="rounded-2xl p-6"
-                style={{
-                  color: result.foreground,
-                  backgroundColor: result.background,
-                }}
+                className="rounded-xl border p-6"
+                style={
+                  {
+                    '--foreground': result.foreground,
+                    backgroundColor: result.background,
+                  } as React.CSSProperties
+                }
               >
                 <Typography.Heading level={3}>
                   {strings.previewTitle}
@@ -323,7 +310,7 @@ export function CronBuilderTool() {
           }}
         >
           <Label>{strings.frequency}</Label>
-          <Select.Trigger className={toolSelectTriggerClassName}>
+          <Select.Trigger>
             <Select.Value />
             <Select.Indicator />
           </Select.Trigger>
@@ -351,13 +338,7 @@ export function CronBuilderTool() {
             onChange={setMinute}
           >
             <Label>{strings.minute}</Label>
-            <Input
-              type="number"
-              min={0}
-              max={59}
-              variant="secondary"
-              className={toolFieldClassName}
-            />
+            <Input type="number" min={0} max={59} variant="secondary" />
           </TextField>
           {frequency !== 'hourly' ? (
             <TextField
@@ -367,13 +348,7 @@ export function CronBuilderTool() {
               onChange={setHour}
             >
               <Label>{strings.hour}</Label>
-              <Input
-                type="number"
-                min={0}
-                max={23}
-                variant="secondary"
-                className={toolFieldClassName}
-              />
+              <Input type="number" min={0} max={23} variant="secondary" />
             </TextField>
           ) : null}
         </div>
@@ -384,7 +359,7 @@ export function CronBuilderTool() {
             onChange={(value) => typeof value === 'string' && setWeekday(value)}
           >
             <Label>{strings.weekday}</Label>
-            <Select.Trigger className={toolSelectTriggerClassName}>
+            <Select.Trigger>
               <Select.Value />
               <Select.Indicator />
             </Select.Trigger>
@@ -413,13 +388,7 @@ export function CronBuilderTool() {
             onChange={setMonthDay}
           >
             <Label>{strings.monthDay}</Label>
-            <Input
-              type="number"
-              min={1}
-              max={31}
-              variant="secondary"
-              className={toolFieldClassName}
-            />
+            <Input type="number" min={1} max={31} variant="secondary" />
             <Description>{strings.monthDayHint}</Description>
           </TextField>
         ) : null}

@@ -34,7 +34,7 @@ npm run db:studio
 - `components/home/` — client-side biography, statistics, and project sections for the home page.
 - `components/layout/` — header, footer, page shell, container.
 - `components/projects/` — project cards, modal details, and project-page client content.
-- `components/tools/` — the `/tools` directory, browser-only utilities, and individual tool page wrappers. `ToolPageFrame` is the shared page shell for generic tools and Tiny URL; `ToolOutput` owns copy actions and format-aware result highlighting.
+- `components/tools/` — the `/tools` directory, browser-only utilities, and individual tool page wrappers. `ToolPageFrame` uses the default HeroUI Card presentation for generic tools and Tiny URL; `ToolOutput` owns copy actions and format-aware result highlighting.
 - `components/tiny-url/` — Tiny URL form and shared-data views.
 - `components/stats/` — skills chart, cached public GitHub commit history, Dev Notes feed, deterministic Markdown renderer, and author controls.
 - `components/ui/Button.tsx` — the shared HeroUI Button wrapper and composed ripple layer. Import buttons from here instead of importing `Button` directly from HeroUI.
@@ -87,7 +87,7 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 
 - Add a project or generic tool in `mainPageConfig` in `utils/config.ts` and provide both locales for every `LocalizedText` field.
 - For a generic tool, set its `component` identifier and register the implementation once in `components/tools/ToolPageContent.tsx`; the searchable `/tools` directory is generated from the same config.
-- Tiny URL remains a dedicated route because it has server-backed behavior, but its page must use the same `ToolPageFrame`, field surfaces, result panels, and borderless semantic-surface hierarchy as the browser-only tools.
+- Tiny URL remains a dedicated route because it has server-backed behavior, but its page must use the same default HeroUI `ToolPageFrame`, form components, alerts, cards, and result presentation as the browser-only tools. Do not add a separate custom surface system for individual tool pages.
 - Tool results should go through `ToolOutput` with the closest format variant (`json`, `typescript`, `diff`, `key-value`, `jwt`, `regex`, `hash`, and so on) instead of adding one-off `<pre>` blocks. Keep highlighting React-rendered; do not inject highlighted HTML.
 - Keep the `/tools` search and filters on the standard primary HeroUI `SearchField` and `Select` appearance. Tool-card icons use semantic surface colors; do not add availability chips or translucent border/ring overrides.
 - If a project/tool page needs a client i18n context and uses icons from the config, use a client page-content wrapper and pass only a primitive slug from the server route. React components in config objects cannot cross a Server Component → Client Component boundary as props.

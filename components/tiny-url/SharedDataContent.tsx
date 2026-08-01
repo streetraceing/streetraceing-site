@@ -8,7 +8,6 @@ import { Page } from '@/components/layout/Page';
 import { Card } from '@heroui/react';
 
 import { ToolOutput } from '@/components/tools/ToolOutput';
-import { toolShellClassName } from '@/components/tools/toolStyles';
 
 import { ExternalLinkButton } from './ExternalLinkButton';
 
@@ -26,10 +25,7 @@ export function SharedDataContent({
   return (
     <Page header={<Header />} footer={<Footer />}>
       <Container className="flex items-center py-12 sm:py-20">
-        <Card
-          className={`${toolShellClassName} mx-auto w-full max-w-3xl`}
-          variant="secondary"
-        >
+        <Card className="mx-auto w-full max-w-3xl">
           <Card.Header>
             <Card.Title>
               {externalUrl

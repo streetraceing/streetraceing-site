@@ -6,8 +6,6 @@ import { Card } from '@heroui/react';
 import { Check, Copy } from 'lucide-react';
 import { Fragment, type ReactNode, useState } from 'react';
 
-import { toolInsetClassName, toolPanelClassName } from './toolStyles';
-
 export type ToolOutputFormat =
   | 'plain'
   | 'json'
@@ -27,7 +25,6 @@ type ToolOutputProps = {
   content: string;
   label?: string;
   format?: ToolOutputFormat;
-  tone?: 'accent' | 'success';
 };
 
 type InlineToken = {
@@ -320,7 +317,6 @@ export function ToolOutput({
   content,
   label,
   format = 'plain',
-  tone = 'accent',
 }: ToolOutputProps) {
   const { copy } = useLocale();
   const [isCopied, setIsCopied] = useState(false);
@@ -344,24 +340,11 @@ export function ToolOutput({
   }
 
   return (
-    <Card
-      variant="secondary"
-      className={`${toolPanelClassName} overflow-hidden`}
-    >
-      <Card.Header className="flex-row items-center justify-between gap-3 pb-2">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span
-            aria-hidden="true"
-            className={`size-2.5 shrink-0 rounded-full ${
-              tone === 'success'
-                ? 'bg-emerald-500 text-emerald-500'
-                : 'bg-accent text-accent'
-            }`}
-          />
-          <Card.Title className="truncate">
-            {label ?? copy.tool.output}
-          </Card.Title>
-        </div>
+    <Card variant="secondary">
+      <Card.Header className="flex-row items-center justify-between gap-3">
+        <Card.Title className="truncate">
+          {label ?? copy.tool.output}
+        </Card.Title>
         <Button
           isIconOnly
           aria-label={copy.tool.copyOutput}
@@ -372,17 +355,9 @@ export function ToolOutput({
           {isCopied ? <Check /> : <Copy />}
         </Button>
       </Card.Header>
-      <Card.Content className="pt-0">
-        <div
-          className={`${toolInsetClassName} relative max-h-96 overflow-auto rounded-2xl px-3 py-3.5 font-mono text-[0.8125rem] leading-6 sm:px-4 sm:text-sm`}
-        >
-          <div
-            aria-hidden="true"
-            className={`pointer-events-none absolute inset-x-5 top-0 h-px bg-linear-to-r from-transparent via-current to-transparent opacity-50 ${
-              tone === 'success' ? 'text-emerald-500' : 'text-accent'
-            }`}
-          />
-          <code className="block min-w-full whitespace-pre-wrap wrap-break-word">
+      <Card.Content>
+        <pre className="max-h-96 overflow-auto whitespace-pre-wrap wrap-break-word rounded-lg bg-surface p-3 font-mono text-sm leading-6">
+          <code className="block min-w-full">
             {lines.map((line, index) => (
               <span
                 key={`${index}-${line}`}
@@ -390,18 +365,12 @@ export function ToolOutput({
                   showLineNumbers
                     ? 'grid-cols-[2.25rem_minmax(0,1fr)] gap-3'
                     : 'grid-cols-1'
-                } ${
-                  format === 'diff' && line.startsWith('+ ')
-                    ? '-mx-3 bg-emerald-500/10 px-3 sm:-mx-4 sm:px-4'
-                    : format === 'diff' && line.startsWith('- ')
-                      ? '-mx-3 bg-rose-500/10 px-3 sm:-mx-4 sm:px-4'
-                      : ''
                 }`}
               >
                 {showLineNumbers ? (
                   <span
                     aria-hidden="true"
-                    className="select-none text-right text-muted/60"
+                    className="select-none text-right text-muted"
                   >
                     {index + 1}
                   </span>
@@ -414,7 +383,7 @@ export function ToolOutput({
               </span>
             ))}
           </code>
-        </div>
+        </pre>
       </Card.Content>
     </Card>
   );
