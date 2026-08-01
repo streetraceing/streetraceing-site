@@ -300,6 +300,7 @@ export function CronBuilderTool() {
       <Form className="flex flex-col gap-4" onSubmit={build}>
         <Select
           value={frequency}
+          variant="secondary"
           onChange={(value) => {
             if (
               typeof value === 'string' &&

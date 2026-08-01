@@ -332,12 +332,12 @@ export const mainPageConfig: MainPageConfig = {
         'A local cross-platform client for AI conversations, roleplay, and multiple AI services.',
       ),
       longDescription: text(
-        'Galactrix - open-source лаунчер и клиент, объединяющий общение с нейросетями, roleplay-сценарии и подключение к популярным AI-провайдерам в одном локальном приложении. Проект поддерживает или планирует интеграции с Ollama, Mistral, Character.AI, Cerebras, Cloudflare Workers и NVIDIA NIM, а в будущем список сервисов будет расширяться. Приложение планируется для Windows и Android. Текущая готовность проекта - около 40%.',
-        'Galactrix is an open-source launcher and client that combines AI conversations, roleplay scenarios, and integrations with popular AI providers in one local application. The project supports or plans integrations with Ollama, Mistral, Character.AI, Cerebras, Cloudflare Workers, and NVIDIA NIM, with more services planned in the future. The application is planned for Windows and Android. The project is currently around 40% complete.',
+        'Galactrix - open-source лаунчер и клиент, объединяющий общение с нейросетями, roleplay-сценарии и подключение к популярным AI-провайдерам в одном локальном приложении. Проект поддерживает или планирует интеграции с Ollama, Mistral, Character.AI, Cerebras, Cloudflare Workers и NVIDIA NIM, а в будущем список сервисов будет расширяться. Приложение планируется для Windows и Android.',
+        'Galactrix is an open-source launcher and client that combines AI conversations, roleplay scenarios, and integrations with popular AI providers in one local application. The project supports or plans integrations with Ollama, Mistral, Character.AI, Cerebras, Cloudflare Workers, and NVIDIA NIM, with more services planned in the future. The application is planned for Windows and Android.',
       ),
       colors: ['#111827', '#2563eb', '#7c3aed'],
       status: ['in-development', 'maintained', 'open-source'],
-      progress: 40,
+      progress: 75,
       technologies: ['Tauri', 'Rust', 'React', 'TypeScript', 'Vite', 'AI'],
       highlights: [
         text(
