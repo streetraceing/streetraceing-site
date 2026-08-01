@@ -24,6 +24,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     ...projects,
+    {
+      url: getAbsoluteUrl('/tools'),
+      changeFrequency: 'monthly',
+      priority: 0.85,
+    },
     ...tools,
   ];
 }

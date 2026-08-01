@@ -1,17 +1,17 @@
 'use client';
 
-import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
 import { ToolCard } from '@/components/projects/ToolCard';
+import { Button } from '@/components/ui/Button';
 import { mainPageConfig, type ToolConfig } from '@/utils/config';
 import { getLocaleTag, getText } from '@/utils/i18n';
 import {
+  Alert,
   Card,
   Label,
   ListBox,
   SearchField,
   Select,
-  Typography,
 } from '@heroui/react';
 import Fuse from 'fuse.js';
 import { X } from 'lucide-react';
@@ -33,8 +33,9 @@ const toolTags = mainPageConfig.tools
       tags.findIndex((candidate) => candidate.ru === tag.ru) === index,
   );
 
-export function ToolsSection() {
+export function ToolsDirectory() {
   const { copy, locale } = useLocale();
+  const strings = copy.toolsPage;
   const [query, setQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string>();
   const [sort, setSort] = useState<ToolSort>('relevance');
@@ -80,23 +81,13 @@ export function ToolsSection() {
   }, [locale, query, search, selectedTag, sort]);
 
   return (
-    <section
-      id="tools"
-      className="scroll-mt-16 flex flex-col gap-4 border-t pt-4"
-    >
-      <Typography.Heading level={2}>
-        {copy.home.toolsTitle.replace(
-          '{count}',
-          String(mainPageConfig.tools.length),
-        )}
-      </Typography.Heading>
-
+    <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-3">
         <SearchField value={query} onChange={setQuery} fullWidth>
-          <Label className="sr-only">{copy.home.toolsSearchLabel}</Label>
+          <Label className="sr-only">{strings.searchLabel}</Label>
           <SearchField.Group>
             <SearchField.SearchIcon />
-            <SearchField.Input placeholder={copy.home.toolsSearchPlaceholder} />
+            <SearchField.Input placeholder={strings.searchPlaceholder} />
             <SearchField.ClearButton />
           </SearchField.Group>
         </SearchField>
@@ -117,15 +108,15 @@ export function ToolsSection() {
                 }
               }}
             >
-              <Label>{copy.home.toolsFilters}</Label>
+              <Label>{strings.filters}</Label>
               <Select.Trigger>
                 <Select.Value />
                 <Select.Indicator />
               </Select.Trigger>
               <Select.Popover>
                 <ListBox>
-                  <ListBox.Item id={ALL_FILTER_ID} textValue={copy.home.all}>
-                    {copy.home.all}
+                  <ListBox.Item id={ALL_FILTER_ID} textValue={strings.all}>
+                    {strings.all}
                     <ListBox.ItemIndicator />
                   </ListBox.Item>
                   {toolTags.map((tag) => (
@@ -143,7 +134,7 @@ export function ToolsSection() {
             </Select>
             {selectedTag ? (
               <Button
-                aria-label={copy.home.clearFilters}
+                aria-label={strings.clearFilters}
                 isIconOnly
                 type="button"
                 size="sm"
@@ -165,7 +156,7 @@ export function ToolsSection() {
                 }
               }}
             >
-              <Label className="sm:sr-only">{copy.home.toolsSort}</Label>
+              <Label className="sm:sr-only">{strings.sort}</Label>
               <Select.Trigger>
                 <Select.Value />
                 <Select.Indicator />
@@ -174,13 +165,13 @@ export function ToolsSection() {
                 <ListBox>
                   <ListBox.Item
                     id="relevance"
-                    textValue={copy.home.sortRelevance}
+                    textValue={strings.sortRelevance}
                   >
-                    {copy.home.sortRelevance}
+                    {strings.sortRelevance}
                     <ListBox.ItemIndicator />
                   </ListBox.Item>
-                  <ListBox.Item id="name-asc" textValue={copy.home.sortName}>
-                    {copy.home.sortName}
+                  <ListBox.Item id="name-asc" textValue={strings.sortName}>
+                    {strings.sortName}
                     <ListBox.ItemIndicator />
                   </ListBox.Item>
                 </ListBox>
@@ -188,7 +179,7 @@ export function ToolsSection() {
             </Select>
             {sort !== 'relevance' ? (
               <Button
-                aria-label={copy.home.clearSort}
+                aria-label={strings.clearSort}
                 isIconOnly
                 type="button"
                 size="sm"
@@ -202,18 +193,18 @@ export function ToolsSection() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {tools.map((tool) => (
           <ToolCard key={tool.slug} tool={tool} />
         ))}
         {tools.length === 0 ? (
-          <Card variant="secondary">
+          <Card variant="secondary" className="md:col-span-2 xl:col-span-3">
             <Card.Content className="text-sm text-muted">
-              {copy.home.noTools}
+              {strings.noTools}
             </Card.Content>
           </Card>
         ) : null}
       </div>
-    </section>
+    </div>
   );
 }

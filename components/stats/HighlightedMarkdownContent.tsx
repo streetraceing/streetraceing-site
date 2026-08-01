@@ -91,6 +91,14 @@ export default function HighlightedMarkdownContent({
                 <a
                   href={`#${createMarkdownHeadingId(headingIdPrefix, href)}`}
                   title={title}
+                  onClick={(event) => {
+                    if (!onDocumentNavigate || !isPlainPrimaryClick(event)) {
+                      return;
+                    }
+
+                    event.preventDefault();
+                    onDocumentNavigate(href);
+                  }}
                 >
                   {children}
                 </a>

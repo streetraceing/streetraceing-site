@@ -23,12 +23,6 @@ const ProjectsSection = dynamic(() =>
   ),
 );
 
-const ToolsSection = dynamic(() =>
-  import('@/components/home/ToolsSection').then(
-    (module) => module.ToolsSection,
-  ),
-);
-
 export function HomePageContent({
   initialFeed,
   initialFeedLoaded,
@@ -77,7 +71,6 @@ export function HomePageContent({
           githubCommitFeed={githubCommitFeed}
         />
         <ProjectsSection />
-        <ToolsSection />
       </Container>
     </Page>
   );

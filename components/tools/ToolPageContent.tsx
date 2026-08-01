@@ -27,6 +27,36 @@ const toolComponents: Record<GenericToolComponent, ComponentType> = {
   base64: dynamic(() =>
     import('./Base64Tool').then((module) => module.Base64Tool),
   ),
+  'password-generator': dynamic(() =>
+    import('./SecurityTools').then((module) => module.PasswordGeneratorTool),
+  ),
+  'jwt-inspector': dynamic(() =>
+    import('./SecurityTools').then((module) => module.JwtInspectorTool),
+  ),
+  'hash-generator': dynamic(() =>
+    import('./SecurityTools').then((module) => module.HashGeneratorTool),
+  ),
+  'regex-tester': dynamic(() =>
+    import('./DeveloperTools').then((module) => module.RegexTesterTool),
+  ),
+  'url-inspector': dynamic(() =>
+    import('./DeveloperTools').then((module) => module.UrlInspectorTool),
+  ),
+  'json-to-typescript': dynamic(() =>
+    import('./DeveloperTools').then((module) => module.JsonToTypeScriptTool),
+  ),
+  'text-diff': dynamic(() =>
+    import('./DeveloperTools').then((module) => module.TextDiffTool),
+  ),
+  'timestamp-converter': dynamic(() =>
+    import('./TimeDesignTools').then((module) => module.TimestampConverterTool),
+  ),
+  'color-contrast': dynamic(() =>
+    import('./TimeDesignTools').then((module) => module.ColorContrastTool),
+  ),
+  'cron-builder': dynamic(() =>
+    import('./TimeDesignTools').then((module) => module.CronBuilderTool),
+  ),
 };
 
 export function ToolPageContent({ slug }: { slug: string }) {
@@ -46,7 +76,7 @@ export function ToolPageContent({ slug }: { slug: string }) {
     <Page header={<Header />} footer={<Footer />}>
       <Container className="flex flex-col gap-4 py-4">
         <Link
-          href="/#tools"
+          href="/tools"
           className="button button--tertiary button--md self-start"
         >
           <ButtonRipple />
@@ -63,7 +93,7 @@ export function ToolPageContent({ slug }: { slug: string }) {
                 </span>
               ) : null}
               <div className="flex min-w-0 flex-col gap-1">
-                <Typography.Heading level={1}>
+                <Typography.Heading level={2}>
                   {getText(tool.name, locale)}
                 </Typography.Heading>
                 <Card.Description>

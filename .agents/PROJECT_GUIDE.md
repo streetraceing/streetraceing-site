@@ -31,10 +31,10 @@ npm run db:studio
 ## Structure
 
 - `app/` — routes and API endpoints.
-- `components/home/` — client-side home-page project and tool sections.
+- `components/home/` — client-side biography, statistics, and project sections for the home page.
 - `components/layout/` — header, footer, page shell, container.
 - `components/projects/` — project cards, modal details, and project-page client content.
-- `components/tools/` — browser-only developer tools and their page wrapper.
+- `components/tools/` — the `/tools` directory, browser-only utilities, and individual tool page wrappers.
 - `components/tiny-url/` — Tiny URL form and shared-data views.
 - `components/stats/` — skills chart, cached public GitHub commit history, Dev Notes feed, deterministic Markdown renderer, and author controls.
 - `components/ui/Button.tsx` — the shared HeroUI Button wrapper and composed ripple layer. Import buttons from here instead of importing `Button` directly from HeroUI.
@@ -86,7 +86,7 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 ## Adding content
 
 - Add a project or generic tool in `mainPageConfig` in `utils/config.ts` and provide both locales for every `LocalizedText` field.
-- For a generic tool, set its `component` identifier and register the implementation once in `components/tools/ToolPageContent.tsx`.
+- For a generic tool, set its `component` identifier and register the implementation once in `components/tools/ToolPageContent.tsx`; the searchable `/tools` directory is generated from the same config.
 - Tiny URL remains a dedicated route because it has server-backed behavior.
 - If a project/tool page needs a client i18n context and uses icons from the config, use a client page-content wrapper and pass only a primitive slug from the server route. React components in config objects cannot cross a Server Component → Client Component boundary as props.
 - New database schema changes need a descriptive Drizzle migration name and a checked-in migration file.
@@ -124,8 +124,8 @@ Dev Notes are authored Markdown. Keep the original author text; do not machine-t
 - PostgreSQL stores only validated original Cloudinary delivery URLs. Never store image binaries, transformed preview URLs, or base64 payloads in the database.
 - Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and the server-only `CLOUDINARY_API_SECRET`, then apply the checked-in Drizzle migration before using project media.
 - Removed images are destroyed through Cloudinary after the owning database record is updated. Every signed upload is first registered as pending in PostgreSQL, confirmed after a successful save, and cleaned by the daily maintenance cron after 24 hours if it remains unreferenced. This prevents both orphaned uploads and accidental deletion after a lost save response. Keep gallery previews, metadata (`fl_getinfo`), and downloads (`fl_attachment`) as URL transformations derived from the stored original URL.
-- Internal section links must use root-qualified hashes such as `/#projects` and `/#tools`; Markdown links beginning with `#` are normalized automatically.
-- Project documentation is optional source Markdown referenced by the `documentationUrl` field of `ProjectConfig` and is rendered only on `/project/[slug]`. Use an HTTPS raw `.md` URL, such as GitHub Raw; the server fetches it with a one-hour cache and the renderer resolves relative links and images against that URL. Links to other `.md` files in the same configured repository branch open inside the same documentation card, with repository-relative breadcrumbs and generated section anchors. Keep documentation in its native language; do not store it in PostgreSQL. The shared renderer supports GFM tables, `++underline++`, `~~strikethrough~~`, and a strict allowlist of sanitized HTML elements. Event handlers, scripts, styles, embedded documents, active media, and unsafe URL schemes must remain blocked. Tables remain horizontally scrollable on narrow screens.
+- Internal home-page section links must use root-qualified hashes such as `/#projects`; the tool directory lives at `/tools`. Markdown links beginning with `#` are normalized automatically.
+- Project documentation is optional source Markdown referenced by the `documentationUrl` field of `ProjectConfig` and is rendered only on `/project/[slug]`. Use an HTTPS raw `.md` URL, such as GitHub Raw; the server fetches it with a one-hour cache and the renderer resolves relative links and images against that URL. Links to other `.md` files in the same configured repository branch open inside the same documentation card, with repository-relative breadcrumbs, generated section anchors, and browser back/forward history entries. Keep documentation in its native language; do not store it in PostgreSQL. The shared renderer supports GFM tables, `++underline++`, `~~strikethrough~~`, and a strict allowlist of sanitized HTML elements. Event handlers, scripts, styles, embedded documents, active media, and unsafe URL schemes must remain blocked. Tables remain horizontally scrollable on narrow screens.
 - The home page reads the first Dev Notes page and author session on the server so hydration must not replace the feed or author controls with differently sized placeholders.
 
 ## Tiny URL lifecycle

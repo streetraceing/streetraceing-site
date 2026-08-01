@@ -2,16 +2,25 @@ import {
   Bot,
   Braces,
   BarChart3,
+  CalendarClock,
+  Clock3,
   Code2,
   ExternalLink,
+  FileCode2,
   FileText,
+  Fingerprint,
   FolderOpen,
+  GitCompareArrows,
   Hammer,
   Home,
   KeyRound,
   LucideIcon,
   Package,
+  Link2,
   PackageSearch,
+  Palette,
+  Regex,
+  ShieldCheck,
   Sparkles,
 } from 'lucide-react';
 import { IconType } from 'react-icons';
@@ -78,7 +87,20 @@ export type ProjectConfig = {
 
 export type ToolStatus = 'available' | 'planned';
 export type GenericToolComponent =
-  'json-viewer' | 'uuid-generator' | 'text-tools' | 'base64';
+  | 'json-viewer'
+  | 'uuid-generator'
+  | 'text-tools'
+  | 'base64'
+  | 'password-generator'
+  | 'jwt-inspector'
+  | 'hash-generator'
+  | 'regex-tester'
+  | 'url-inspector'
+  | 'timestamp-converter'
+  | 'json-to-typescript'
+  | 'text-diff'
+  | 'color-contrast'
+  | 'cron-builder';
 
 export type ToolConfig = {
   slug: string;
@@ -475,6 +497,166 @@ export const mainPageConfig: MainPageConfig = {
         text('Клиент', 'Client'),
       ],
     },
+    {
+      slug: 'password-generator',
+      component: 'password-generator',
+      name: text('Генератор паролей', 'Password Generator'),
+      description: text(
+        'Криптографически стойкие пароли с настройкой длины и набора символов.',
+        'Cryptographically secure passwords with configurable length and character sets.',
+      ),
+      icon: KeyRound,
+      status: 'available',
+      tags: [
+        text('Безопасность', 'Security'),
+        text('Пароли', 'Passwords'),
+        text('Клиент', 'Client'),
+      ],
+    },
+    {
+      slug: 'jwt-inspector',
+      component: 'jwt-inspector',
+      name: text('JWT Inspector', 'JWT Inspector'),
+      description: text(
+        'Локально декодирует header и payload JWT, показывает сроки действия и служебные claims.',
+        'Locally decodes JWT headers and payloads and shows timing claims.',
+      ),
+      icon: ShieldCheck,
+      status: 'available',
+      tags: [
+        text('JWT', 'JWT'),
+        text('Безопасность', 'Security'),
+        text('API', 'API'),
+      ],
+    },
+    {
+      slug: 'hash-generator',
+      component: 'hash-generator',
+      name: text('Генератор хешей', 'Hash Generator'),
+      description: text(
+        'SHA-256, SHA-384 и SHA-512 для текста или локального файла без загрузки на сервер.',
+        'SHA-256, SHA-384, and SHA-512 for text or local files without uploads.',
+      ),
+      icon: Fingerprint,
+      status: 'available',
+      tags: [
+        text('Хеши', 'Hashes'),
+        text('Файлы', 'Files'),
+        text('Безопасность', 'Security'),
+      ],
+    },
+    {
+      slug: 'regex-tester',
+      component: 'regex-tester',
+      name: text('Тестер RegExp', 'RegExp Tester'),
+      description: text(
+        'Проверяет регулярные выражения, позиции совпадений и группы захвата прямо в браузере.',
+        'Tests regular expressions, match positions, and capture groups in the browser.',
+      ),
+      icon: Regex,
+      status: 'available',
+      tags: [
+        text('RegExp', 'RegExp'),
+        text('Текст', 'Text'),
+        text('Разработка', 'Dev'),
+      ],
+    },
+    {
+      slug: 'url-inspector',
+      component: 'url-inspector',
+      name: text('URL Inspector', 'URL Inspector'),
+      description: text(
+        'Разбирает URL по частям и удаляет распространённые рекламные и аналитические параметры.',
+        'Breaks URLs into parts and removes common advertising and analytics parameters.',
+      ),
+      icon: Link2,
+      status: 'available',
+      tags: [
+        text('URL', 'URL'),
+        text('Приватность', 'Privacy'),
+        text('Разработка', 'Dev'),
+      ],
+    },
+    {
+      slug: 'timestamp-converter',
+      component: 'timestamp-converter',
+      name: text('Конвертер времени', 'Timestamp Converter'),
+      description: text(
+        'Преобразует Unix timestamp, ISO и обычные даты в несколько удобных форматов.',
+        'Converts Unix timestamps, ISO values, and common dates into useful formats.',
+      ),
+      icon: Clock3,
+      status: 'available',
+      tags: [
+        text('Дата', 'Date'),
+        text('Unix', 'Unix'),
+        text('Разработка', 'Dev'),
+      ],
+    },
+    {
+      slug: 'json-to-typescript',
+      component: 'json-to-typescript',
+      name: text('JSON в TypeScript', 'JSON to TypeScript'),
+      description: text(
+        'Строит читаемые TypeScript-интерфейсы по примеру JSON с вложенными объектами и массивами.',
+        'Builds readable TypeScript interfaces from JSON with nested objects and arrays.',
+      ),
+      icon: FileCode2,
+      status: 'available',
+      tags: [
+        text('TypeScript', 'TypeScript'),
+        text('JSON', 'JSON'),
+        text('Типы', 'Types'),
+      ],
+    },
+    {
+      slug: 'text-diff',
+      component: 'text-diff',
+      name: text('Сравнение текста', 'Text Diff'),
+      description: text(
+        'Построчно сравнивает две версии текста и показывает добавления и удаления.',
+        'Compares two text versions line by line and shows additions and removals.',
+      ),
+      icon: GitCompareArrows,
+      status: 'available',
+      tags: [
+        text('Diff', 'Diff'),
+        text('Текст', 'Text'),
+        text('Разработка', 'Dev'),
+      ],
+    },
+    {
+      slug: 'color-contrast',
+      component: 'color-contrast',
+      name: text('Контраст цветов', 'Color Contrast'),
+      description: text(
+        'Проверяет контраст двух HEX-цветов и соответствие уровням WCAG AA и AAA.',
+        'Checks two HEX colors against WCAG AA and AAA contrast levels.',
+      ),
+      icon: Palette,
+      status: 'available',
+      tags: [
+        text('Цвет', 'Color'),
+        text('Доступность', 'Accessibility'),
+        text('Дизайн', 'Design'),
+      ],
+    },
+    {
+      slug: 'cron-builder',
+      component: 'cron-builder',
+      name: text('Конструктор Cron', 'Cron Builder'),
+      description: text(
+        'Собирает распространённые пятичастные cron-выражения из понятного расписания.',
+        'Builds common five-field cron expressions from a readable schedule.',
+      ),
+      icon: CalendarClock,
+      status: 'available',
+      tags: [
+        text('Cron', 'Cron'),
+        text('Автоматизация', 'Automation'),
+        text('Разработка', 'Dev'),
+      ],
+    },
   ],
 };
 
@@ -508,7 +690,7 @@ export const headerConfig: HeaderConfig = {
     {
       icon: Hammer,
       label: text('Инструменты', 'Tools'),
-      href: '/#tools',
+      href: '/tools',
     },
   ],
 };

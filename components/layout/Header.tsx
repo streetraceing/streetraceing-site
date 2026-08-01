@@ -266,7 +266,7 @@ export function Header() {
   ) {
     setOpen(false);
 
-    if (pathname !== '/') {
+    if (pathname !== '/' || !href.startsWith('/#')) {
       return;
     }
 

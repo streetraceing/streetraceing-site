@@ -19,7 +19,7 @@ export function TinyUrlPageContent() {
     <Page header={<Header />} footer={<Footer />}>
       <Container className="flex flex-col gap-6 py-12 sm:py-20">
         <NextLink
-          href="/#tools"
+          href="/tools"
           className="button button--tertiary button--md self-start"
         >
           <ButtonRipple />
