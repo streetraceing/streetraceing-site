@@ -15,7 +15,7 @@ import { ArrowLeftRight, LockKeyhole, UnlockKeyhole } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
 import { ToolOutput } from './ToolOutput';
-import { toolFieldClassName } from './toolStyles';
+import { toolAlertClassName, toolFieldClassName } from './toolStyles';
 
 function encodeBase64(value: string) {
   const bytes = new TextEncoder().encode(value);
@@ -40,6 +40,9 @@ export function Base64Tool() {
   const strings = copy.tools.base64;
   const [source, setSource] = useState('');
   const [output, setOutput] = useState('');
+  const [outputFormat, setOutputFormat] = useState<'base64' | 'plain'>(
+    'base64',
+  );
   const [error, setError] = useState<string>();
 
   function transform(direction: 'encode' | 'decode') {
@@ -47,6 +50,7 @@ export function Base64Tool() {
       setOutput(
         direction === 'encode' ? encodeBase64(source) : decodeBase64(source),
       );
+      setOutputFormat(direction === 'encode' ? 'base64' : 'plain');
       setError(undefined);
     } catch {
       setOutput('');
@@ -111,7 +115,7 @@ export function Base64Tool() {
       </Form>
 
       {error && (
-        <Alert status="danger">
+        <Alert status="danger" className={toolAlertClassName}>
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>{strings.errorTitle}</Alert.Title>
@@ -120,7 +124,13 @@ export function Base64Tool() {
         </Alert>
       )}
 
-      {output && <ToolOutput content={output} label={strings.output} />}
+      {output && (
+        <ToolOutput
+          content={output}
+          label={strings.output}
+          format={outputFormat}
+        />
+      )}
     </div>
   );
 }

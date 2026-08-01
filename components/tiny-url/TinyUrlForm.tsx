@@ -20,6 +20,13 @@ import {
 import { Check, Copy, Link as LinkIcon, Trash2 } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 
+import { ToolOutput } from '@/components/tools/ToolOutput';
+import {
+  toolAlertClassName,
+  toolFieldClassName,
+  toolPanelClassName,
+} from '@/components/tools/toolStyles';
+
 type TinyUrlItem = {
   code: string;
   preview: string;
@@ -216,6 +223,7 @@ export function TinyUrlForm() {
           <Label>{strings.fieldLabel}</Label>
           <TextArea
             variant="secondary"
+            className={toolFieldClassName}
             placeholder={strings.fieldPlaceholder}
             rows={7}
             maxLength={MAX_CONTENT_LENGTH}
@@ -238,7 +246,7 @@ export function TinyUrlForm() {
       </Form>
 
       {error ? (
-        <Alert status="danger">
+        <Alert status="danger" className={toolAlertClassName}>
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>{strings.errorTitle}</Alert.Title>
@@ -248,30 +256,12 @@ export function TinyUrlForm() {
       ) : null}
 
       {createdItem ? (
-        <Alert status="success" className="bg-surface-secondary">
-          <Alert.Indicator />
-          <Alert.Content className="min-w-0">
-            <Alert.Title>{strings.saved}</Alert.Title>
-            <Alert.Description>
-              <Link
-                href={createdItem.shortUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {createdItem.shortUrl}
-              </Link>
-            </Alert.Description>
-            <Button
-              className="mt-3 self-start"
-              size="sm"
-              variant="secondary"
-              onPress={() => void copyShortUrl(createdItem)}
-            >
-              {copiedCode === createdItem.code ? <Check /> : <Copy />}
-              {copiedCode === createdItem.code ? strings.copied : strings.copy}
-            </Button>
-          </Alert.Content>
-        </Alert>
+        <ToolOutput
+          content={createdItem.shortUrl}
+          label={strings.saved}
+          format="url"
+          tone="success"
+        />
       ) : null}
 
       <section className="space-y-3" aria-labelledby="your-data-heading">
@@ -289,7 +279,7 @@ export function TinyUrlForm() {
         ) : null}
 
         {!isLoadingItems && !error && items.length === 0 ? (
-          <Card variant="transparent">
+          <Card variant="transparent" className={toolPanelClassName}>
             <Card.Content className="text-sm text-muted">
               {strings.emptyList}
             </Card.Content>
@@ -299,7 +289,11 @@ export function TinyUrlForm() {
         {!isLoadingItems && items.length > 0 ? (
           <div className="space-y-3">
             {items.map((item) => (
-              <Card key={item.code} variant="secondary">
+              <Card
+                key={item.code}
+                variant="secondary"
+                className={toolPanelClassName}
+              >
                 <Card.Header>
                   <Card.Title className="truncate">
                     {item.preview || strings.emptyData}

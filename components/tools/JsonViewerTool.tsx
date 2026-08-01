@@ -15,7 +15,7 @@ import { Braces, Minimize2, Sparkles } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
 import { ToolOutput } from './ToolOutput';
-import { toolFieldClassName } from './toolStyles';
+import { toolAlertClassName, toolFieldClassName } from './toolStyles';
 
 const jsonExample =
   '{\n  "name": "streetraceing",\n  "tools": ["JSON Viewer", "UUID Generator"]\n}';
@@ -99,7 +99,7 @@ export function JsonViewerTool() {
       </Form>
 
       {error && (
-        <Alert status="danger">
+        <Alert status="danger" className={toolAlertClassName}>
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>{strings.errorTitle}</Alert.Title>
@@ -108,7 +108,9 @@ export function JsonViewerTool() {
         </Alert>
       )}
 
-      {output && <ToolOutput content={output} label={strings.output} />}
+      {output && (
+        <ToolOutput content={output} label={strings.output} format="json" />
+      )}
     </div>
   );
 }

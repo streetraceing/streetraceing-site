@@ -10,7 +10,11 @@ import Fuse from 'fuse.js';
 import { X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { toolFieldClassName, toolSelectTriggerClassName } from './toolStyles';
+import {
+  toolFieldClassName,
+  toolPanelClassName,
+  toolSelectTriggerClassName,
+} from './toolStyles';
 
 type ToolSort = 'relevance' | 'name-asc';
 type ToolSearchItem = {
@@ -198,7 +202,10 @@ export function ToolsDirectory() {
           <ToolCard key={tool.slug} tool={tool} />
         ))}
         {tools.length === 0 ? (
-          <Card variant="secondary" className="md:col-span-2 xl:col-span-3">
+          <Card
+            variant="secondary"
+            className={`${toolPanelClassName} md:col-span-2 xl:col-span-3`}
+          >
             <Card.Content className="text-sm text-muted">
               {strings.noTools}
             </Card.Content>

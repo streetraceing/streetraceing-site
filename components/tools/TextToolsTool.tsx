@@ -140,7 +140,7 @@ export function TextToolsTool() {
         </div>
       </Form>
 
-      {output && <ToolOutput content={output} />}
+      {output && <ToolOutput content={output} format="plain" />}
     </div>
   );
 }

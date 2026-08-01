@@ -19,15 +19,15 @@ export function ToolCard({ tool }: ToolCardProps) {
       variant="secondary"
       className={
         tool.status === 'planned'
-          ? 'h-full border border-dashed border-border/90 bg-surface-secondary opacity-80 shadow-sm transition-colors dark:bg-white/[0.04]'
-          : 'h-full border border-border/80 bg-surface-secondary shadow-sm transition-[background-color,border-color,box-shadow] group-hover:border-accent/40 group-hover:bg-surface-tertiary group-hover:shadow-md group-focus-visible:border-accent group-focus-visible:bg-surface-tertiary dark:bg-white/[0.05] dark:group-hover:bg-white/[0.085]'
+          ? 'h-full border-0 bg-surface-secondary/75 opacity-75 shadow-sm transition-[background-color,box-shadow] dark:bg-white/4'
+          : 'h-full border-0 bg-surface-secondary/90 shadow-[0_12px_34px_rgba(15,23,42,0.07)] transition-[background-color,box-shadow,transform] group-hover:-translate-y-0.5 group-hover:bg-surface-tertiary group-hover:shadow-[0_18px_46px_rgba(15,23,42,0.11)] group-focus-visible:bg-surface-tertiary dark:bg-white/5.5 dark:group-hover:bg-white/9 dark:group-hover:shadow-[0_20px_48px_rgba(0,0,0,0.28)]'
       }
     >
       <Card.Header className="gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             {tool.icon && (
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-default">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
                 <tool.icon className="size-5" />
               </span>
             )}
@@ -72,7 +72,7 @@ export function ToolCard({ tool }: ToolCardProps) {
   return (
     <Link
       href={`/tool/${tool.slug}`}
-      className="group block h-full rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      className="group block h-full rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-border"
     >
       {card}
     </Link>

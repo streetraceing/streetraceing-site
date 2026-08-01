@@ -26,6 +26,7 @@ import { type FormEvent, useMemo, useState } from 'react';
 
 import { ToolOutput } from './ToolOutput';
 import {
+  toolAlertClassName,
   toolFieldClassName,
   toolPanelClassName,
   toolSelectTriggerClassName,
@@ -36,7 +37,7 @@ type CronFrequency =
 
 function ErrorAlert({ title, message }: { title: string; message: string }) {
   return (
-    <Alert status="danger">
+    <Alert status="danger" className={toolAlertClassName}>
       <Alert.Indicator />
       <Alert.Content>
         <Alert.Title>{title}</Alert.Title>
@@ -133,7 +134,13 @@ export function TimestampConverterTool() {
       </Form>
 
       {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
-      {output ? <ToolOutput content={output} label={strings.output} /> : null}
+      {output ? (
+        <ToolOutput
+          content={output}
+          label={strings.output}
+          format="key-value"
+        />
+      ) : null}
     </div>
   );
 }
@@ -197,7 +204,7 @@ export function ColorContrastTool() {
             onChange={(event) =>
               setForeground(event.currentTarget.value.toUpperCase())
             }
-            className="size-10 cursor-pointer rounded-lg border border-border/90 bg-surface-secondary p-1 shadow-sm dark:bg-white/[0.085]"
+            className="size-10 cursor-pointer rounded-xl bg-surface-tertiary/90 p-1 shadow-sm ring-2 ring-transparent transition-shadow focus-visible:ring-accent/30 dark:bg-white/[0.095]"
           />
           {strings.foregroundPicker}
         </label>
@@ -208,7 +215,7 @@ export function ColorContrastTool() {
             onChange={(event) =>
               setBackground(event.currentTarget.value.toUpperCase())
             }
-            className="size-10 cursor-pointer rounded-lg border border-border/90 bg-surface-secondary p-1 shadow-sm dark:bg-white/[0.085]"
+            className="size-10 cursor-pointer rounded-xl bg-surface-tertiary/90 p-1 shadow-sm ring-2 ring-transparent transition-shadow focus-visible:ring-accent/30 dark:bg-white/[0.095]"
           />
           {strings.backgroundPicker}
         </label>
@@ -219,7 +226,7 @@ export function ColorContrastTool() {
           <Card variant="secondary" className={toolPanelClassName}>
             <Card.Content>
               <div
-                className="rounded-xl border p-6"
+                className="rounded-2xl p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_12px_32px_rgba(15,23,42,0.14)]"
                 style={{
                   color: result.foreground,
                   backgroundColor: result.background,
@@ -423,7 +430,9 @@ export function CronBuilderTool() {
         </Button>
       </Form>
 
-      {output ? <ToolOutput content={output} label={strings.output} /> : null}
+      {output ? (
+        <ToolOutput content={output} label={strings.output} format="cron" />
+      ) : null}
     </div>
   );
 }

@@ -28,11 +28,11 @@ import {
 import { type FormEvent, useState } from 'react';
 
 import { ToolOutput } from './ToolOutput';
-import { toolFieldClassName } from './toolStyles';
+import { toolAlertClassName, toolFieldClassName } from './toolStyles';
 
 function ErrorAlert({ title, message }: { title: string; message: string }) {
   return (
-    <Alert status="danger">
+    <Alert status="danger" className={toolAlertClassName}>
       <Alert.Indicator />
       <Alert.Content>
         <Alert.Title>{title}</Alert.Title>
@@ -157,7 +157,9 @@ export function RegexTesterTool() {
       </Form>
 
       {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
-      {output ? <ToolOutput content={output} label={strings.output} /> : null}
+      {output ? (
+        <ToolOutput content={output} label={strings.output} format="regex" />
+      ) : null}
     </div>
   );
 }
@@ -258,7 +260,9 @@ export function UrlInspectorTool() {
       </Form>
 
       {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
-      {output ? <ToolOutput content={output} label={strings.output} /> : null}
+      {output ? (
+        <ToolOutput content={output} label={strings.output} format="url" />
+      ) : null}
     </div>
   );
 }
@@ -346,7 +350,13 @@ export function JsonToTypeScriptTool() {
       </Form>
 
       {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
-      {output ? <ToolOutput content={output} label={strings.output} /> : null}
+      {output ? (
+        <ToolOutput
+          content={output}
+          label={strings.output}
+          format="typescript"
+        />
+      ) : null}
     </div>
   );
 }
@@ -428,7 +438,9 @@ export function TextDiffTool() {
         </Button>
       </Form>
 
-      {output ? <ToolOutput content={output} label={strings.output} /> : null}
+      {output ? (
+        <ToolOutput content={output} label={strings.output} format="diff" />
+      ) : null}
     </div>
   );
 }

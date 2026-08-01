@@ -16,7 +16,7 @@ import { parsePositiveInteger } from '@/utils/numbers';
 import { type FormEvent, useState } from 'react';
 
 import { ToolOutput } from './ToolOutput';
-import { toolFieldClassName } from './toolStyles';
+import { toolAlertClassName, toolFieldClassName } from './toolStyles';
 
 const MAX_UUIDS = 100;
 
@@ -70,7 +70,7 @@ export function UuidGeneratorTool() {
       </Form>
 
       {error && (
-        <Alert status="danger">
+        <Alert status="danger" className={toolAlertClassName}>
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>{strings.errorTitle}</Alert.Title>
@@ -93,6 +93,7 @@ export function UuidGeneratorTool() {
           <ToolOutput
             content={uuids.join('\n')}
             label={`UUID v4 - ${uuids.length}`}
+            format="uuid"
           />
         </div>
       )}

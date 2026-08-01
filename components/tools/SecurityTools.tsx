@@ -34,6 +34,8 @@ import {
 
 import { ToolOutput } from './ToolOutput';
 import {
+  toolAlertClassName,
+  toolChoiceClassName,
   toolFieldClassName,
   toolPanelClassName,
   toolSelectTriggerClassName,
@@ -49,7 +51,7 @@ type ToggleFieldProps = {
 
 function ToggleField({ checked, label, onChange }: ToggleFieldProps) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm shadow-sm transition-colors hover:bg-background">
+    <label className={toolChoiceClassName}>
       <input
         type="checkbox"
         checked={checked}
@@ -63,7 +65,7 @@ function ToggleField({ checked, label, onChange }: ToggleFieldProps) {
 
 function ErrorAlert({ title, message }: { title: string; message: string }) {
   return (
-    <Alert status="danger">
+    <Alert status="danger" className={toolAlertClassName}>
       <Alert.Indicator />
       <Alert.Content>
         <Alert.Title>{title}</Alert.Title>
@@ -190,7 +192,10 @@ export function PasswordGeneratorTool() {
                 <Typography.Paragraph size="sm" className="text-muted">
                   {strings.entropy}
                 </Typography.Paragraph>
-                <Typography.Heading level={3} className="text-xl">
+                <Typography.Heading
+                  level={3}
+                  className="text-xl text-sky-700 dark:text-sky-300"
+                >
                   {strings.bits.replace('{count}', String(result.entropyBits))}
                 </Typography.Heading>
               </Card.Content>
@@ -200,13 +205,20 @@ export function PasswordGeneratorTool() {
                 <Typography.Paragraph size="sm" className="text-muted">
                   {strings.pool}
                 </Typography.Paragraph>
-                <Typography.Heading level={3} className="text-xl">
+                <Typography.Heading
+                  level={3}
+                  className="text-xl text-violet-700 dark:text-violet-300"
+                >
                   {result.poolSize}
                 </Typography.Heading>
               </Card.Content>
             </Card>
           </div>
-          <ToolOutput content={result.password} label={strings.output} />
+          <ToolOutput
+            content={result.password}
+            label={strings.output}
+            format="secret"
+          />
           <Button
             type="button"
             size="sm"
@@ -281,7 +293,7 @@ export function JwtInspectorTool() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Alert status="warning">
+      <Alert status="warning" className={toolAlertClassName}>
         <Alert.Indicator />
         <Alert.Content>
           <Alert.Title>{strings.warningTitle}</Alert.Title>
@@ -308,7 +320,9 @@ export function JwtInspectorTool() {
       </Form>
 
       {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
-      {output ? <ToolOutput content={output} label={strings.output} /> : null}
+      {output ? (
+        <ToolOutput content={output} label={strings.output} format="jwt" />
+      ) : null}
     </div>
   );
 }
@@ -452,7 +466,11 @@ export function HashGeneratorTool() {
 
       {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
       {output ? (
-        <ToolOutput content={output} label={`${algorithm} ${strings.output}`} />
+        <ToolOutput
+          content={output}
+          label={`${algorithm} ${strings.output}`}
+          format="hash"
+        />
       ) : null}
     </div>
   );
