@@ -315,7 +315,7 @@ export function Header() {
 
           <nav
             aria-label={copy.header.navigation}
-            className="hidden min-w-0 items-center gap-3 justify-self-start min-[1180px]:flex"
+            className="hidden min-w-0 items-center gap-2 justify-self-start min-[1180px]:flex"
           >
             {navigationLinks.map((link) => (
               <NextLink

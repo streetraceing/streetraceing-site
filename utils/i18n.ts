@@ -266,9 +266,9 @@ export const translations = {
       cancel: 'Отмена',
     },
     stats: {
-      title: 'Статистика и новости',
+      title: 'Статистика',
       description:
-        'Направления, в которых сейчас больше всего практики, публичная активность и заметки о разработке.',
+        'Направления, в которых сейчас больше всего практики, и публичная активность в открытых репозиториях.',
       skillsChartTitle: 'Фокус разработки',
       skillsChartDescription:
         'Относительное распределение практики по основным направлениям.',
@@ -310,7 +310,7 @@ export const translations = {
       deleteNoteDescription:
         'Запись будет удалена без возможности восстановления.',
       noteNotUpdated: 'Заметка не обновлена',
-      updatesTitle: 'Наработки и новости',
+      updatesTitle: 'Новости',
       updatesDescription: 'Короткие заметки по проектам, AI, обучению и сайту.',
       total: 'Всего: {count}',
       updatesFilter: 'Фильтр новостей',
@@ -833,9 +833,9 @@ export const translations = {
       cancel: 'Cancel',
     },
     stats: {
-      title: 'Stats and news',
+      title: 'Statistics',
       description:
-        'The areas I am practicing most right now, public activity, and short development notes.',
+        'The areas I am practicing most right now and public activity across open repositories.',
       skillsChartTitle: 'Development focus',
       skillsChartDescription:
         'A relative distribution of practice across the main areas.',
@@ -877,7 +877,7 @@ export const translations = {
       deleteNoteDescription:
         'This entry will be permanently deleted and cannot be restored.',
       noteNotUpdated: 'Note was not updated',
-      updatesTitle: 'Work in progress and news',
+      updatesTitle: 'News',
       updatesDescription:
         'Short notes about projects, AI, learning, and the site.',
       total: 'Total: {count}',

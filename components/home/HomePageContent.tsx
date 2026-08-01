@@ -8,6 +8,7 @@ import { Header } from '@/components/layout/Header';
 import { HomeScrollManager } from '@/components/layout/HomeScrollManager';
 import { Page } from '@/components/layout/Page';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { NewsSection } from '@/components/stats/NewsSection';
 import { StatsSection } from '@/components/stats/StatsSection';
 import type {
   DevUpdatesFeed,
@@ -65,10 +66,10 @@ export function HomePageContent({
           <SkillsShowcase />
         </section>
 
-        <StatsSection
+        <StatsSection githubCommitFeed={githubCommitFeed} />
+        <NewsSection
           initialFeed={initialFeed}
           initialFeedLoaded={initialFeedLoaded}
-          githubCommitFeed={githubCommitFeed}
         />
         <ProjectsSection />
       </Container>

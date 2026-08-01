@@ -5,17 +5,12 @@ import { ToolCard } from '@/components/projects/ToolCard';
 import { Button } from '@/components/ui/Button';
 import { mainPageConfig, type ToolConfig } from '@/utils/config';
 import { getLocaleTag, getText } from '@/utils/i18n';
-import {
-  Alert,
-  Card,
-  Label,
-  ListBox,
-  SearchField,
-  Select,
-} from '@heroui/react';
+import { Card, Label, ListBox, SearchField, Select } from '@heroui/react';
 import Fuse from 'fuse.js';
 import { X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+
+import { toolFieldClassName, toolSelectTriggerClassName } from './toolStyles';
 
 type ToolSort = 'relevance' | 'name-asc';
 type ToolSearchItem = {
@@ -83,9 +78,14 @@ export function ToolsDirectory() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-3">
-        <SearchField value={query} onChange={setQuery} fullWidth>
+        <SearchField
+          value={query}
+          onChange={setQuery}
+          fullWidth
+          variant="secondary"
+        >
           <Label className="sr-only">{strings.searchLabel}</Label>
-          <SearchField.Group>
+          <SearchField.Group className={toolFieldClassName}>
             <SearchField.SearchIcon />
             <SearchField.Input placeholder={strings.searchPlaceholder} />
             <SearchField.ClearButton />
@@ -109,7 +109,7 @@ export function ToolsDirectory() {
               }}
             >
               <Label>{strings.filters}</Label>
-              <Select.Trigger>
+              <Select.Trigger className={toolSelectTriggerClassName}>
                 <Select.Value />
                 <Select.Indicator />
               </Select.Trigger>
@@ -157,7 +157,7 @@ export function ToolsDirectory() {
               }}
             >
               <Label className="sm:sr-only">{strings.sort}</Label>
-              <Select.Trigger>
+              <Select.Trigger className={toolSelectTriggerClassName}>
                 <Select.Value />
                 <Select.Indicator />
               </Select.Trigger>

@@ -19,8 +19,8 @@ export function ToolCard({ tool }: ToolCardProps) {
       variant="secondary"
       className={
         tool.status === 'planned'
-          ? 'h-full border border-dashed bg-white dark:bg-default/15 opacity-80 transition-colors'
-          : 'h-full border border-transparent bg-white dark:bg-default/20 transition-colors dark:group-hover:bg-default/50 group-focus-visible:bg-default/50 group-hover:bg-white/50'
+          ? 'h-full border border-dashed border-border/90 bg-surface-secondary opacity-80 shadow-sm transition-colors dark:bg-white/[0.04]'
+          : 'h-full border border-border/80 bg-surface-secondary shadow-sm transition-[background-color,border-color,box-shadow] group-hover:border-accent/40 group-hover:bg-surface-tertiary group-hover:shadow-md group-focus-visible:border-accent group-focus-visible:bg-surface-tertiary dark:bg-white/[0.05] dark:group-hover:bg-white/[0.085]'
       }
     >
       <Card.Header className="gap-3">

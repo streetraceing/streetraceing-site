@@ -33,6 +33,11 @@ import {
 } from 'react';
 
 import { ToolOutput } from './ToolOutput';
+import {
+  toolFieldClassName,
+  toolPanelClassName,
+  toolSelectTriggerClassName,
+} from './toolStyles';
 
 type HashAlgorithm = 'SHA-256' | 'SHA-384' | 'SHA-512';
 
@@ -44,7 +49,7 @@ type ToggleFieldProps = {
 
 function ToggleField({ checked, label, onChange }: ToggleFieldProps) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 rounded-lg border bg-default-soft/30 px-3 py-2 text-sm">
+    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm shadow-sm transition-colors hover:bg-background">
       <input
         type="checkbox"
         checked={checked}
@@ -131,6 +136,7 @@ export function PasswordGeneratorTool() {
             min={8}
             max={128}
             variant="secondary"
+            className={toolFieldClassName}
           />
           <Description>{strings.lengthHint}</Description>
         </TextField>
@@ -179,7 +185,7 @@ export function PasswordGeneratorTool() {
       {result ? (
         <div className="flex flex-col gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Card variant="secondary">
+            <Card variant="secondary" className={toolPanelClassName}>
               <Card.Content>
                 <Typography.Paragraph size="sm" className="text-muted">
                   {strings.entropy}
@@ -189,7 +195,7 @@ export function PasswordGeneratorTool() {
                 </Typography.Heading>
               </Card.Content>
             </Card>
-            <Card variant="secondary">
+            <Card variant="secondary" className={toolPanelClassName}>
               <Card.Content>
                 <Typography.Paragraph size="sm" className="text-muted">
                   {strings.pool}
@@ -289,6 +295,7 @@ export function JwtInspectorTool() {
           <TextArea
             rows={8}
             variant="secondary"
+            className={toolFieldClassName}
             spellCheck={false}
             placeholder={strings.placeholder}
           />
@@ -374,7 +381,7 @@ export function HashGeneratorTool() {
           }}
         >
           <Label>{strings.algorithm}</Label>
-          <Select.Trigger>
+          <Select.Trigger className={toolSelectTriggerClassName}>
             <Select.Value />
             <Select.Indicator />
           </Select.Trigger>
@@ -400,6 +407,7 @@ export function HashGeneratorTool() {
           <TextArea
             rows={7}
             variant="secondary"
+            className={toolFieldClassName}
             spellCheck={false}
             placeholder={strings.placeholder}
           />

@@ -18,6 +18,7 @@ import {
   Package,
   Link2,
   PackageSearch,
+  Newspaper,
   Palette,
   Regex,
   ShieldCheck,
@@ -681,6 +682,11 @@ export const headerConfig: HeaderConfig = {
       icon: BarChart3,
       label: text('Статистика', 'Stats'),
       href: '/#stats',
+    },
+    {
+      icon: Newspaper,
+      label: text('Новости', 'News'),
+      href: '/#news',
     },
     {
       icon: FolderOpen,

@@ -15,6 +15,7 @@ import { ArrowLeftRight, LockKeyhole, UnlockKeyhole } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
 import { ToolOutput } from './ToolOutput';
+import { toolFieldClassName } from './toolStyles';
 
 function encodeBase64(value: string) {
   const bytes = new TextEncoder().encode(value);
@@ -72,6 +73,7 @@ export function Base64Tool() {
           <Label>{strings.label}</Label>
           <TextArea
             variant="secondary"
+            className={toolFieldClassName}
             rows={10}
             placeholder={strings.placeholder}
             spellCheck={false}

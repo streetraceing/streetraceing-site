@@ -6,6 +6,8 @@ import { Card } from '@heroui/react';
 import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 
+import { toolInsetClassName, toolPanelClassName } from './toolStyles';
+
 type ToolOutputProps = {
   content: string;
   label?: string;
@@ -26,7 +28,7 @@ export function ToolOutput({ content, label }: ToolOutputProps) {
   }
 
   return (
-    <Card variant="secondary">
+    <Card variant="secondary" className={toolPanelClassName}>
       <Card.Header className="flex-row items-center justify-between gap-3">
         <Card.Title>{label ?? copy.tool.output}</Card.Title>
         <Button
@@ -40,7 +42,9 @@ export function ToolOutput({ content, label }: ToolOutputProps) {
         </Button>
       </Card.Header>
       <Card.Content>
-        <pre className="max-h-96 overflow-auto whitespace-pre-wrap wrap-break-word rounded-lg bg-default-soft p-3 text-sm leading-6">
+        <pre
+          className={`${toolInsetClassName} max-h-96 overflow-auto whitespace-pre-wrap wrap-break-word rounded-lg p-3 text-sm leading-6`}
+        >
           {content}
         </pre>
       </Card.Content>

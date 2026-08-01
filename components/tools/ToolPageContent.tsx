@@ -8,11 +8,13 @@ import { Header } from '@/components/layout/Header';
 import { Page } from '@/components/layout/Page';
 import { mainPageConfig, type GenericToolComponent } from '@/utils/config';
 import { getText } from '@/utils/i18n';
-import { Card, Typography } from '@heroui/react';
+import { Card, Surface, Typography } from '@heroui/react';
 import { ArrowLeft } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import type { ComponentType } from 'react';
+
+import { toolPanelClassName, toolWorkspaceClassName } from './toolStyles';
 
 const toolComponents: Record<GenericToolComponent, ComponentType> = {
   'json-viewer': dynamic(() =>
@@ -84,7 +86,10 @@ export function ToolPageContent({ slug }: { slug: string }) {
           {copy.tool.allTools}
         </Link>
 
-        <Card className="mx-auto w-full max-w-4xl">
+        <Card
+          variant="secondary"
+          className={`${toolPanelClassName} mx-auto w-full max-w-4xl`}
+        >
           <Card.Header className="gap-3">
             <div className="flex items-start gap-3">
               {tool.icon ? (
@@ -103,7 +108,9 @@ export function ToolPageContent({ slug }: { slug: string }) {
             </div>
           </Card.Header>
           <Card.Content>
-            <ToolComponent />
+            <Surface variant="default" className={toolWorkspaceClassName}>
+              <ToolComponent />
+            </Surface>
           </Card.Content>
         </Card>
       </Container>

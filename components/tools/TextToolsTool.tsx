@@ -20,6 +20,7 @@ import {
 import { useMemo, useState } from 'react';
 
 import { ToolOutput } from './ToolOutput';
+import { toolFieldClassName } from './toolStyles';
 
 type TextOperation =
   | 'uppercase'
@@ -77,6 +78,7 @@ export function TextToolsTool() {
           <Label>{strings.label}</Label>
           <TextArea
             variant="secondary"
+            className={toolFieldClassName}
             rows={12}
             placeholder={strings.placeholder}
           />
