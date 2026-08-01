@@ -145,6 +145,10 @@ export async function deleteCloudinaryPublicIds(
         continue;
       }
 
+      if (!config) {
+        throw new Error('Cloudinary configuration is missing');
+      }
+
       try {
         outcomes.set(publicId, await deleteCloudinaryAsset(config, publicId));
       } catch (error) {
