@@ -5,11 +5,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useLocale } from '@/app/providers';
 import { MarkdownContent } from '@/components/stats/MarkdownContent';
-import type { ProjectDocumentation } from '@/lib/project-documentation';
 import {
-  createMarkdownHeadingId,
-  extractMarkdownHeadings,
-} from '@/utils/markdown';
+  getProjectDocumentationBreadcrumbs,
+  type ProjectDocumentation,
+} from '@/lib/project-documentation';
+import { createMarkdownHeadingId } from '@/utils/markdown';
 
 const HEADING_ID_PREFIX = 'project-documentation';
 
@@ -17,40 +17,6 @@ type DocumentationResponse = {
   documentation?: ProjectDocumentation;
   error?: string;
 };
-
-function decodePathPart(value: string) {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
-
-function getDocumentationPath(sourceUrl: string) {
-  try {
-    const url = new URL(sourceUrl);
-    const path = url.pathname.split('/').filter(Boolean).map(decodePathPart);
-
-    if (url.hostname === 'raw.githubusercontent.com' && path[0] && path[1]) {
-      const documentPath =
-        path[2] === 'refs' &&
-        (path[3] === 'heads' || path[3] === 'tags') &&
-        path[4]
-          ? path.slice(5)
-          : path.slice(3);
-
-      return [path[1], ...documentPath].filter(Boolean);
-    }
-
-    if (url.hostname.endsWith('.github.io') && path.length > 0) {
-      return path;
-    }
-
-    return path.length > 0 ? path : [url.hostname];
-  } catch {
-    return [sourceUrl];
-  }
-}
 
 function getLocationWithoutHash() {
   return `${window.location.pathname}${window.location.search}`;
@@ -74,16 +40,10 @@ export function ProjectDocumentationViewer({
   const [loadError, setLoadError] = useState<string>();
   const [isLoading, setIsLoading] = useState(false);
   const documentation = documentHistory.at(-1) ?? initialDocumentation;
-  const documentPath = useMemo(
-    () => getDocumentationPath(documentation.sourceUrl),
+  const breadcrumbs = useMemo(
+    () => getProjectDocumentationBreadcrumbs(documentation.sourceUrl),
     [documentation.sourceUrl],
   );
-  const headings = useMemo(
-    () => extractMarkdownHeadings(documentation.content),
-    [documentation.content],
-  );
-  const isInitialDocument =
-    documentation.sourceUrl === initialDocumentation.sourceUrl;
 
   useEffect(
     () => () => {
@@ -219,51 +179,34 @@ export function ProjectDocumentationViewer({
           </Typography.Paragraph>
           <div className="max-w-full overflow-x-auto pb-1">
             <Breadcrumbs aria-label={strings.documentationPath}>
-              {documentPath.map((part, index) => {
-                const canOpenRoot = index === 0 && !isInitialDocument;
+              {breadcrumbs.map((breadcrumb, index) => {
+                const key = `${breadcrumb.label}-${index}`;
+                const targetUrl = breadcrumb.targetUrl;
+
+                if (!targetUrl) {
+                  return (
+                    <Breadcrumbs.Item key={key}>
+                      {breadcrumb.label}
+                    </Breadcrumbs.Item>
+                  );
+                }
 
                 return (
                   <Breadcrumbs.Item
-                    key={`${part}-${index}`}
-                    href={
-                      canOpenRoot ? initialDocumentation.sourceUrl : undefined
-                    }
-                    onClick={
-                      canOpenRoot
-                        ? (event) => {
-                            event.preventDefault();
-                            void openDocumentation(
-                              initialDocumentation.sourceUrl,
-                            );
-                          }
-                        : undefined
-                    }
+                    key={key}
+                    href={targetUrl}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      void openDocumentation(targetUrl);
+                    }}
                   >
-                    {part}
+                    {breadcrumb.label}
                   </Breadcrumbs.Item>
                 );
               })}
             </Breadcrumbs>
           </div>
         </div>
-
-        {headings.length > 0 ? (
-          <nav
-            aria-label={strings.documentationSections}
-            className="flex max-w-full items-center gap-2 overflow-x-auto pb-1"
-          >
-            {headings.map((heading) => (
-              <a
-                key={heading.slug}
-                href={`#${createMarkdownHeadingId(HEADING_ID_PREFIX, heading.slug)}`}
-                className="shrink-0 rounded-full border bg-background px-2.5 py-1 text-xs no-underline transition-colors hover:bg-default-soft"
-              >
-                {heading.depth > 2 ? '↳ ' : ''}
-                {heading.text}
-              </a>
-            ))}
-          </nav>
-        ) : null}
 
         {isLoading ? (
           <Typography.Paragraph size="sm" className="text-muted">
