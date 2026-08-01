@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import {
   createContext,
   type ReactNode,
@@ -146,6 +147,7 @@ export function Providers({
   initialTheme?: Theme;
   initialAuthorSession: AuthorSession;
 }) {
+  const router = useRouter();
   const [theme, setThemeState] = useState<Theme>(() =>
     getStoredTheme(initialTheme),
   );
@@ -161,11 +163,15 @@ export function Providers({
     applyTheme(nextTheme);
   }, []);
 
-  const setLocale = useCallback((nextLocale: Locale) => {
-    setLocaleState(nextLocale);
-    document.documentElement.lang = nextLocale;
-    document.cookie = `${LOCALE_COOKIE}=${nextLocale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
-  }, []);
+  const setLocale = useCallback(
+    (nextLocale: Locale) => {
+      setLocaleState(nextLocale);
+      document.documentElement.lang = nextLocale;
+      document.cookie = `${LOCALE_COOKIE}=${nextLocale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+      router.refresh();
+    },
+    [router],
+  );
 
   const refreshSession = useCallback(async () => {
     setIsAuthorSessionLoading(true);

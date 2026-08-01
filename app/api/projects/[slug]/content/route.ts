@@ -5,6 +5,10 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { projectContents } from '@/db/schema';
 import { deleteCloudinaryMedia } from '@/lib/cloudinary-media';
+import {
+  confirmPendingMediaUploads,
+  discardPendingMediaUploads,
+} from '@/lib/pending-media-uploads';
 import { isAdmin } from '@/utils/auth';
 import { mainPageConfig } from '@/utils/config';
 import { getRequestLocale, translations } from '@/utils/i18n';
@@ -64,7 +68,7 @@ export async function PUT(request: Request, context: RouteContext) {
   ).filter((url) => imageUrls.includes(url));
 
   if (!process.env.DATABASE_URL) {
-    await deleteCloudinaryMedia(uploadedImageUrls);
+    await discardPendingMediaUploads(uploadedImageUrls);
     return NextResponse.json(
       { error: strings.databaseMissing },
       { status: 503 },
@@ -98,7 +102,7 @@ export async function PUT(request: Request, context: RouteContext) {
       });
 
     if (!storedContent) {
-      await deleteCloudinaryMedia(uploadedImageUrls);
+      await discardPendingMediaUploads(uploadedImageUrls);
       return NextResponse.json({ error: strings.saveFailed }, { status: 500 });
     }
 
@@ -106,6 +110,12 @@ export async function PUT(request: Request, context: RouteContext) {
       (url) => !imageUrls.includes(url),
     );
     await deleteCloudinaryMedia(removedUrls);
+
+    try {
+      await confirmPendingMediaUploads(uploadedImageUrls);
+    } catch (error) {
+      console.error('Could not confirm uploaded project media.', error);
+    }
 
     try {
       revalidatePath(`/project/${slug}`);
@@ -120,7 +130,7 @@ export async function PUT(request: Request, context: RouteContext) {
       },
     });
   } catch {
-    await deleteCloudinaryMedia(uploadedImageUrls);
+    await discardPendingMediaUploads(uploadedImageUrls);
     return NextResponse.json({ error: strings.saveFailed }, { status: 500 });
   }
 }

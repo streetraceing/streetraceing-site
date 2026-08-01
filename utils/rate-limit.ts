@@ -1,3 +1,10 @@
+import { isIP } from 'node:net';
+
+import { eq, lte, sql } from 'drizzle-orm';
+
+import { db } from '@/db';
+import { rateLimitWindows } from '@/db/schema';
+
 type RateLimitEntry = {
   count: number;
   resetAt: number;
@@ -20,10 +27,14 @@ export type RateLimitResult = {
 
 const MAX_RATE_LIMIT_ENTRIES = 20_000;
 const RATE_LIMIT_TRIM_TARGET = 18_000;
+const DATABASE_CLEANUP_INTERVAL = 100;
+const DATABASE_CLEANUP_GRACE_MS = 24 * 60 * 60 * 1_000;
 
 const globalForRateLimit = globalThis as typeof globalThis & {
   streetraceingRateLimits?: Map<string, RateLimitEntry>;
   streetraceingRateLimitChecks?: number;
+  streetraceingDatabaseRateLimitChecks?: number;
+  streetraceingRateLimitFallbackLoggedAt?: number;
 };
 
 const entries =
@@ -31,6 +42,35 @@ const entries =
   new Map<string, RateLimitEntry>();
 
 globalForRateLimit.streetraceingRateLimits = entries;
+
+function validateOptions({ key, limit, windowMs }: RateLimitOptions) {
+  if (!key || key.length > 191) {
+    throw new RangeError('Rate limit key must contain 1 to 191 characters.');
+  }
+
+  if (!Number.isSafeInteger(limit) || limit < 1) {
+    throw new RangeError('Rate limit must be a positive safe integer.');
+  }
+
+  if (!Number.isSafeInteger(windowMs) || windowMs < 1) {
+    throw new RangeError('Rate limit window must be a positive safe integer.');
+  }
+}
+
+function createRateLimitResult(
+  count: number,
+  resetAt: number,
+  limit: number,
+  now: number,
+): RateLimitResult {
+  return {
+    allowed: count <= limit,
+    limit,
+    remaining: Math.max(0, limit - count),
+    resetAt,
+    retryAfterSeconds: Math.max(1, Math.ceil((resetAt - now) / 1_000)),
+  };
+}
 
 function cleanupExpiredEntries(now: number) {
   const checks = (globalForRateLimit.streetraceingRateLimitChecks ?? 0) + 1;
@@ -63,19 +103,10 @@ function cleanupExpiredEntries(now: number) {
   }
 }
 
-export function checkRateLimit({
-  key,
-  limit,
-  windowMs,
-  now = Date.now(),
-}: RateLimitOptions): RateLimitResult {
-  if (!Number.isSafeInteger(limit) || limit < 1) {
-    throw new RangeError('Rate limit must be a positive safe integer.');
-  }
+export function checkRateLimit(options: RateLimitOptions): RateLimitResult {
+  validateOptions(options);
 
-  if (!Number.isSafeInteger(windowMs) || windowMs < 1) {
-    throw new RangeError('Rate limit window must be a positive safe integer.');
-  }
+  const { key, limit, windowMs, now = Date.now() } = options;
 
   cleanupExpiredEntries(now);
 
@@ -88,30 +119,163 @@ export function checkRateLimit({
   entry.count += 1;
   entries.set(key, entry);
 
-  const allowed = entry.count <= limit;
-  const remaining = Math.max(0, limit - entry.count);
+  return createRateLimitResult(entry.count, entry.resetAt, limit, now);
+}
 
-  return {
-    allowed,
-    limit,
-    remaining,
-    resetAt: entry.resetAt,
-    retryAfterSeconds: Math.max(1, Math.ceil((entry.resetAt - now) / 1_000)),
-  };
+async function checkDatabaseRateLimit({
+  key,
+  limit,
+  windowMs,
+  now = Date.now(),
+}: RateLimitOptions) {
+  const nextResetAt = new Date(now + windowMs);
+
+  const result = await db.transaction(async (transaction) => {
+    await transaction.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${key}))`,
+    );
+
+    const [current] = await transaction
+      .select({
+        count: rateLimitWindows.count,
+        resetAt: rateLimitWindows.resetAt,
+      })
+      .from(rateLimitWindows)
+      .where(eq(rateLimitWindows.key, key))
+      .limit(1);
+
+    if (!current || current.resetAt.getTime() <= now) {
+      await transaction
+        .insert(rateLimitWindows)
+        .values({ key, count: 1, resetAt: nextResetAt })
+        .onConflictDoUpdate({
+          target: rateLimitWindows.key,
+          set: { count: 1, resetAt: nextResetAt },
+        });
+
+      return createRateLimitResult(1, nextResetAt.getTime(), limit, now);
+    }
+
+    const count = current.count + 1;
+
+    await transaction
+      .update(rateLimitWindows)
+      .set({ count })
+      .where(eq(rateLimitWindows.key, key));
+
+    return createRateLimitResult(count, current.resetAt.getTime(), limit, now);
+  });
+
+  const checks =
+    (globalForRateLimit.streetraceingDatabaseRateLimitChecks ?? 0) + 1;
+  globalForRateLimit.streetraceingDatabaseRateLimitChecks = checks;
+
+  if (checks % DATABASE_CLEANUP_INTERVAL === 0) {
+    try {
+      await cleanupExpiredRateLimits(new Date(now - DATABASE_CLEANUP_GRACE_MS));
+    } catch (error) {
+      logDatabaseFallback(error);
+    }
+  }
+
+  return result;
+}
+
+function logDatabaseFallback(error: unknown) {
+  const now = Date.now();
+  const lastLoggedAt =
+    globalForRateLimit.streetraceingRateLimitFallbackLoggedAt ?? 0;
+
+  if (now - lastLoggedAt < 60_000) {
+    return;
+  }
+
+  globalForRateLimit.streetraceingRateLimitFallbackLoggedAt = now;
+  console.error(
+    'Could not use the shared database rate limiter; falling back to process-local protection.',
+    error,
+  );
+}
+
+export async function checkDurableRateLimit(
+  options: RateLimitOptions,
+): Promise<RateLimitResult> {
+  validateOptions(options);
+
+  if (!process.env.DATABASE_URL) {
+    return checkRateLimit(options);
+  }
+
+  try {
+    return await checkDatabaseRateLimit(options);
+  } catch (error) {
+    logDatabaseFallback(error);
+    return checkRateLimit(options);
+  }
 }
 
 export function resetRateLimit(key: string) {
   entries.delete(key);
 }
 
-export function getClientAddress(request: Request) {
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  const address =
-    forwardedFor?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip')?.trim() ||
-    'unknown';
+export async function resetDurableRateLimit(key: string) {
+  resetRateLimit(key);
 
-  return address.slice(0, 128);
+  if (!process.env.DATABASE_URL) {
+    return;
+  }
+
+  try {
+    await db.delete(rateLimitWindows).where(eq(rateLimitWindows.key, key));
+  } catch (error) {
+    logDatabaseFallback(error);
+  }
+}
+
+export async function cleanupExpiredRateLimits(
+  threshold = new Date(),
+): Promise<number> {
+  if (!process.env.DATABASE_URL) {
+    return 0;
+  }
+
+  const deletedRows = await db
+    .delete(rateLimitWindows)
+    .where(lte(rateLimitWindows.resetAt, threshold))
+    .returning({ key: rateLimitWindows.key });
+
+  return deletedRows.length;
+}
+
+function normalizeIpAddress(value: string | undefined) {
+  const firstValue = value?.split(',')[0]?.trim();
+
+  if (!firstValue) {
+    return undefined;
+  }
+
+  const bracketedIpv6 = firstValue.match(/^\[([^\]]+)](?::\d+)?$/)?.[1];
+  const ipv4WithPort = firstValue.match(/^(\d{1,3}(?:\.\d{1,3}){3}):\d+$/)?.[1];
+  const address = bracketedIpv6 ?? ipv4WithPort ?? firstValue;
+
+  return isIP(address) ? address.toLowerCase() : undefined;
+}
+
+function getTrustedProxyHeaderName() {
+  const headerName = process.env.TRUSTED_PROXY_IP_HEADER?.trim().toLowerCase();
+
+  return headerName && /^[a-z0-9-]+$/.test(headerName) ? headerName : undefined;
+}
+
+export function getClientAddress(request: Request) {
+  const trustedProxyHeader = getTrustedProxyHeaderName();
+  const headerValue = process.env.VERCEL
+    ? request.headers.get('x-vercel-forwarded-for')
+    : trustedProxyHeader
+      ? request.headers.get(trustedProxyHeader)
+      : undefined;
+
+  return normalizeIpAddress(headerValue ?? undefined) ?? 'unknown';
 }
 
 export function getRateLimitHeaders(result: RateLimitResult) {

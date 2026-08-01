@@ -2,11 +2,15 @@ import { fromMarkdown } from 'mdast-util-from-markdown';
 
 type MarkdownNode = {
   type: string;
+  depth?: number;
   value?: string;
   children?: MarkdownNode[];
   align?: Array<'center' | 'left' | 'right' | null>;
   data?: {
     hName?: string;
+    hProperties?: {
+      id?: string;
+    };
   };
   position?: {
     start?: { offset?: number };
@@ -326,6 +330,131 @@ export function remarkGfmTables() {
       transformTables(tree, source);
     }
   };
+}
+
+export type MarkdownHeading = {
+  depth: number;
+  text: string;
+  slug: string;
+};
+
+type MarkdownHeadingIdOptions = {
+  prefix?: string;
+};
+
+function getMarkdownNodeText(node: MarkdownNode): string {
+  if (typeof node.value === 'string') {
+    return node.value;
+  }
+
+  return (node.children ?? []).map(getMarkdownNodeText).join('');
+}
+
+export function slugifyMarkdownHeading(value: string) {
+  const slug = value
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/<[^>]*>/g, '')
+    .replace(/[^\p{L}\p{N}\s_-]/gu, '')
+    .replace(/[\s_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return slug || 'section';
+}
+
+function collectMarkdownHeadings(tree: MarkdownNode) {
+  const headings: MarkdownHeading[] = [];
+  const slugCounts = new Map<string, number>();
+  const usedSlugs = new Set<string>();
+
+  function visit(node: MarkdownNode) {
+    if (node.type === 'heading' && typeof node.depth === 'number') {
+      const text = getMarkdownNodeText(node).trim();
+
+      if (text) {
+        const baseSlug = slugifyMarkdownHeading(text);
+        let duplicateIndex = slugCounts.get(baseSlug) ?? 0;
+        let slug =
+          duplicateIndex === 0 ? baseSlug : `${baseSlug}-${duplicateIndex}`;
+
+        while (usedSlugs.has(slug)) {
+          duplicateIndex += 1;
+          slug = `${baseSlug}-${duplicateIndex}`;
+        }
+
+        slugCounts.set(baseSlug, duplicateIndex + 1);
+        usedSlugs.add(slug);
+        headings.push({ depth: node.depth, text, slug });
+      }
+    }
+
+    for (const child of node.children ?? []) {
+      visit(child);
+    }
+  }
+
+  visit(tree);
+  return headings;
+}
+
+export function extractMarkdownHeadings(content: string) {
+  return collectMarkdownHeadings(
+    fromMarkdown(content) as unknown as MarkdownNode,
+  );
+}
+
+export function createMarkdownHeadingId(prefix: string, fragment: string) {
+  let decodedFragment = fragment.replace(/^#/, '');
+
+  try {
+    decodedFragment = decodeURIComponent(decodedFragment);
+  } catch {
+    // Keep malformed fragments readable and deterministic.
+  }
+
+  return `${prefix}-${slugifyMarkdownHeading(decodedFragment)}`;
+}
+
+export function remarkHeadingIds(options: MarkdownHeadingIdOptions = {}) {
+  return (tree: MarkdownNode) => {
+    const headings = collectMarkdownHeadings(tree);
+    let headingIndex = 0;
+
+    function visit(node: MarkdownNode) {
+      if (node.type === 'heading') {
+        const heading = headings[headingIndex];
+        headingIndex += 1;
+
+        if (heading) {
+          node.data = {
+            ...node.data,
+            hProperties: {
+              ...node.data?.hProperties,
+              id: options.prefix
+                ? `${options.prefix}-${heading.slug}`
+                : heading.slug,
+            },
+          };
+        }
+      }
+
+      for (const child of node.children ?? []) {
+        visit(child);
+      }
+    }
+
+    visit(tree);
+  };
+}
+
+export function isMarkdownDocumentHref(value: string) {
+  try {
+    const url = new URL(value, 'https://markdown.local/');
+    return url.pathname.toLocaleLowerCase().endsWith('.md');
+  } catch {
+    return false;
+  }
 }
 
 export function toggleMarkdownDecoration(

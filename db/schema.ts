@@ -57,8 +57,6 @@ export const devUpdates = pgTable(
 
 export const projectContents = pgTable('project_contents', {
   projectSlug: varchar('project_slug', { length: 64 }).primaryKey(),
-  documentationRu: text('documentation_ru').notNull().default(''),
-  documentationEn: text('documentation_en').notNull().default(''),
   imageUrls: text('image_urls')
     .array()
     .notNull()
@@ -67,3 +65,26 @@ export const projectContents = pgTable('project_contents', {
     .notNull()
     .defaultNow(),
 });
+
+export const pendingMediaUploads = pgTable(
+  'pending_media_uploads',
+  {
+    publicId: varchar('public_id', { length: 255 }).primaryKey(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('pending_media_uploads_created_at_idx').on(table.createdAt),
+  ],
+);
+
+export const rateLimitWindows = pgTable(
+  'rate_limit_windows',
+  {
+    key: varchar('key', { length: 191 }).primaryKey(),
+    count: integer('count').notNull().default(0),
+    resetAt: timestamp('reset_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [index('rate_limit_windows_reset_at_idx').on(table.resetAt)],
+);

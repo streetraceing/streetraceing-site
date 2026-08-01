@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { deleteCloudinaryMedia } from '@/lib/cloudinary-media';
+import { discardPendingMediaUploads } from '@/lib/pending-media-uploads';
 import { isAdmin } from '@/utils/auth';
 import { getRequestLocale, translations } from '@/utils/i18n';
 import { MAX_MEDIA_IMAGES, normalizeMediaUrls } from '@/utils/media';
@@ -31,7 +31,14 @@ export async function POST(request: Request) {
     MAX_MEDIA_IMAGES,
     process.env.CLOUDINARY_CLOUD_NAME,
   );
-  const result = await deleteCloudinaryMedia(urls);
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json(
+      { error: strings.trackingUnavailable },
+      { status: 503 },
+    );
+  }
+
+  const result = await discardPendingMediaUploads(urls);
 
   if (result.failed > 0) {
     return NextResponse.json(

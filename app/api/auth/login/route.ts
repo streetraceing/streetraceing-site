@@ -8,10 +8,10 @@ import {
 } from '@/utils/auth';
 import { getRequestLocale, translations } from '@/utils/i18n';
 import {
-  checkRateLimit,
+  checkDurableRateLimit,
   getClientAddress,
   getRateLimitHeaders,
-  resetRateLimit,
+  resetDurableRateLimit,
 } from '@/utils/rate-limit';
 
 export const runtime = 'nodejs';
@@ -38,7 +38,7 @@ function noStoreJson(
 export async function POST(request: Request) {
   const strings = translations[getRequestLocale(request)].api.auth;
   const rateLimitKey = `auth:login:${getClientAddress(request)}`;
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkDurableRateLimit({
     key: rateLimitKey,
     limit: LOGIN_RATE_LIMIT,
     windowMs: LOGIN_RATE_WINDOW_MS,
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     );
   }
 
-  resetRateLimit(rateLimitKey);
+  await resetDurableRateLimit(rateLimitKey);
 
   const response = noStoreJson({ authenticated: true });
   response.cookies.set(

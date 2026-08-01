@@ -3,7 +3,11 @@ import test from 'node:test';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 
 import {
+  createMarkdownHeadingId,
+  extractMarkdownHeadings,
   insertMarkdownLink,
+  isMarkdownDocumentHref,
+  remarkHeadingIds,
   remarkGfmTables,
   toggleMarkdownDecoration,
   toggleMarkdownLinePrefix,
@@ -91,4 +95,40 @@ test('inserts a Markdown link and selects its URL', () => {
       selectionEnd: 17,
     },
   );
+});
+
+test('creates deterministic heading anchors and section navigation data', () => {
+  const content = `# Setup
+
+## API & Setup
+
+## API & Setup`;
+  const headings = extractMarkdownHeadings(content);
+  const tree = fromMarkdown(content);
+
+  remarkHeadingIds({ prefix: 'docs' })(tree as never);
+
+  assert.deepEqual(headings, [
+    { depth: 1, text: 'Setup', slug: 'setup' },
+    { depth: 2, text: 'API & Setup', slug: 'api-setup' },
+    { depth: 2, text: 'API & Setup', slug: 'api-setup-1' },
+  ]);
+  assert.equal(
+    (
+      tree.children[1] as unknown as {
+        data?: { hProperties?: { id?: string } };
+      }
+    ).data?.hProperties?.id,
+    'docs-api-setup',
+  );
+  assert.equal(
+    createMarkdownHeadingId('docs', '#API%20%26%20Setup'),
+    'docs-api-setup',
+  );
+});
+
+test('recognizes Markdown documents without treating anchors as files', () => {
+  assert.equal(isMarkdownDocumentHref('../guide/SETUP.md#install'), true);
+  assert.equal(isMarkdownDocumentHref('https://example.com/readme.txt'), false);
+  assert.equal(isMarkdownDocumentHref('#install'), false);
 });

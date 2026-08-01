@@ -5,7 +5,9 @@ import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { shortUrls } from '@/db/schema';
+import { cleanupExpiredPendingMediaUploads } from '@/lib/pending-media-uploads';
 import { getTinyUrlRetentionThreshold } from '@/lib/tiny-url';
+import { cleanupExpiredRateLimits } from '@/utils/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -49,12 +51,20 @@ export async function GET(request: Request) {
       .delete(shortUrls)
       .where(lte(shortUrls.createdAt, getTinyUrlRetentionThreshold()))
       .returning({ id: shortUrls.id });
+    const [pendingMedia, expiredRateLimits] = await Promise.all([
+      cleanupExpiredPendingMediaUploads(),
+      cleanupExpiredRateLimits(),
+    ]);
 
-    return NextResponse.json({ deleted: deletedRows.length });
+    return NextResponse.json({
+      deleted: deletedRows.length,
+      pendingMedia,
+      expiredRateLimits,
+    });
   } catch (error) {
-    console.error('Could not remove expired Tiny URL rows.', error);
+    console.error('Could not complete scheduled maintenance.', error);
     return NextResponse.json(
-      { error: 'Could not remove expired Tiny URL rows.' },
+      { error: 'Could not complete scheduled maintenance.' },
       { status: 500 },
     );
   }

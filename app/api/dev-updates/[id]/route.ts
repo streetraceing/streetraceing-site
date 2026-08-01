@@ -4,6 +4,10 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { devUpdates } from '@/db/schema';
 import { deleteCloudinaryMedia } from '@/lib/cloudinary-media';
+import {
+  confirmPendingMediaUploads,
+  discardPendingMediaUploads,
+} from '@/lib/pending-media-uploads';
 import { isAdmin } from '@/utils/auth';
 import { getRequestLocale, translations } from '@/utils/i18n';
 import { MAX_DEV_UPDATE_IMAGES, normalizeMediaUrls } from '@/utils/media';
@@ -74,17 +78,17 @@ export async function PATCH(request: Request, context: RouteContext) {
   ).filter((url) => imageUrls.includes(url));
 
   if (!content || content.length > 8_000 || !isDevUpdateTopic(topic)) {
-    await deleteCloudinaryMedia(uploadedImageUrls);
+    await discardPendingMediaUploads(uploadedImageUrls);
     return NextResponse.json({ error: strings.invalid }, { status: 400 });
   }
 
   if (title.length > 160) {
-    await deleteCloudinaryMedia(uploadedImageUrls);
+    await discardPendingMediaUploads(uploadedImageUrls);
     return NextResponse.json({ error: strings.titleTooLong }, { status: 400 });
   }
 
   if (!process.env.DATABASE_URL) {
-    await deleteCloudinaryMedia(uploadedImageUrls);
+    await discardPendingMediaUploads(uploadedImageUrls);
     return NextResponse.json(
       { error: strings.databaseMissing },
       { status: 503 },
@@ -105,7 +109,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       .returning();
 
     if (!update) {
-      await deleteCloudinaryMedia(uploadedImageUrls);
+      await discardPendingMediaUploads(uploadedImageUrls);
       return NextResponse.json({ error: strings.notFound }, { status: 404 });
     }
 
@@ -114,9 +118,15 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
     await deleteCloudinaryMedia(removedUrls);
 
+    try {
+      await confirmPendingMediaUploads(uploadedImageUrls);
+    } catch (error) {
+      console.error('Could not confirm updated Dev Note media.', error);
+    }
+
     return NextResponse.json({ update });
   } catch {
-    await deleteCloudinaryMedia(uploadedImageUrls);
+    await discardPendingMediaUploads(uploadedImageUrls);
     return NextResponse.json({ error: strings.saveFailed }, { status: 500 });
   }
 }

@@ -167,6 +167,11 @@ export const translations = {
       projectContent: 'Галерея проекта',
       editContent: 'Редактировать фотографии',
       documentation: 'Документация',
+      documentationPath: 'Путь по документации',
+      documentationBack: 'Назад по документации',
+      documentationSections: 'Разделы документа',
+      documentationLoading: 'Загружаю документ…',
+      documentationLoadFailed: 'Не удалось открыть документ.',
       images: 'Фотографии проекта',
       projectImagesDescription:
         'До 20 фотографий. Оригинал загружается напрямую в Cloudinary, а на сайте показывается квадратное превью 1080 × 1080.',
@@ -397,6 +402,11 @@ export const translations = {
         saveFailed: 'Не удалось сохранить заметку.',
         deleteFailed: 'Не удалось удалить заметку.',
       },
+      projectDocumentation: {
+        invalid: 'Эта ссылка ведёт за пределы документации проекта.',
+        notFound: 'Документация проекта не найдена.',
+        loadFailed: 'Не удалось загрузить документ.',
+      },
       projectContent: {
         notFound: 'Проект не найден.',
         invalid: 'Некорректные данные галереи проекта.',
@@ -408,6 +418,8 @@ export const translations = {
         invalid: 'Некорректный запрос загрузки.',
         uploadFailed: 'Не удалось загрузить фотографию.',
         cleanupFailed: 'Не удалось удалить часть фотографий из хранилища.',
+        trackingUnavailable:
+          'Временное хранилище загрузок недоступно. Проверьте подключение к базе данных.',
       },
       tinyUrl: {
         loadFailed: 'Не удалось загрузить сохранённые данные.',
@@ -531,6 +543,11 @@ export const translations = {
       projectContent: 'Project gallery',
       editContent: 'Edit photos',
       documentation: 'Documentation',
+      documentationPath: 'Documentation path',
+      documentationBack: 'Back in documentation',
+      documentationSections: 'Document sections',
+      documentationLoading: 'Loading document…',
+      documentationLoadFailed: 'Could not open the document.',
       images: 'Project photos',
       projectImagesDescription:
         'Up to 20 photos. The original is uploaded directly to Cloudinary, while the site displays a square 1080 × 1080 preview.',
@@ -760,6 +777,11 @@ export const translations = {
         saveFailed: 'Could not save the note.',
         deleteFailed: 'Could not delete the note.',
       },
+      projectDocumentation: {
+        invalid: 'This link points outside the project documentation.',
+        notFound: 'Project documentation was not found.',
+        loadFailed: 'Could not load the document.',
+      },
       projectContent: {
         notFound: 'Project not found.',
         invalid: 'Invalid project gallery data.',
@@ -771,6 +793,8 @@ export const translations = {
         invalid: 'Invalid upload request.',
         uploadFailed: 'Could not upload the photo.',
         cleanupFailed: 'Could not remove some photos from storage.',
+        trackingUnavailable:
+          'Temporary upload tracking is unavailable. Check the database connection.',
       },
       tinyUrl: {
         loadFailed: 'Could not load saved data.',

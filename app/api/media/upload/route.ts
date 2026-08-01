@@ -4,6 +4,7 @@ import {
   createCloudinarySignature,
   getCloudinaryConfig,
 } from '@/lib/cloudinary-media';
+import { registerPendingMediaUpload } from '@/lib/pending-media-uploads';
 import { isAdmin } from '@/utils/auth';
 import { mainPageConfig } from '@/utils/config';
 import { getRequestLocale, translations } from '@/utils/i18n';
@@ -73,7 +74,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: strings.invalid }, { status: 400 });
   }
 
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json(
+      { error: strings.trackingUnavailable },
+      { status: 503 },
+    );
+  }
+
   const publicId = createMediaPublicId(scope, index);
+
+  try {
+    await registerPendingMediaUpload(publicId);
+  } catch (error) {
+    console.error('Could not register a pending media upload.', error);
+    return NextResponse.json(
+      { error: strings.trackingUnavailable },
+      { status: 503 },
+    );
+  }
+
   const timestamp = Math.floor(Date.now() / 1_000);
   const signature = createCloudinarySignature(
     {

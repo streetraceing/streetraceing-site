@@ -18,7 +18,7 @@ import {
 } from '@/lib/tiny-url';
 import { getLocaleTag, getRequestLocale, translations } from '@/utils/i18n';
 import {
-  checkRateLimit,
+  checkDurableRateLimit,
   getClientAddress,
   getRateLimitHeaders,
 } from '@/utils/rate-limit';
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const locale = getRequestLocale(request);
   const strings = translations[locale].api.tinyUrl;
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkDurableRateLimit({
     key: `tiny-url:create:${getClientAddress(request)}`,
     limit: CREATE_RATE_LIMIT,
     windowMs: CREATE_RATE_WINDOW_MS,
@@ -290,7 +290,7 @@ export async function DELETE(request: NextRequest) {
   const strings = translations[getRequestLocale(request)].api.tinyUrl;
   const ownerToken = getOwnerToken(request);
   const code = request.nextUrl.searchParams.get('code') ?? '';
-  const rateLimit = checkRateLimit({
+  const rateLimit = await checkDurableRateLimit({
     key: `tiny-url:delete:${getClientAddress(request)}`,
     limit: DELETE_RATE_LIMIT,
     windowMs: DELETE_RATE_WINDOW_MS,

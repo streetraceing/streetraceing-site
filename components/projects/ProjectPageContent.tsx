@@ -6,7 +6,6 @@ import { Container } from '@/components/layout/Container';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
 import { Page } from '@/components/layout/Page';
-import { MarkdownContent } from '@/components/stats/MarkdownContent';
 import { mainPageConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
 import type { ProjectContentData } from '@/utils/project-content';
@@ -17,6 +16,7 @@ import Link from 'next/link';
 
 import { ProjectActions } from './ProjectActions';
 import { ProjectContentSection } from './ProjectContentSection';
+import { ProjectDocumentationViewer } from './ProjectDocumentationViewer';
 import { ProjectDetails } from './ProjectDetails';
 
 export function ProjectPageContent({
@@ -78,9 +78,10 @@ export function ProjectPageContent({
         {documentation ? (
           <Card className="mx-auto w-full max-w-4xl">
             <Card.Content>
-              <MarkdownContent
-                content={documentation.content}
-                baseUrl={documentation.sourceUrl}
+              <ProjectDocumentationViewer
+                key={`${project.slug}:${documentation.sourceUrl}`}
+                projectSlug={project.slug}
+                initialDocumentation={documentation}
               />
             </Card.Content>
           </Card>

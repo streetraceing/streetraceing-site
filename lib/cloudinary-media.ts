@@ -22,6 +22,12 @@ export type CloudinaryDeleteResult = {
   failed: number;
 };
 
+export type CloudinaryPublicIdDeleteResult = CloudinaryDeleteResult & {
+  completedPublicIds: string[];
+};
+
+const CLOUDINARY_DELETE_CONCURRENCY = 5;
+
 export function getCloudinaryConfig(): CloudinaryConfig | undefined {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
   const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
@@ -104,6 +110,78 @@ async function deleteCloudinaryAsset(
   throw new Error('Cloudinary returned an unexpected destroy result.');
 }
 
+export async function deleteCloudinaryPublicIds(
+  values: string[],
+): Promise<CloudinaryPublicIdDeleteResult> {
+  const publicIds = [...new Set(values.filter(Boolean))];
+  const config = getCloudinaryConfig();
+
+  if (!config) {
+    if (publicIds.length > 0) {
+      console.error(
+        'Cloudinary deletion is unavailable because its credentials are incomplete.',
+      );
+    }
+
+    return {
+      requested: publicIds.length,
+      deleted: 0,
+      notFound: 0,
+      failed: publicIds.length,
+      completedPublicIds: [],
+    };
+  }
+
+  const outcomes = new Map<string, 'deleted' | 'failed' | 'not-found'>();
+  let nextIndex = 0;
+
+  async function deleteNextAsset() {
+    while (nextIndex < publicIds.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      const publicId = publicIds[index];
+
+      if (!publicId) {
+        continue;
+      }
+
+      try {
+        outcomes.set(publicId, await deleteCloudinaryAsset(config, publicId));
+      } catch (error) {
+        console.error(
+          `Could not delete Cloudinary asset "${publicId}".`,
+          error,
+        );
+        outcomes.set(publicId, 'failed');
+      }
+    }
+  }
+
+  await Promise.all(
+    Array.from(
+      { length: Math.min(CLOUDINARY_DELETE_CONCURRENCY, publicIds.length) },
+      () => deleteNextAsset(),
+    ),
+  );
+
+  const completedPublicIds = publicIds.filter(
+    (publicId) => outcomes.get(publicId) !== 'failed',
+  );
+
+  return {
+    requested: publicIds.length,
+    deleted: publicIds.filter(
+      (publicId) => outcomes.get(publicId) === 'deleted',
+    ).length,
+    notFound: publicIds.filter(
+      (publicId) => outcomes.get(publicId) === 'not-found',
+    ).length,
+    failed: publicIds.filter((publicId) => outcomes.get(publicId) === 'failed')
+      .length,
+    completedPublicIds,
+  };
+}
+
 export async function deleteCloudinaryMedia(
   urls: string[],
 ): Promise<CloudinaryDeleteResult> {
@@ -128,24 +206,12 @@ export async function deleteCloudinaryMedia(
         .filter((publicId): publicId is string => Boolean(publicId)),
     ),
   ];
-  const outcomes = await Promise.all(
-    publicIds.map(async (publicId) => {
-      try {
-        return await deleteCloudinaryAsset(config, publicId);
-      } catch (error) {
-        console.error(
-          `Could not delete Cloudinary asset "${publicId}".`,
-          error,
-        );
-        return 'failed' as const;
-      }
-    }),
-  );
+  const deletionResult = await deleteCloudinaryPublicIds(publicIds);
 
   return {
-    requested: publicIds.length,
-    deleted: outcomes.filter((outcome) => outcome === 'deleted').length,
-    notFound: outcomes.filter((outcome) => outcome === 'not-found').length,
-    failed: outcomes.filter((outcome) => outcome === 'failed').length,
+    requested: deletionResult.requested,
+    deleted: deletionResult.deleted,
+    notFound: deletionResult.notFound,
+    failed: deletionResult.failed,
   };
 }
