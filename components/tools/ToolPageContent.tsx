@@ -1,8 +1,9 @@
 'use client';
 
 import { useLocale } from '@/app/providers';
-import { mainPageConfig, type GenericToolComponent } from '@/utils/config';
+import type { GenericToolComponent } from '@/utils/config';
 import { getText } from '@/utils/i18n';
+import { getGenericToolBySlug } from '@/utils/tool-catalog';
 import dynamic from 'next/dynamic';
 import type { ComponentType } from 'react';
 
@@ -55,12 +56,8 @@ const toolComponents: Record<GenericToolComponent, ComponentType> = {
 
 export function ToolPageContent({ slug }: { slug: string }) {
   const { locale } = useLocale();
-  const tool = mainPageConfig.tools.find(
-    (currentTool) => currentTool.slug === slug,
-  );
-  const ToolComponent = tool?.component
-    ? toolComponents[tool.component]
-    : undefined;
+  const tool = getGenericToolBySlug(slug);
+  const ToolComponent = tool ? toolComponents[tool.component] : undefined;
 
   if (!tool || !ToolComponent) {
     return null;

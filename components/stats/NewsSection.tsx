@@ -19,7 +19,9 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuthorSession, useLocale } from '@/app/providers';
 import { MediaGallery } from '@/components/media/MediaGallery';
 import { HOME_LAYOUT_SETTLED_EVENT } from '@/utils/client-events';
+import { formatDateTime } from '@/utils/date';
 import { getLocaleTag } from '@/utils/i18n';
+import { readJsonResponse } from '@/utils/json';
 import {
   DEV_UPDATES_PAGE_SIZE,
   devUpdateTopics,
@@ -29,7 +31,12 @@ import {
 } from '@/utils/stats';
 
 import { MarkdownContent } from './MarkdownContent';
-import type { DevUpdate, DevUpdateChange, DevUpdatesFeed } from './types';
+import {
+  isDevUpdatesFeed,
+  type DevUpdate,
+  type DevUpdateChange,
+  type DevUpdatesFeed,
+} from './types';
 
 const StatsAuthorControls = dynamic(
   () => import('@/components/stats/StatsAuthorControls'),
@@ -39,14 +46,6 @@ const DevUpdateAuthorActions = dynamic(
 );
 
 const ALL_FILTER_ID = 'all';
-
-function formatDate(date: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'UTC',
-  }).format(new Date(date));
-}
 
 function getVisiblePages(currentPage: number, totalPages: number) {
   return [
@@ -81,7 +80,7 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
               {getDevUpdateTopicLabel(update.topic, locale)}
             </Chip>
             <span className="text-xs text-muted">
-              {formatDate(update.createdAt, getLocaleTag(locale))}
+              {formatDateTime(update.createdAt, getLocaleTag(locale), 'UTC')}
             </span>
           </div>
 
@@ -192,7 +191,13 @@ export function NewsSection({
           throw new Error(strings.errors.updates);
         }
 
-        return (await response.json()) as DevUpdatesFeed;
+        const body = await readJsonResponse(response);
+
+        if (!isDevUpdatesFeed(body)) {
+          throw new Error(strings.errors.updates);
+        }
+
+        return body;
       })
       .then((body) => {
         if (requestId === feedRequestId.current) {

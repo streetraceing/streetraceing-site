@@ -4,13 +4,13 @@ import { notFound } from 'next/navigation';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { ToolPageContent } from '@/components/tools/ToolPageContent';
 import { getServerLocale } from '@/lib/server-locale';
-import { mainPageConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
 import { createPageMetadata, createToolJsonLd } from '@/utils/seo';
-
-const genericTools = mainPageConfig.tools.filter(
-  (tool) => tool.status === 'available' && tool.component,
-);
+import {
+  genericTools,
+  getGenericToolBySlug,
+  getToolHref,
+} from '@/utils/tool-catalog';
 
 type ToolPageProps = {
   params: Promise<{ slug: string }>;
@@ -26,7 +26,7 @@ export async function generateMetadata({
   params,
 }: ToolPageProps): Promise<Metadata> {
   const [{ slug }, locale] = await Promise.all([params, getServerLocale()]);
-  const tool = genericTools.find((currentTool) => currentTool.slug === slug);
+  const tool = getGenericToolBySlug(slug);
 
   if (!tool) {
     notFound();
@@ -36,16 +36,16 @@ export async function generateMetadata({
     locale,
     title: getText(tool.name, locale),
     description: getText(tool.description, locale),
-    path: `/tool/${tool.slug}`,
+    path: getToolHref(tool),
     keywords: tool.tags.map((tag) => getText(tag, locale)),
   });
 }
 
 export default async function ToolPage({ params }: ToolPageProps) {
   const [{ slug }, locale] = await Promise.all([params, getServerLocale()]);
-  const tool = genericTools.find((currentTool) => currentTool.slug === slug);
+  const tool = getGenericToolBySlug(slug);
 
-  if (!tool?.component) {
+  if (!tool) {
     notFound();
   }
 

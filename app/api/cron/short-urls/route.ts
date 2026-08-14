@@ -1,10 +1,10 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 
 import { lte } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { shortUrls } from '@/db/schema';
+import { noStoreJson } from '@/lib/api-response';
 import { cleanupExpiredPendingMediaUploads } from '@/lib/pending-media-uploads';
 import { getTinyUrlRetentionThreshold } from '@/lib/tiny-url';
 import { cleanupExpiredRateLimits } from '@/utils/rate-limit';
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
 
   if (!cronSecret || cronSecret.length < MIN_CRON_SECRET_LENGTH) {
-    return NextResponse.json(
+    return noStoreJson(
       { error: 'CRON_SECRET is not configured.' },
       { status: 503 },
     );
@@ -36,11 +36,11 @@ export async function GET(request: Request) {
       `Bearer ${cronSecret}`,
     )
   ) {
-    return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    return noStoreJson({ error: 'Unauthorized.' }, { status: 401 });
   }
 
   if (!process.env.DATABASE_URL) {
-    return NextResponse.json(
+    return noStoreJson(
       { error: 'DATABASE_URL is not configured.' },
       { status: 503 },
     );
@@ -56,14 +56,14 @@ export async function GET(request: Request) {
       cleanupExpiredRateLimits(),
     ]);
 
-    return NextResponse.json({
+    return noStoreJson({
       deleted: deletedRows.length,
       pendingMedia,
       expiredRateLimits,
     });
   } catch (error) {
     console.error('Could not complete scheduled maintenance.', error);
-    return NextResponse.json(
+    return noStoreJson(
       { error: 'Could not complete scheduled maintenance.' },
       { status: 500 },
     );

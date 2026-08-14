@@ -9,9 +9,13 @@ import { type FormEvent, useState } from 'react';
 import { useAuthorSession, useLocale } from '@/app/providers';
 import { MediaGallery } from '@/components/media/MediaGallery';
 import type { ProjectConfig } from '@/utils/config';
+import { getJsonError, isJsonObject, readJsonResponse } from '@/utils/json';
 import { uploadMediaFiles } from '@/utils/media-client';
 import { MAX_PROJECT_IMAGES } from '@/utils/media';
-import type { ProjectContentData } from '@/utils/project-content';
+import {
+  isProjectContentData,
+  type ProjectContentData,
+} from '@/utils/project-content';
 
 const MediaAttachmentsField = dynamic(() =>
   import('@/components/media/MediaAttachmentsField').then(
@@ -58,10 +62,14 @@ export function ProjectContentSection({
     let uploadedUrls: string[] = [];
 
     try {
-      uploadedUrls = await uploadMediaFiles(pendingFiles, {
-        type: 'project',
-        projectSlug: project.slug,
-      });
+      uploadedUrls = await uploadMediaFiles(
+        pendingFiles,
+        {
+          type: 'project',
+          projectSlug: project.slug,
+        },
+        copy.api.media.uploadFailed,
+      );
       const imageUrls = [...existingUrls, ...uploadedUrls];
       const response = await fetch(`/api/projects/${project.slug}/content`, {
         method: 'PUT',
@@ -71,13 +79,14 @@ export function ProjectContentSection({
           uploadedImageUrls: uploadedUrls,
         }),
       });
-      const body = (await response.json()) as {
-        error?: string;
-        content?: ProjectContentData;
-      };
+      const body = await readJsonResponse(response);
 
-      if (!response.ok || !body.content) {
-        throw new Error(body.error ?? strings.contentSaveFailed);
+      if (!response.ok) {
+        throw new Error(getJsonError(body) ?? strings.contentSaveFailed);
+      }
+
+      if (!isJsonObject(body) || !isProjectContentData(body.content)) {
+        throw new Error(strings.contentSaveFailed);
       }
 
       setContent(body.content);

@@ -25,6 +25,7 @@ import {
   THEME_STORAGE_KEY,
   type Theme,
 } from '@/utils/theme';
+import { getJsonError, isJsonObject, readJsonResponse } from '@/utils/json';
 
 export type { Theme } from '@/utils/theme';
 
@@ -57,14 +58,27 @@ const LocaleContext = createContext<LocaleContextValue | undefined>(undefined);
 const AuthorSessionContext = createContext<
   AuthorSessionContextValue | undefined
 >(undefined);
+const PREFERENCE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 function getStoredTheme(fallback: Theme = 'system'): Theme {
   if (typeof window === 'undefined') {
     return fallback;
   }
 
-  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-  return storedTheme ? getTheme(storedTheme) : fallback;
+  try {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return storedTheme ? getTheme(storedTheme) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writePreferenceCookie(name: string, value: string) {
+  try {
+    document.cookie = `${name}=${value}; path=/; max-age=${PREFERENCE_COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
+  } catch {
+    // The in-memory preference still applies when browser storage is blocked.
+  }
 }
 
 function applyTheme(theme: Theme) {
@@ -84,15 +98,6 @@ function applyTheme(theme: Theme) {
   root.style.backgroundColor = resolvedTheme === 'dark' ? '#09090b' : '#ffffff';
 }
 
-async function readApiError(response: Response) {
-  try {
-    const body = (await response.json()) as { error?: unknown };
-    return typeof body.error === 'string' ? body.error : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 async function requestAuthorSession(signal?: AbortSignal) {
   const response = await fetch('/api/auth/session', {
     cache: 'no-store',
@@ -103,7 +108,20 @@ async function requestAuthorSession(signal?: AbortSignal) {
     throw new Error('Unable to load the author session.');
   }
 
-  return (await response.json()) as AuthorSession;
+  const body = await readJsonResponse(response);
+
+  if (
+    !isJsonObject(body) ||
+    typeof body.authenticated !== 'boolean' ||
+    typeof body.configured !== 'boolean'
+  ) {
+    throw new Error('Unable to load the author session.');
+  }
+
+  return {
+    authenticated: body.authenticated,
+    configured: body.configured,
+  };
 }
 
 export function useTheme() {
@@ -158,8 +176,14 @@ export function Providers({
 
   const setTheme = useCallback((nextTheme: Theme) => {
     setThemeState(nextTheme);
-    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
-    document.cookie = `${THEME_COOKIE}=${nextTheme}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    } catch {
+      // The cookie and current page still preserve the selected theme.
+    }
+
+    writePreferenceCookie(THEME_COOKIE, nextTheme);
     applyTheme(nextTheme);
   }, []);
 
@@ -167,7 +191,7 @@ export function Providers({
     (nextLocale: Locale) => {
       setLocaleState(nextLocale);
       document.documentElement.lang = nextLocale;
-      document.cookie = `${LOCALE_COOKIE}=${nextLocale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+      writePreferenceCookie(LOCALE_COOKIE, nextLocale);
       router.refresh();
     },
     [router],
@@ -195,12 +219,14 @@ export function Providers({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password }),
         });
+        const body = await readJsonResponse(response);
 
         if (!response.ok) {
-          return (
-            (await readApiError(response)) ??
-            translations[locale].stats.errors.login
-          );
+          return getJsonError(body) ?? translations[locale].stats.errors.login;
+        }
+
+        if (!isJsonObject(body) || body.authenticated !== true) {
+          return translations[locale].stats.errors.login;
         }
 
         setAuthorSession({ authenticated: true, configured: true });
@@ -215,12 +241,14 @@ export function Providers({
   const logoutAuthor = useCallback(async () => {
     try {
       const response = await fetch('/api/auth/logout', { method: 'POST' });
+      const body = await readJsonResponse(response);
 
       if (!response.ok) {
-        return (
-          (await readApiError(response)) ??
-          translations[locale].stats.errors.logout
-        );
+        return getJsonError(body) ?? translations[locale].stats.errors.logout;
+      }
+
+      if (!isJsonObject(body) || body.authenticated !== false) {
+        return translations[locale].stats.errors.logout;
       }
 
       setAuthorSession((current) => ({

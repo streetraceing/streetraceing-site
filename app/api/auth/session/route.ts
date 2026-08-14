@@ -1,12 +1,9 @@
-import { NextResponse } from 'next/server';
-
+import { noStoreJson } from '@/lib/api-response';
 import { isAdmin, isAuthConfigured } from '@/utils/auth';
 
 export async function GET() {
-  const response = NextResponse.json({
+  return noStoreJson({
     authenticated: await isAdmin(),
     configured: isAuthConfigured(),
   });
-  response.headers.set('Cache-Control', 'no-store');
-  return response;
 }

@@ -8,6 +8,7 @@ import { db } from '@/db';
 import { shortUrls } from '@/db/schema';
 import { CODE_PATTERN, getTinyUrlRetentionThreshold } from '@/lib/tiny-url';
 import { getServerLocale } from '@/lib/server-locale';
+import { translations } from '@/utils/i18n';
 import { createPageMetadata } from '@/utils/seo';
 
 export const runtime = 'nodejs';
@@ -19,14 +20,12 @@ export async function generateMetadata({
   params: Promise<{ code: string }>;
 }): Promise<Metadata> {
   const [{ code }, locale] = await Promise.all([params, getServerLocale()]);
+  const strings = translations[locale].tinyUrl;
 
   return createPageMetadata({
     locale,
-    title: locale === 'ru' ? 'Общие данные' : 'Shared data',
-    description:
-      locale === 'ru'
-        ? 'Приватная страница с данными по короткой ссылке.'
-        : 'A private page containing data from a short link.',
+    title: strings.sharedDataTitle,
+    description: strings.sharedDataDescription,
     path: `/${code}`,
     noIndex: true,
   });

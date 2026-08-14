@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 
+import { isJsonObject, readJsonResponse } from '@/utils/json';
 import { getCloudinaryPublicIdFromUrl } from '@/utils/media';
 
 type CloudinaryConfig = {
@@ -9,11 +10,6 @@ type CloudinaryConfig = {
 };
 
 type CloudinarySignatureValue = boolean | number | string;
-
-type CloudinaryDestroyResponse = {
-  result?: unknown;
-  error?: { message?: unknown };
-};
 
 export type CloudinaryDeleteResult = {
   requested: number;
@@ -84,16 +80,17 @@ async function deleteCloudinaryAsset(
       signal: AbortSignal.timeout(10_000),
     },
   );
-  const result = (await response
-    .json()
-    .catch(() => ({}))) as CloudinaryDestroyResponse;
+  const result = await readJsonResponse(response);
   const destroyResult =
-    typeof result.result === 'string' ? result.result.toLowerCase() : undefined;
+    isJsonObject(result) && typeof result.result === 'string'
+      ? result.result.toLowerCase()
+      : undefined;
 
   if (!response.ok) {
+    const error = isJsonObject(result) ? result.error : undefined;
     const message =
-      typeof result.error?.message === 'string'
-        ? result.error.message
+      isJsonObject(error) && typeof error.message === 'string'
+        ? error.message
         : `Cloudinary returned HTTP ${response.status}.`;
 
     throw new Error(message);

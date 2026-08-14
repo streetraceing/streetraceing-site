@@ -16,6 +16,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
+  useEffect,
   useRef,
   useState,
 } from 'react';
@@ -27,6 +28,7 @@ import {
   getCloudinaryImageInfoUrl,
   getCloudinarySquareImageUrl,
 } from '@/utils/media';
+import { isJsonObject, readJsonResponse } from '@/utils/json';
 
 type MediaGalleryProps = {
   urls: string[];
@@ -39,15 +41,6 @@ type ImageMetadata = {
   height?: number;
   bytes?: number;
   format?: string;
-};
-
-type CloudinaryImageInfo = {
-  input?: {
-    width?: number;
-    height?: number;
-    bytes?: number;
-    format?: string;
-  };
 };
 
 type PanPosition = {
@@ -74,6 +67,7 @@ const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.25;
 const SWIPE_DISTANCE = 52;
 const SWIPE_AXIS_RATIO = 1.2;
+const METADATA_TIMEOUT_MS = 10_000;
 
 function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
@@ -125,10 +119,25 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
   const [metadataByUrl, setMetadataByUrl] = useState<
     Record<string, ImageMetadata | undefined>
   >({});
-  const pendingMetadata = useRef(new Set<string>());
+  const metadataControllers = useRef(new Map<string, AbortController>());
+  const isMounted = useRef(true);
   const carouselRef = useRef<HTMLDivElement>(null);
   const dragState = useRef<DragState | undefined>(undefined);
   const swipeState = useRef<SwipeState | undefined>(undefined);
+
+  useEffect(() => {
+    isMounted.current = true;
+
+    return () => {
+      isMounted.current = false;
+
+      for (const controller of metadataControllers.current.values()) {
+        controller.abort();
+      }
+
+      metadataControllers.current.clear();
+    };
+  }, []);
 
   if (urls.length === 0) {
     return null;
@@ -148,11 +157,17 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
   }
 
   async function loadMetadata(url: string) {
-    if (metadataByUrl[url] || pendingMetadata.current.has(url)) {
+    if (metadataByUrl[url] || metadataControllers.current.has(url)) {
       return;
     }
 
-    pendingMetadata.current.add(url);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(
+      () => controller.abort(),
+      METADATA_TIMEOUT_MS,
+    );
+
+    metadataControllers.current.set(url, controller);
     setMetadataByUrl((current) => ({
       ...current,
       [url]: { status: 'loading' },
@@ -161,40 +176,65 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
     try {
       const response = await fetch(getCloudinaryImageInfoUrl(url), {
         cache: 'force-cache',
+        signal: controller.signal,
       });
 
       if (!response.ok) {
         throw new Error('metadata-request-failed');
       }
 
-      const body = (await response.json()) as CloudinaryImageInfo;
-      const input = body.input;
+      const body = await readJsonResponse(response);
+      const input = isJsonObject(body) ? body.input : undefined;
 
-      if (!input?.width || !input.height) {
+      if (
+        !isJsonObject(input) ||
+        typeof input.width !== 'number' ||
+        !Number.isFinite(input.width) ||
+        input.width <= 0 ||
+        typeof input.height !== 'number' ||
+        !Number.isFinite(input.height) ||
+        input.height <= 0
+      ) {
         throw new Error('metadata-response-invalid');
       }
 
-      setMetadataByUrl((current) => ({
-        ...current,
-        [url]: {
-          status: 'ready',
-          width: input.width,
-          height: input.height,
-          bytes: input.bytes,
-          format: input.format?.toUpperCase() ?? getFormatFromUrl(url),
-        },
-      }));
+      const bytes =
+        typeof input.bytes === 'number' &&
+        Number.isFinite(input.bytes) &&
+        input.bytes > 0
+          ? input.bytes
+          : undefined;
+      const format =
+        typeof input.format === 'string'
+          ? input.format.toUpperCase()
+          : getFormatFromUrl(url);
+
+      if (isMounted.current) {
+        setMetadataByUrl((current) => ({
+          ...current,
+          [url]: {
+            status: 'ready',
+            width: input.width,
+            height: input.height,
+            bytes,
+            format,
+          },
+        }));
+      }
     } catch {
-      setMetadataByUrl((current) => ({
-        ...current,
-        [url]: {
-          ...current[url],
-          status: 'error',
-          format: current[url]?.format ?? getFormatFromUrl(url),
-        },
-      }));
+      if (isMounted.current) {
+        setMetadataByUrl((current) => ({
+          ...current,
+          [url]: {
+            ...current[url],
+            status: 'error',
+            format: current[url]?.format ?? getFormatFromUrl(url),
+          },
+        }));
+      }
     } finally {
-      pendingMetadata.current.delete(url);
+      window.clearTimeout(timeoutId);
+      metadataControllers.current.delete(url);
     }
   }
 

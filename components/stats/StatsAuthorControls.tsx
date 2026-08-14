@@ -21,7 +21,12 @@ import { type FormEvent, useRef, useState } from 'react';
 import { useLocale } from '@/app/providers';
 import { MediaAttachmentsField } from '@/components/media/MediaAttachmentsField';
 import { MarkdownFormattingToolbar } from '@/components/stats/MarkdownFormattingToolbar';
+import {
+  MAX_DEV_UPDATE_CONTENT_LENGTH,
+  MAX_DEV_UPDATE_TITLE_LENGTH,
+} from '@/utils/dev-update-input';
 import { getLocaleTag } from '@/utils/i18n';
+import { getJsonError, isJsonObject, readJsonResponse } from '@/utils/json';
 import { uploadMediaFiles } from '@/utils/media-client';
 import { MAX_DEV_UPDATE_IMAGES } from '@/utils/media';
 import {
@@ -31,7 +36,7 @@ import {
 } from '@/utils/stats';
 
 import { MarkdownContent } from './MarkdownContent';
-import type { DevUpdate } from './types';
+import { isDevUpdate, type DevUpdate } from './types';
 
 type StatsAuthorControlsProps = {
   onCreated: (update: DevUpdate) => void;
@@ -59,9 +64,11 @@ export default function StatsAuthorControls({
     let uploadedUrls: string[] = [];
 
     try {
-      uploadedUrls = await uploadMediaFiles(pendingFiles, {
-        type: 'dev-update',
-      });
+      uploadedUrls = await uploadMediaFiles(
+        pendingFiles,
+        { type: 'dev-update' },
+        copy.api.media.uploadFailed,
+      );
       const response = await fetch('/api/dev-updates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,16 +80,13 @@ export default function StatsAuthorControls({
           uploadedImageUrls: uploadedUrls,
         }),
       });
-      const body = (await response.json()) as {
-        error?: string;
-        update?: DevUpdate;
-      };
+      const body = await readJsonResponse(response);
 
       if (!response.ok) {
-        throw new Error(body.error ?? strings.errors.publish);
+        throw new Error(getJsonError(body) ?? strings.errors.publish);
       }
 
-      if (!body.update) {
+      if (!isJsonObject(body) || !isDevUpdate(body.update)) {
         throw new Error(strings.errors.publishMissing);
       }
 
@@ -115,11 +119,13 @@ export default function StatsAuthorControls({
           <TextField fullWidth name="title" value={title} onChange={setTitle}>
             <Label>{strings.noteTitle}</Label>
             <Input
-              maxLength={160}
+              maxLength={MAX_DEV_UPDATE_TITLE_LENGTH}
               placeholder={strings.noteTitlePlaceholder}
               variant="secondary"
             />
-            <Description>{title.length} / 160</Description>
+            <Description>
+              {title.length} / {MAX_DEV_UPDATE_TITLE_LENGTH}
+            </Description>
           </TextField>
 
           <Select
@@ -167,7 +173,7 @@ export default function StatsAuthorControls({
                 ref={contentRef}
                 rows={6}
                 variant="secondary"
-                maxLength={8_000}
+                maxLength={MAX_DEV_UPDATE_CONTENT_LENGTH}
                 placeholder={strings.notePlaceholder}
               />
               <Description>

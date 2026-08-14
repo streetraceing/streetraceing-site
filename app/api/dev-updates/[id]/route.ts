@@ -1,17 +1,20 @@
 import { eq } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { devUpdates } from '@/db/schema';
+import { isJsonObject, readJsonBody } from '@/lib/api-http';
+import { noStoreJson } from '@/lib/api-response';
 import { deleteCloudinaryMedia } from '@/lib/cloudinary-media';
 import {
   confirmPendingMediaUploads,
   discardPendingMediaUploads,
 } from '@/lib/pending-media-uploads';
 import { isAdmin } from '@/utils/auth';
+import {
+  MAX_DEV_UPDATE_REQUEST_BYTES,
+  parseDevUpdateInput,
+} from '@/utils/dev-update-input';
 import { getRequestLocale, translations } from '@/utils/i18n';
-import { MAX_DEV_UPDATE_IMAGES, normalizeMediaUrls } from '@/utils/media';
-import { isDevUpdateTopic } from '@/utils/stats';
 
 export const runtime = 'nodejs';
 
@@ -34,65 +37,50 @@ export async function PATCH(request: Request, context: RouteContext) {
   const strings = apiStrings.devNotes;
 
   if (!(await isAdmin())) {
-    return NextResponse.json(
-      { error: apiStrings.auth.required },
-      { status: 401 },
-    );
+    return noStoreJson({ error: apiStrings.auth.required }, { status: 401 });
   }
 
   const id = await getUpdateId(context);
 
   if (!id) {
-    return NextResponse.json({ error: strings.notFound }, { status: 404 });
+    return noStoreJson({ error: strings.notFound }, { status: 404 });
   }
 
-  let body: {
-    title?: unknown;
-    content?: unknown;
-    topic?: unknown;
-    imageUrls?: unknown;
-    uploadedImageUrls?: unknown;
-  };
+  const bodyResult = await readJsonBody(request, MAX_DEV_UPDATE_REQUEST_BYTES);
 
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
+  if (!bodyResult.ok || !isJsonObject(bodyResult.value)) {
+    return noStoreJson(
       { error: apiStrings.auth.invalidRequest },
+      {
+        status: bodyResult.ok || bodyResult.reason === 'invalid' ? 400 : 413,
+      },
+    );
+  }
+
+  const parsedInput = parseDevUpdateInput(
+    bodyResult.value,
+    process.env.CLOUDINARY_CLOUD_NAME,
+  );
+
+  if (!parsedInput.ok) {
+    await discardPendingMediaUploads(parsedInput.uploadedImageUrls);
+    return noStoreJson(
+      {
+        error:
+          parsedInput.reason === 'title-too-long'
+            ? strings.titleTooLong
+            : strings.invalid,
+      },
       { status: 400 },
     );
   }
 
-  const title = typeof body.title === 'string' ? body.title.trim() : '';
-  const content = typeof body.content === 'string' ? body.content.trim() : '';
-  const topic = typeof body.topic === 'string' ? body.topic : '';
-  const imageUrls = normalizeMediaUrls(
-    body.imageUrls,
-    MAX_DEV_UPDATE_IMAGES,
-    process.env.CLOUDINARY_CLOUD_NAME,
-  );
-  const uploadedImageUrls = normalizeMediaUrls(
-    body.uploadedImageUrls,
-    MAX_DEV_UPDATE_IMAGES,
-    process.env.CLOUDINARY_CLOUD_NAME,
-  ).filter((url) => imageUrls.includes(url));
-
-  if (!content || content.length > 8_000 || !isDevUpdateTopic(topic)) {
-    await discardPendingMediaUploads(uploadedImageUrls);
-    return NextResponse.json({ error: strings.invalid }, { status: 400 });
-  }
-
-  if (title.length > 160) {
-    await discardPendingMediaUploads(uploadedImageUrls);
-    return NextResponse.json({ error: strings.titleTooLong }, { status: 400 });
-  }
+  const { title, content, topic, imageUrls, uploadedImageUrls } =
+    parsedInput.input;
 
   if (!process.env.DATABASE_URL) {
     await discardPendingMediaUploads(uploadedImageUrls);
-    return NextResponse.json(
-      { error: strings.databaseMissing },
-      { status: 503 },
-    );
+    return noStoreJson({ error: strings.databaseMissing }, { status: 503 });
   }
 
   try {
@@ -110,7 +98,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     if (!update) {
       await discardPendingMediaUploads(uploadedImageUrls);
-      return NextResponse.json({ error: strings.notFound }, { status: 404 });
+      return noStoreJson({ error: strings.notFound }, { status: 404 });
     }
 
     const removedUrls = (previousUpdate?.imageUrls ?? []).filter(
@@ -124,10 +112,10 @@ export async function PATCH(request: Request, context: RouteContext) {
       console.error('Could not confirm updated Dev Note media.', error);
     }
 
-    return NextResponse.json({ update });
+    return noStoreJson({ update });
   } catch {
     await discardPendingMediaUploads(uploadedImageUrls);
-    return NextResponse.json({ error: strings.saveFailed }, { status: 500 });
+    return noStoreJson({ error: strings.saveFailed }, { status: 500 });
   }
 }
 
@@ -137,23 +125,17 @@ export async function DELETE(request: Request, context: RouteContext) {
   const strings = apiStrings.devNotes;
 
   if (!(await isAdmin())) {
-    return NextResponse.json(
-      { error: apiStrings.auth.required },
-      { status: 401 },
-    );
+    return noStoreJson({ error: apiStrings.auth.required }, { status: 401 });
   }
 
   const id = await getUpdateId(context);
 
   if (!id) {
-    return NextResponse.json({ error: strings.notFound }, { status: 404 });
+    return noStoreJson({ error: strings.notFound }, { status: 404 });
   }
 
   if (!process.env.DATABASE_URL) {
-    return NextResponse.json(
-      { error: strings.databaseMissing },
-      { status: 503 },
-    );
+    return noStoreJson({ error: strings.databaseMissing }, { status: 503 });
   }
 
   try {
@@ -163,13 +145,13 @@ export async function DELETE(request: Request, context: RouteContext) {
       .returning({ id: devUpdates.id, imageUrls: devUpdates.imageUrls });
 
     if (!deletedUpdate) {
-      return NextResponse.json({ error: strings.notFound }, { status: 404 });
+      return noStoreJson({ error: strings.notFound }, { status: 404 });
     }
 
     await deleteCloudinaryMedia(deletedUpdate.imageUrls);
 
-    return NextResponse.json({ id: deletedUpdate.id });
+    return noStoreJson({ id: deletedUpdate.id });
   } catch {
-    return NextResponse.json({ error: strings.deleteFailed }, { status: 500 });
+    return noStoreJson({ error: strings.deleteFailed }, { status: 500 });
   }
 }

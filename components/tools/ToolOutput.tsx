@@ -1,10 +1,11 @@
 'use client';
 
 import { useLocale } from '@/app/providers';
+import { useTransientValue } from '@/components/hooks/useTransientValue';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@heroui/react';
 import { Check, Copy } from 'lucide-react';
-import { Fragment, type ReactNode, useState } from 'react';
+import { Fragment, type ReactNode } from 'react';
 
 export type ToolOutputFormat =
   | 'plain'
@@ -319,7 +320,7 @@ export function ToolOutput({
   format = 'plain',
 }: ToolOutputProps) {
   const { copy } = useLocale();
-  const [isCopied, setIsCopied] = useState(false);
+  const copyFeedback = useTransientValue<boolean>();
   const lines = content.split('\n');
   const showLineNumbers = [
     'json',
@@ -332,10 +333,9 @@ export function ToolOutput({
   async function copyOutput() {
     try {
       await navigator.clipboard.writeText(content);
-      setIsCopied(true);
-      window.setTimeout(() => setIsCopied(false), 2_000);
+      copyFeedback.show(true);
     } catch {
-      setIsCopied(false);
+      copyFeedback.clear();
     }
   }
 
@@ -352,7 +352,7 @@ export function ToolOutput({
           variant="tertiary"
           onPress={() => void copyOutput()}
         >
-          {isCopied ? <Check /> : <Copy />}
+          {copyFeedback.value ? <Check /> : <Copy />}
         </Button>
       </Card.Header>
       <Card.Content>

@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useLocale } from '@/app/providers';
 import type { ProjectConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
+import { getProjectHref } from '@/utils/project-catalog';
 
 import { ProjectActions } from './ProjectActions';
 import { ProjectDetails } from './ProjectDetails';
@@ -41,7 +42,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <>
       <Link
-        href={`/project/${project.slug}`}
+        href={getProjectHref(project)}
         className="group block h-full w-full rounded-2xl text-left no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         onClick={openDetails}
       >

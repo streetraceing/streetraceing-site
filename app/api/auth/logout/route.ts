@@ -1,10 +1,8 @@
-import { NextResponse } from 'next/server';
-
+import { noStoreJson } from '@/lib/api-response';
 import { adminSessionCookie } from '@/utils/auth';
 
 export async function POST() {
-  const response = NextResponse.json({ authenticated: false });
-  response.headers.set('Cache-Control', 'no-store');
+  const response = noStoreJson({ authenticated: false });
   response.cookies.set(adminSessionCookie.name, '', {
     ...adminSessionCookie.options,
     maxAge: 0,

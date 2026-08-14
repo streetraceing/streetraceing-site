@@ -33,6 +33,17 @@ import {
   useState,
 } from 'react';
 
+const navigationLinks = headerConfig.links.map((link) => ({
+  ...link,
+  href: normalizeInternalAnchorHref(link.href),
+}));
+
+function isNavigationLinkActive(pathname: string, href: string) {
+  return href === '/tools'
+    ? pathname === '/tools' || pathname.startsWith('/tool/')
+    : false;
+}
+
 function AuthorMenu() {
   const { copy } = useLocale();
   const strings = copy.stats;
@@ -200,10 +211,6 @@ export function Header() {
   const linkSlots = linkVariants();
   const { copy, locale } = useLocale();
   const pathname = usePathname();
-  const navigationLinks = headerConfig.links.map((link) => ({
-    ...link,
-    href: normalizeInternalAnchorHref(link.href),
-  }));
   const [open, setOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const mobileMenuRef = useRef<HTMLElement>(null);
@@ -321,10 +328,17 @@ export function Header() {
               <NextLink
                 href={link.href}
                 scroll
+                aria-current={
+                  isNavigationLinkActive(pathname, link.href)
+                    ? 'page'
+                    : undefined
+                }
                 onClick={(event) => handleSectionNavigation(event, link.href)}
                 className={cn(
                   linkSlots.base(),
                   'flex min-w-0 items-center gap-2 no-underline',
+                  isNavigationLinkActive(pathname, link.href) &&
+                    'text-foreground',
                 )}
                 key={link.href}
               >
@@ -385,7 +399,17 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 scroll
-                className={cn(linkSlots.base(), 'no-underline')}
+                aria-current={
+                  isNavigationLinkActive(pathname, link.href)
+                    ? 'page'
+                    : undefined
+                }
+                className={cn(
+                  linkSlots.base(),
+                  'no-underline',
+                  isNavigationLinkActive(pathname, link.href) &&
+                    'text-foreground',
+                )}
                 onClick={(event) => handleSectionNavigation(event, link.href)}
               >
                 <link.icon className="mr-2 size-5 text-muted" />

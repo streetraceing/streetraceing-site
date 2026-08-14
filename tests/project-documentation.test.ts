@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  getProjectDocumentationBreadcrumbs,
-  resolveProjectDocumentationUrl,
-} from '../lib/project-documentation';
+import { resolveProjectDocumentationUrl } from '../lib/project-documentation';
+import { getProjectDocumentationBreadcrumbs } from '../utils/project-documentation';
 
 const root =
   'https://raw.githubusercontent.com/streetraceing/package/refs/heads/main/docs/README.md';

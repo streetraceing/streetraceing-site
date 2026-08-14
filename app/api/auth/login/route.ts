@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-
+import { isJsonObject, readJsonBody } from '@/lib/api-http';
+import { noStoreJson } from '@/lib/api-response';
 import {
   adminSessionCookie,
   createAdminSessionToken,
@@ -20,21 +20,6 @@ const LOGIN_RATE_LIMIT = 5;
 const LOGIN_RATE_WINDOW_MS = 15 * 60 * 1_000;
 const MAX_LOGIN_BODY_BYTES = 2_048;
 
-function noStoreJson(
-  body: unknown,
-  init?: ResponseInit,
-  additionalHeaders?: Record<string, string>,
-) {
-  const response = NextResponse.json(body, init);
-  response.headers.set('Cache-Control', 'no-store');
-
-  for (const [name, value] of Object.entries(additionalHeaders ?? {})) {
-    response.headers.set(name, value);
-  }
-
-  return response;
-}
-
 export async function POST(request: Request) {
   const strings = translations[getRequestLocale(request)].api.auth;
   const rateLimitKey = `auth:login:${getClientAddress(request)}`;
@@ -48,47 +33,38 @@ export async function POST(request: Request) {
   if (!rateLimit.allowed) {
     return noStoreJson(
       { error: strings.rateLimited },
-      { status: 429 },
-      rateLimitHeaders,
+      { status: 429, headers: rateLimitHeaders },
     );
   }
 
-  const contentLength = Number(request.headers.get('content-length') ?? '0');
+  const bodyResult = await readJsonBody(request, MAX_LOGIN_BODY_BYTES);
 
-  if (Number.isFinite(contentLength) && contentLength > MAX_LOGIN_BODY_BYTES) {
+  if (!bodyResult.ok || !isJsonObject(bodyResult.value)) {
     return noStoreJson(
       { error: strings.invalidRequest },
-      { status: 413 },
-      rateLimitHeaders,
+      {
+        status: bodyResult.ok || bodyResult.reason === 'invalid' ? 400 : 413,
+        headers: rateLimitHeaders,
+      },
     );
   }
 
-  let password = '';
-
-  try {
-    const body = (await request.json()) as { password?: unknown };
-    password = typeof body.password === 'string' ? body.password : '';
-  } catch {
-    return noStoreJson(
-      { error: strings.invalidRequest },
-      { status: 400 },
-      rateLimitHeaders,
-    );
-  }
+  const password =
+    typeof bodyResult.value.password === 'string'
+      ? bodyResult.value.password
+      : '';
 
   if (!isAuthConfigured()) {
     return noStoreJson(
       { error: strings.notConfigured },
-      { status: 503 },
-      rateLimitHeaders,
+      { status: 503, headers: rateLimitHeaders },
     );
   }
 
   if (!isValidAdminPassword(password)) {
     return noStoreJson(
       { error: strings.invalidPassword },
-      { status: 401 },
-      rateLimitHeaders,
+      { status: 401, headers: rateLimitHeaders },
     );
   }
 
@@ -97,8 +73,7 @@ export async function POST(request: Request) {
   if (!token) {
     return noStoreJson(
       { error: strings.sessionCreation },
-      { status: 503 },
-      rateLimitHeaders,
+      { status: 503, headers: rateLimitHeaders },
     );
   }
 

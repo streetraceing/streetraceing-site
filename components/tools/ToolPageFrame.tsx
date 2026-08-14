@@ -28,7 +28,7 @@ export function ToolPageFrame({
 
   return (
     <Page header={<Header />} footer={<Footer />}>
-      <Container className="flex flex-col gap-4 py-4 sm:py-6">
+      <Container className="flex flex-col gap-5 py-6 sm:py-10">
         <Link
           href="/tools"
           className="button button--tertiary button--md self-start"
@@ -38,21 +38,25 @@ export function ToolPageFrame({
           {copy.tool.allTools}
         </Link>
 
-        <Card className="mx-auto w-full max-w-4xl">
-          <Card.Header className="gap-3">
+        <Card className="mx-auto w-full max-w-5xl overflow-hidden">
+          <Card.Header className="relative gap-4 border-b bg-surface-secondary/45 py-6 sm:py-8">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full bg-accent/10 blur-3xl"
+            />
             <div className="flex items-start gap-3">
               {icon ? (
-                <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-surface-secondary">
+                <span className="relative grid size-12 shrink-0 place-items-center rounded-2xl bg-surface-tertiary shadow-sm">
                   {icon}
                 </span>
               ) : null}
-              <div className="flex min-w-0 flex-col">
-                <Typography.Heading level={3}>{title}</Typography.Heading>
+              <div className="relative flex min-w-0 flex-col gap-1">
+                <Typography.Heading level={1}>{title}</Typography.Heading>
                 <Card.Description>{description}</Card.Description>
               </div>
             </div>
           </Card.Header>
-          <Card.Content>{children}</Card.Content>
+          <Card.Content className="py-5 sm:py-6">{children}</Card.Content>
         </Card>
       </Container>
     </Page>

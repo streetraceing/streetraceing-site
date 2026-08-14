@@ -10,7 +10,7 @@ import {
   LOCALE_COOKIE,
 } from '@/utils/i18n';
 import { createRootMetadata, createWebsiteJsonLd } from '@/utils/seo';
-import { getTheme, THEME_COOKIE } from '@/utils/theme';
+import { getTheme, THEME_COOKIE, THEME_STORAGE_KEY } from '@/utils/theme';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
@@ -24,7 +24,10 @@ const themeBootstrapScript = `
         .split('; ')
         .find((value) => value.startsWith('${THEME_COOKIE}='))
         ?.split('=')[1];
-      const storedTheme = window.localStorage.getItem('theme');
+      let storedTheme;
+      try {
+        storedTheme = window.localStorage.getItem('${THEME_STORAGE_KEY}');
+      } catch {}
       const preference =
         storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system'
           ? storedTheme

@@ -3,13 +3,11 @@ import type { Metadata } from 'next';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { TinyUrlPageContent } from '@/components/tiny-url/TinyUrlPageContent';
 import { getServerLocale } from '@/lib/server-locale';
-import { mainPageConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
 import { createPageMetadata, createToolJsonLd } from '@/utils/seo';
+import { getToolBySlug } from '@/utils/tool-catalog';
 
-const tinyUrlTool = mainPageConfig.tools.find(
-  (tool) => tool.slug === 'tiny-url',
-);
+const tinyUrlTool = getToolBySlug('tiny-url');
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();

@@ -15,9 +15,13 @@ import { ProjectStatusChips } from './ProjectStatusChips';
 
 type ProjectDetailsProps = {
   project: ProjectConfig;
+  sectionHeadingLevel?: 2 | 3;
 };
 
-export function ProjectDetails({ project }: ProjectDetailsProps) {
+export function ProjectDetails({
+  project,
+  sectionHeadingLevel = 3,
+}: ProjectDetailsProps) {
   const { copy, locale } = useLocale();
   const id = useId();
   const stackId = `${id}-stack`;
@@ -37,7 +41,7 @@ export function ProjectDetails({ project }: ProjectDetailsProps) {
       <ProjectProgress value={project.progress} />
 
       <section className="flex flex-col gap-3" aria-labelledby={stackId}>
-        <Typography.Heading id={stackId} level={3}>
+        <Typography.Heading id={stackId} level={sectionHeadingLevel}>
           {copy.project.stack}
         </Typography.Heading>
         <div className="flex flex-wrap gap-2">
@@ -50,7 +54,7 @@ export function ProjectDetails({ project }: ProjectDetailsProps) {
       </section>
 
       <section className="flex flex-col gap-3" aria-labelledby={featuresId}>
-        <Typography.Heading id={featuresId} level={3}>
+        <Typography.Heading id={featuresId} level={sectionHeadingLevel}>
           {copy.project.highlights}
         </Typography.Heading>
         <ul className="flex flex-col gap-2 text-sm text-muted">
@@ -65,7 +69,7 @@ export function ProjectDetails({ project }: ProjectDetailsProps) {
 
       {project.screenshots && project.screenshots.length > 0 ? (
         <section className="flex flex-col gap-3" aria-labelledby={mediaId}>
-          <Typography.Heading id={mediaId} level={3}>
+          <Typography.Heading id={mediaId} level={sectionHeadingLevel}>
             {copy.project.screenshots}
           </Typography.Heading>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -93,7 +97,7 @@ export function ProjectDetails({ project }: ProjectDetailsProps) {
 
       {project.devLog && project.devLog.length > 0 ? (
         <section className="flex flex-col gap-3" aria-labelledby={devLogId}>
-          <Typography.Heading id={devLogId} level={3}>
+          <Typography.Heading id={devLogId} level={sectionHeadingLevel}>
             {copy.project.devLog}
           </Typography.Heading>
           <ol className="flex flex-col gap-3 border-l pl-4">

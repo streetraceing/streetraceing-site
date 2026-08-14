@@ -1,20 +1,23 @@
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { projectContents } from '@/db/schema';
+import { isJsonObject, readJsonBody } from '@/lib/api-http';
+import { noStoreJson } from '@/lib/api-response';
 import { deleteCloudinaryMedia } from '@/lib/cloudinary-media';
 import {
   confirmPendingMediaUploads,
   discardPendingMediaUploads,
 } from '@/lib/pending-media-uploads';
 import { isAdmin } from '@/utils/auth';
-import { mainPageConfig } from '@/utils/config';
 import { getRequestLocale, translations } from '@/utils/i18n';
 import { MAX_PROJECT_IMAGES, normalizeMediaUrls } from '@/utils/media';
+import { getProjectBySlug, getProjectHref } from '@/utils/project-catalog';
 
 export const runtime = 'nodejs';
+
+const MAX_PROJECT_CONTENT_REQUEST_BYTES = 32 * 1_024;
 
 type RouteContext = {
   params: Promise<{ slug: string }>;
@@ -23,9 +26,7 @@ type RouteContext = {
 async function getProjectSlug(context: RouteContext) {
   const { slug } = await context.params;
 
-  return mainPageConfig.projects.some((project) => project.slug === slug)
-    ? slug
-    : undefined;
+  return getProjectBySlug(slug) ? slug : undefined;
 }
 
 export async function PUT(request: Request, context: RouteContext) {
@@ -33,46 +34,43 @@ export async function PUT(request: Request, context: RouteContext) {
   const strings = apiStrings.projectContent;
 
   if (!(await isAdmin())) {
-    return NextResponse.json(
-      { error: apiStrings.auth.required },
-      { status: 401 },
-    );
+    return noStoreJson({ error: apiStrings.auth.required }, { status: 401 });
   }
 
   const slug = await getProjectSlug(context);
 
   if (!slug) {
-    return NextResponse.json({ error: strings.notFound }, { status: 404 });
+    return noStoreJson({ error: strings.notFound }, { status: 404 });
   }
 
-  let body: {
-    imageUrls?: unknown;
-    uploadedImageUrls?: unknown;
-  };
+  const bodyResult = await readJsonBody(
+    request,
+    MAX_PROJECT_CONTENT_REQUEST_BYTES,
+  );
 
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: strings.invalid }, { status: 400 });
+  if (!bodyResult.ok || !isJsonObject(bodyResult.value)) {
+    return noStoreJson(
+      { error: strings.invalid },
+      {
+        status: bodyResult.ok || bodyResult.reason === 'invalid' ? 400 : 413,
+      },
+    );
   }
 
   const imageUrls = normalizeMediaUrls(
-    body.imageUrls,
+    bodyResult.value.imageUrls,
     MAX_PROJECT_IMAGES,
     process.env.CLOUDINARY_CLOUD_NAME,
   );
   const uploadedImageUrls = normalizeMediaUrls(
-    body.uploadedImageUrls,
+    bodyResult.value.uploadedImageUrls,
     MAX_PROJECT_IMAGES,
     process.env.CLOUDINARY_CLOUD_NAME,
   ).filter((url) => imageUrls.includes(url));
 
   if (!process.env.DATABASE_URL) {
     await discardPendingMediaUploads(uploadedImageUrls);
-    return NextResponse.json(
-      { error: strings.databaseMissing },
-      { status: 503 },
-    );
+    return noStoreJson({ error: strings.databaseMissing }, { status: 503 });
   }
 
   try {
@@ -103,7 +101,7 @@ export async function PUT(request: Request, context: RouteContext) {
 
     if (!storedContent) {
       await discardPendingMediaUploads(uploadedImageUrls);
-      return NextResponse.json({ error: strings.saveFailed }, { status: 500 });
+      return noStoreJson({ error: strings.saveFailed }, { status: 500 });
     }
 
     const removedUrls = (previousContent?.imageUrls ?? []).filter(
@@ -118,12 +116,12 @@ export async function PUT(request: Request, context: RouteContext) {
     }
 
     try {
-      revalidatePath(`/project/${slug}`);
+      revalidatePath(getProjectHref({ slug }));
     } catch {
       // The route is force-dynamic; cache invalidation is only a best-effort extra.
     }
 
-    return NextResponse.json({
+    return noStoreJson({
       content: {
         imageUrls: storedContent.imageUrls,
         updatedAt: storedContent.updatedAt.toISOString(),
@@ -131,6 +129,6 @@ export async function PUT(request: Request, context: RouteContext) {
     });
   } catch {
     await discardPendingMediaUploads(uploadedImageUrls);
-    return NextResponse.json({ error: strings.saveFailed }, { status: 500 });
+    return noStoreJson({ error: strings.saveFailed }, { status: 500 });
   }
 }

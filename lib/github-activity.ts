@@ -2,12 +2,14 @@ import type {
   PublicGitHubCommit,
   PublicGitHubCommitFeed,
 } from '@/components/stats/types';
+import { readBoundedResponseText } from '@/lib/api-http';
 import {
   GITHUB_ACTIVITY_REVALIDATE_SECONDS,
   GITHUB_USERNAME,
 } from '@/utils/github';
 
 const DEFAULT_COMMIT_LIMIT = 16;
+const MAX_GITHUB_RESPONSE_BYTES = 512 * 1_024;
 
 type GitHubCommitSearchItem = {
   sha?: unknown;
@@ -111,7 +113,16 @@ export async function readPublicGitHubCommits(
       return { commits: [], available: false };
     }
 
-    const body = (await response.json()) as GitHubCommitSearchResponse;
+    const source = await readBoundedResponseText(
+      response,
+      MAX_GITHUB_RESPONSE_BYTES,
+    );
+
+    if (!source) {
+      return { commits: [], available: false };
+    }
+
+    const body = JSON.parse(source) as GitHubCommitSearchResponse;
     const items = Array.isArray(body.items)
       ? (body.items as GitHubCommitSearchItem[])
       : [];

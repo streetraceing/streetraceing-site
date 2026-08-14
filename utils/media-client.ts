@@ -4,6 +4,7 @@ import {
   getCloudinaryPublicIdFromUrl,
   type MediaUploadScope,
 } from '@/utils/media';
+import { getJsonError, isJsonObject, readJsonResponse } from '@/utils/json';
 
 type CloudinaryUploadAuthorization = {
   allowedFormats: string;
@@ -12,44 +13,52 @@ type CloudinaryUploadAuthorization = {
   publicId: string;
   signature: string;
   timestamp: number;
-  error?: string;
 };
 
-type CloudinaryUploadResponse = {
-  public_id?: string;
-  secure_url?: string;
-  error?: { message?: string };
-};
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0;
+}
 
 async function requestUploadAuthorization(
   scope: MediaUploadScope,
   index: number,
+  fallbackError: string,
 ) {
   const response = await fetch('/api/media/upload', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ scope, index }),
   });
-  const body = (await response.json()) as CloudinaryUploadAuthorization;
+  const body = await readJsonResponse(response);
 
   if (
     !response.ok ||
-    !body.allowedFormats ||
-    !body.apiKey ||
-    !body.cloudName ||
-    !body.publicId ||
-    !body.signature ||
-    !body.timestamp
+    !isJsonObject(body) ||
+    !isNonEmptyString(body.allowedFormats) ||
+    !isNonEmptyString(body.apiKey) ||
+    !isNonEmptyString(body.cloudName) ||
+    !isNonEmptyString(body.publicId) ||
+    !isNonEmptyString(body.signature) ||
+    typeof body.timestamp !== 'number' ||
+    !Number.isSafeInteger(body.timestamp)
   ) {
-    throw new Error(body.error ?? 'Could not authorize the image upload.');
+    throw new Error(getJsonError(body) ?? fallbackError);
   }
 
-  return body;
+  return {
+    allowedFormats: body.allowedFormats,
+    apiKey: body.apiKey,
+    cloudName: body.cloudName,
+    publicId: body.publicId,
+    signature: body.signature,
+    timestamp: body.timestamp,
+  } satisfies CloudinaryUploadAuthorization;
 }
 
 async function uploadOriginalFile(
   file: File,
   authorization: CloudinaryUploadAuthorization,
+  fallbackError: string,
 ) {
   const body = new FormData();
 
@@ -65,23 +74,28 @@ async function uploadOriginalFile(
     `https://api.cloudinary.com/v1_1/${encodeURIComponent(authorization.cloudName)}/image/upload`,
     { method: 'POST', body },
   );
-  const result = (await response.json()) as CloudinaryUploadResponse;
-  const url = result.secure_url;
+  const result = await readJsonResponse(response);
+  const url = isJsonObject(result) ? result.secure_url : undefined;
 
   if (
     !response.ok ||
-    !url ||
+    !isNonEmptyString(url) ||
+    !isJsonObject(result) ||
     result.public_id !== authorization.publicId ||
     getCloudinaryPublicIdFromUrl(url, authorization.cloudName) !==
       authorization.publicId
   ) {
-    throw new Error(result.error?.message ?? 'Could not upload the image.');
+    throw new Error(fallbackError);
   }
 
   return url;
 }
 
-export async function uploadMediaFiles(files: File[], scope: MediaUploadScope) {
+export async function uploadMediaFiles(
+  files: File[],
+  scope: MediaUploadScope,
+  fallbackError: string,
+) {
   const uploadedUrls = new Array<string | undefined>(files.length);
   const maximumConcurrency = Math.min(3, files.length);
   let nextIndex = 0;
@@ -103,8 +117,16 @@ export async function uploadMediaFiles(files: File[], scope: MediaUploadScope) {
       }
 
       try {
-        const authorization = await requestUploadAuthorization(scope, index);
-        uploadedUrls[index] = await uploadOriginalFile(file, authorization);
+        const authorization = await requestUploadAuthorization(
+          scope,
+          index,
+          fallbackError,
+        );
+        uploadedUrls[index] = await uploadOriginalFile(
+          file,
+          authorization,
+          fallbackError,
+        );
       } catch (error) {
         firstError = error;
       }

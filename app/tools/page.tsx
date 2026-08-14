@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 
 import { ToolsPageContent } from '@/components/tools/ToolsPageContent';
 import { getServerLocale } from '@/lib/server-locale';
-import { mainPageConfig } from '@/utils/config';
 import { translations } from '@/utils/i18n';
 import { createPageMetadata } from '@/utils/seo';
+import { availableTools } from '@/utils/tool-catalog';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
@@ -15,9 +15,11 @@ export async function generateMetadata(): Promise<Metadata> {
     title: strings.metadataTitle,
     description: strings.description,
     path: '/tools',
-    keywords: mainPageConfig.tools.flatMap((tool) =>
-      tool.tags.map((tag) => tag[locale]),
-    ),
+    keywords: [
+      ...new Set(
+        availableTools.flatMap((tool) => tool.tags.map((tag) => tag[locale])),
+      ),
+    ],
   });
 }
 

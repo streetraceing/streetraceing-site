@@ -1,13 +1,18 @@
 'use client';
 
 import { useLocale } from '@/app/providers';
-import type { PublicGitHubCommitFeed } from '@/components/stats/types';
+import {
+  isPublicGitHubCommitFeed,
+  type PublicGitHubCommitFeed,
+} from '@/components/stats/types';
 import {
   GITHUB_ACTIVITY_POLL_INTERVAL_MS,
   GITHUB_ACTIVITY_ROUTE,
   GITHUB_PROFILE_URL,
 } from '@/utils/github';
+import { formatDateTime } from '@/utils/date';
 import { getLocaleTag } from '@/utils/i18n';
+import { readJsonResponse } from '@/utils/json';
 import { Card, Chip, Separator } from '@heroui/react';
 import { ArrowUpRight, GitCommitHorizontal } from 'lucide-react';
 import NextLink from 'next/link';
@@ -15,31 +20,6 @@ import { useEffect, useRef, useState } from 'react';
 import { FaGithub } from 'react-icons/fa6';
 
 const MINIMUM_REFRESH_GAP_MS = 30_000;
-
-function formatCommitDate(value: string, locale: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
-}
-
-function isPublicGitHubCommitFeed(
-  value: unknown,
-): value is PublicGitHubCommitFeed {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const feed = value as Partial<PublicGitHubCommitFeed>;
-
-  return typeof feed.available === 'boolean' && Array.isArray(feed.commits);
-}
 
 function getGitHubCommitFeedKey(feed: PublicGitHubCommitFeed) {
   return [
@@ -98,7 +78,7 @@ function GitHubCommitHistoryContent({
           return;
         }
 
-        const nextFeed: unknown = await response.json();
+        const nextFeed = await readJsonResponse(response);
 
         if (!active || !isPublicGitHubCommitFeed(nextFeed)) {
           return;
@@ -205,7 +185,7 @@ function GitHubCommitHistoryContent({
                         {commit.sha.slice(0, 7)}
                       </code>
                       <time dateTime={commit.committedAt}>
-                        {formatCommitDate(
+                        {formatDateTime(
                           commit.committedAt,
                           getLocaleTag(locale),
                         )}

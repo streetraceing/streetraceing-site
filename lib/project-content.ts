@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { projectContents } from '@/db/schema';
-import { mainPageConfig } from '@/utils/config';
+import { getProjectBySlug } from '@/utils/project-catalog';
 import {
   getDefaultProjectContent,
   type ProjectContentData,
@@ -11,9 +11,7 @@ import {
 export async function readProjectContent(
   slug: string,
 ): Promise<ProjectContentData | undefined> {
-  const project = mainPageConfig.projects.find(
-    (currentProject) => currentProject.slug === slug,
-  );
+  const project = getProjectBySlug(slug);
 
   if (!project) {
     return undefined;

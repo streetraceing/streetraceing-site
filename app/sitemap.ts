@@ -1,21 +1,20 @@
 import type { MetadataRoute } from 'next';
 
-import { mainPageConfig } from '@/utils/config';
+import { getProjectHref, projects } from '@/utils/project-catalog';
 import { getAbsoluteUrl } from '@/utils/seo';
+import { availableTools, getToolHref } from '@/utils/tool-catalog';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const projects = mainPageConfig.projects.map((project) => ({
-    url: getAbsoluteUrl(`/project/${project.slug}`),
+  const projectEntries = projects.map((project) => ({
+    url: getAbsoluteUrl(getProjectHref(project)),
     changeFrequency: 'weekly' as const,
     priority: 0.8,
   }));
-  const tools = mainPageConfig.tools
-    .filter((tool) => tool.status === 'available')
-    .map((tool) => ({
-      url: getAbsoluteUrl(`/tool/${tool.slug}`),
-      changeFrequency: 'monthly' as const,
-      priority: 0.7,
-    }));
+  const tools = availableTools.map((tool) => ({
+    url: getAbsoluteUrl(getToolHref(tool)),
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }));
 
   return [
     {
@@ -23,7 +22,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'daily',
       priority: 1,
     },
-    ...projects,
+    ...projectEntries,
     {
       url: getAbsoluteUrl('/tools'),
       changeFrequency: 'monthly',

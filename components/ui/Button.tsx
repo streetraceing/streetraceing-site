@@ -30,6 +30,7 @@ export function ButtonRipple({ disabled = false }: { disabled?: boolean }) {
 
     const layer: HTMLSpanElement = currentLayer;
     const host: HTMLElement = parentHost;
+    const cleanupTimers = new Set<number>();
 
     function isHostDisabled() {
       return (
@@ -39,7 +40,10 @@ export function ButtonRipple({ disabled = false }: { disabled?: boolean }) {
     }
 
     function addWave(clientX?: number, clientY?: number) {
-      if (isHostDisabled()) {
+      if (
+        isHostDisabled() ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ) {
         return;
       }
 
@@ -57,9 +61,21 @@ export function ButtonRipple({ disabled = false }: { disabled?: boolean }) {
 
       layer.append(wave);
 
-      wave.addEventListener('animationend', () => wave.remove(), {
-        once: true,
-      });
+      const cleanupTimer = window.setTimeout(() => {
+        cleanupTimers.delete(cleanupTimer);
+        wave.remove();
+      }, 700);
+      cleanupTimers.add(cleanupTimer);
+
+      wave.addEventListener(
+        'animationend',
+        () => {
+          window.clearTimeout(cleanupTimer);
+          cleanupTimers.delete(cleanupTimer);
+          wave.remove();
+        },
+        { once: true },
+      );
     }
 
     function handlePointerDown(event: PointerEvent) {
@@ -86,6 +102,8 @@ export function ButtonRipple({ disabled = false }: { disabled?: boolean }) {
     return () => {
       host.removeEventListener('pointerdown', handlePointerDown);
       host.removeEventListener('keydown', handleKeyDown);
+      cleanupTimers.forEach((timer) => window.clearTimeout(timer));
+      cleanupTimers.clear();
       layer.replaceChildren();
     };
   }, [disabled]);

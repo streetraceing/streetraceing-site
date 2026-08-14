@@ -3,12 +3,9 @@
 import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
 import { ProjectCard } from '@/components/projects/ProjectCard';
-import {
-  mainPageConfig,
-  type ProjectConfig,
-  type ProjectStatus,
-} from '@/utils/config';
+import { type ProjectConfig, type ProjectStatus } from '@/utils/config';
 import { getLocaleTag, getText } from '@/utils/i18n';
+import { projects as projectCatalog } from '@/utils/project-catalog';
 import {
   Card,
   Label,
@@ -19,7 +16,7 @@ import {
 } from '@heroui/react';
 import Fuse from 'fuse.js';
 import { X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 
 type ProjectSort = 'relevance' | 'progress-desc' | 'name-asc';
 
@@ -34,19 +31,24 @@ type ProjectSearchItem = {
 
 const ALL_FILTER_ID = 'all';
 const projectStatuses = Array.from(
-  new Set(mainPageConfig.projects.flatMap((project) => project.status)),
+  new Set(projectCatalog.flatMap((project) => project.status)),
 );
 
 export function ProjectsSection() {
   const { copy, locale } = useLocale();
   const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
   const [selectedStatus, setSelectedStatus] = useState<ProjectStatus>();
   const [sort, setSort] = useState<ProjectSort>('progress-desc');
+  const collator = useMemo(
+    () => new Intl.Collator(getLocaleTag(locale), { sensitivity: 'base' }),
+    [locale],
+  );
 
   const search = useMemo(
     () =>
       new Fuse<ProjectSearchItem>(
-        mainPageConfig.projects.map((project) => ({
+        projectCatalog.map((project) => ({
           project,
           name: project.name,
           description: [
@@ -75,9 +77,10 @@ export function ProjectsSection() {
   );
 
   const projects = useMemo(() => {
-    const matched = query.trim()
-      ? search.search(query).map(({ item }) => item.project)
-      : mainPageConfig.projects;
+    const normalizedQuery = deferredQuery.trim();
+    const matched = normalizedQuery
+      ? search.search(normalizedQuery).map(({ item }) => item.project)
+      : projectCatalog;
     const filtered = matched.filter(
       (project) => !selectedStatus || project.status.includes(selectedStatus),
     );
@@ -91,15 +94,12 @@ export function ProjectsSection() {
 
     if (sort === 'name-asc') {
       return [...filtered].sort((firstProject, secondProject) =>
-        firstProject.name.localeCompare(
-          secondProject.name,
-          getLocaleTag(locale),
-        ),
+        collator.compare(firstProject.name, secondProject.name),
       );
     }
 
     return filtered;
-  }, [locale, query, search, selectedStatus, sort]);
+  }, [collator, deferredQuery, search, selectedStatus, sort]);
 
   return (
     <section
@@ -109,7 +109,7 @@ export function ProjectsSection() {
       <Typography.Heading level={2}>
         {copy.home.projectsTitle.replace(
           '{count}',
-          String(mainPageConfig.projects.length),
+          String(projectCatalog.length),
         )}
       </Typography.Heading>
 

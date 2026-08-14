@@ -1,47 +1,62 @@
 'use client';
 
-import { Card, Chip } from '@heroui/react';
+import { useLocale } from '@/app/providers';
+import type { ToolConfig } from '@/utils/config';
+import { getText } from '@/utils/i18n';
+import { getToolHref } from '@/utils/tool-catalog';
+import { Card, Chip, cn } from '@heroui/react';
 import { ArrowUpRight, Clock3 } from 'lucide-react';
 import Link from 'next/link';
 
-import type { ToolConfig } from '@/utils/config';
-import { useLocale } from '@/app/providers';
-import { getText } from '@/utils/i18n';
-
 type ToolCardProps = {
   tool: ToolConfig;
+  featured?: boolean;
 };
 
-export function ToolCard({ tool }: ToolCardProps) {
-  const { locale } = useLocale();
+export function ToolCard({ tool, featured = false }: ToolCardProps) {
+  const { copy, locale } = useLocale();
+  const title = getText(tool.name, locale);
   const card = (
     <Card
-      variant="secondary"
-      className={
+      variant={featured ? 'default' : 'secondary'}
+      className={cn(
+        'relative h-full overflow-hidden border-0 transition-[background-color,box-shadow,transform] duration-200',
         tool.status === 'planned'
-          ? 'h-full border-0 dark:bg-default/20 opacity-70 shadow-sm transition-[background-color,box-shadow]'
-          : 'h-full border-0 dark:bg-default/20 dark:hover:bg-default/50 dark:focus-visible:bg-default/50 hover:bg-white/50 transition-[background-color,box-shadow,transform] group-hover:bg-surface-tertiary group-focus-visible:bg-surface-tertiary'
-      }
+          ? 'opacity-70 shadow-sm'
+          : 'group-hover:-translate-y-0.5 group-hover:bg-surface-tertiary group-hover:shadow-md group-focus-visible:-translate-y-0.5 group-focus-visible:bg-surface-tertiary group-focus-visible:shadow-md dark:bg-default/20 dark:group-hover:bg-default/50 dark:group-focus-visible:bg-default/50',
+        featured && 'min-h-64 shadow-sm',
+      )}
     >
-      <Card.Header className="gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            {tool.icon && (
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface-tertiary text-foreground shadow-sm">
-                <tool.icon className="size-5" />
-              </span>
-            )}
-            <Card.Title className="truncate">
-              {getText(tool.name, locale)}
-            </Card.Title>
-          </div>
+      <Card.Header className="gap-4">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-semibold tracking-wider text-muted uppercase">
+            {copy.toolsPage.categories[tool.category]}
+          </span>
           {tool.status === 'available' ? (
-            <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted" />
+            <ArrowUpRight className="size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           ) : (
-            <Clock3 className="mt-1 size-4 shrink-0 text-muted" />
+            <Clock3 className="size-4 shrink-0 text-muted" />
           )}
         </div>
-        <Card.Description>{getText(tool.description, locale)}</Card.Description>
+
+        <div className="flex items-start gap-3">
+          {tool.icon ? (
+            <span
+              className={cn(
+                'grid shrink-0 place-items-center bg-surface-tertiary text-foreground shadow-sm',
+                featured ? 'size-12 rounded-2xl' : 'size-10 rounded-xl',
+              )}
+            >
+              <tool.icon className={featured ? 'size-6' : 'size-5'} />
+            </span>
+          ) : null}
+          <div className="flex min-w-0 flex-col gap-1">
+            <Card.Title className="truncate">{title}</Card.Title>
+            <Card.Description>
+              {getText(tool.description, locale)}
+            </Card.Description>
+          </div>
+        </div>
       </Card.Header>
       <Card.Content className="mt-auto">
         <div className="flex flex-wrap gap-2">
@@ -56,12 +71,17 @@ export function ToolCard({ tool }: ToolCardProps) {
   );
 
   if (tool.status === 'planned') {
-    return <div aria-disabled="true">{card}</div>;
+    return (
+      <div aria-disabled="true" className="h-full">
+        {card}
+      </div>
+    );
   }
 
   return (
     <Link
-      href={`/tool/${tool.slug}`}
+      href={getToolHref(tool)}
+      aria-label={title}
       className="group block h-full rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
     >
       {card}

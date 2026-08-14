@@ -5,7 +5,7 @@ import { Container } from '@/components/layout/Container';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
 import { Page } from '@/components/layout/Page';
-import { Card } from '@heroui/react';
+import { Card, Typography } from '@heroui/react';
 
 import { ToolOutput } from '@/components/tools/ToolOutput';
 
@@ -26,12 +26,12 @@ export function SharedDataContent({
     <Page header={<Header />} footer={<Footer />}>
       <Container className="flex items-center py-12 sm:py-20">
         <Card className="mx-auto w-full max-w-3xl">
-          <Card.Header>
-            <Card.Title>
+          <Card.Header className="gap-2">
+            <Typography.Heading level={1}>
               {externalUrl
                 ? copy.tinyUrl.sharedLinkTitle
                 : copy.tinyUrl.sharedDataTitle}
-            </Card.Title>
+            </Typography.Heading>
             <Card.Description>
               {externalUrl
                 ? copy.tinyUrl.sharedLinkDescription

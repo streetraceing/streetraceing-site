@@ -6,8 +6,8 @@ import { ProjectPageContent } from '@/components/projects/ProjectPageContent';
 import { readProjectContent } from '@/lib/project-content';
 import { readProjectDocumentation } from '@/lib/project-documentation';
 import { getServerLocale } from '@/lib/server-locale';
-import { mainPageConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
+import { getProjectBySlug, getProjectHref } from '@/utils/project-catalog';
 import { createPageMetadata, createProjectJsonLd } from '@/utils/seo';
 
 type ProjectPageProps = {
@@ -20,9 +20,7 @@ export async function generateMetadata({
   params,
 }: ProjectPageProps): Promise<Metadata> {
   const [{ slug }, locale] = await Promise.all([params, getServerLocale()]);
-  const project = mainPageConfig.projects.find(
-    (currentProject) => currentProject.slug === slug,
-  );
+  const project = getProjectBySlug(slug);
 
   if (!project) {
     notFound();
@@ -32,16 +30,14 @@ export async function generateMetadata({
     locale,
     title: project.name,
     description: getText(project.shortDescription, locale),
-    path: `/project/${project.slug}`,
+    path: getProjectHref(project),
     keywords: project.technologies,
   });
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const [{ slug }, locale] = await Promise.all([params, getServerLocale()]);
-  const project = mainPageConfig.projects.find(
-    (currentProject) => currentProject.slug === slug,
-  );
+  const project = getProjectBySlug(slug);
 
   if (!project) {
     notFound();

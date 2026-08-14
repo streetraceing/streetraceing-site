@@ -23,7 +23,12 @@ import { type FormEvent, useRef, useState } from 'react';
 import { useLocale } from '@/app/providers';
 import { MediaAttachmentsField } from '@/components/media/MediaAttachmentsField';
 import { MarkdownFormattingToolbar } from '@/components/stats/MarkdownFormattingToolbar';
+import {
+  MAX_DEV_UPDATE_CONTENT_LENGTH,
+  MAX_DEV_UPDATE_TITLE_LENGTH,
+} from '@/utils/dev-update-input';
 import { getLocaleTag } from '@/utils/i18n';
+import { getJsonError, isJsonObject, readJsonResponse } from '@/utils/json';
 import { MAX_DEV_UPDATE_IMAGES } from '@/utils/media';
 import { uploadMediaFiles } from '@/utils/media-client';
 import {
@@ -33,7 +38,7 @@ import {
 } from '@/utils/stats';
 
 import { MarkdownContent } from './MarkdownContent';
-import type { DevUpdate, DevUpdateChange } from './types';
+import { isDevUpdate, type DevUpdate, type DevUpdateChange } from './types';
 
 type DevUpdateAuthorActionsProps = {
   update: DevUpdate;
@@ -81,9 +86,11 @@ export default function DevUpdateAuthorActions({
     let uploadedUrls: string[] = [];
 
     try {
-      uploadedUrls = await uploadMediaFiles(pendingFiles, {
-        type: 'dev-update',
-      });
+      uploadedUrls = await uploadMediaFiles(
+        pendingFiles,
+        { type: 'dev-update' },
+        copy.api.media.uploadFailed,
+      );
       const response = await fetch(`/api/dev-updates/${update.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -95,10 +102,14 @@ export default function DevUpdateAuthorActions({
           uploadedImageUrls: uploadedUrls,
         }),
       });
-      const body = (await response.json()) as { error?: string };
+      const body = await readJsonResponse(response);
 
       if (!response.ok) {
-        throw new Error(body.error ?? strings.errors.update);
+        throw new Error(getJsonError(body) ?? strings.errors.update);
+      }
+
+      if (!isJsonObject(body) || !isDevUpdate(body.update)) {
+        throw new Error(strings.errors.update);
       }
 
       close();
@@ -122,10 +133,14 @@ export default function DevUpdateAuthorActions({
       const response = await fetch(`/api/dev-updates/${update.id}`, {
         method: 'DELETE',
       });
-      const body = (await response.json()) as { error?: string };
+      const body = await readJsonResponse(response);
 
       if (!response.ok) {
-        throw new Error(body.error ?? strings.errors.delete);
+        throw new Error(getJsonError(body) ?? strings.errors.delete);
+      }
+
+      if (!isJsonObject(body) || body.id !== update.id) {
+        throw new Error(strings.errors.delete);
       }
 
       close();
@@ -184,11 +199,13 @@ export default function DevUpdateAuthorActions({
                     >
                       <Label>{strings.noteTitle}</Label>
                       <Input
-                        maxLength={160}
+                        maxLength={MAX_DEV_UPDATE_TITLE_LENGTH}
                         placeholder={strings.noteTitlePlaceholder}
                         variant="secondary"
                       />
-                      <Description>{editTitle.length} / 160</Description>
+                      <Description>
+                        {editTitle.length} / {MAX_DEV_UPDATE_TITLE_LENGTH}
+                      </Description>
                     </TextField>
 
                     <Select
@@ -240,7 +257,7 @@ export default function DevUpdateAuthorActions({
                         <TextArea
                           ref={editContentRef}
                           rows={10}
-                          maxLength={8_000}
+                          maxLength={MAX_DEV_UPDATE_CONTENT_LENGTH}
                           variant="secondary"
                           placeholder={strings.notePlaceholder}
                         />

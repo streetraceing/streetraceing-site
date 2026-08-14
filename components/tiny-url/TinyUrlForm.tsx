@@ -2,7 +2,11 @@
 
 import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
+import { useTransientValue } from '@/components/hooks/useTransientValue';
+import { formatDateTime } from '@/utils/date';
 import { getLocaleTag } from '@/utils/i18n';
+import { isJsonObject, readJsonResponse } from '@/utils/json';
+import { CODE_PATTERN, MAX_CONTENT_LENGTH } from '@/utils/tiny-url';
 import {
   Alert,
   AlertDialog,
@@ -32,17 +36,43 @@ type TinyUrlItem = {
   shortUrl: string;
 };
 
-type ApiErrorResponse = {
-  error?: string;
-};
+function getApiError(value: unknown, fallback: string) {
+  return isJsonObject(value) && typeof value.error === 'string'
+    ? value.error
+    : fallback;
+}
 
-const MAX_CONTENT_LENGTH = 20_000;
+function isHttpUrl(value: unknown): value is string {
+  if (typeof value !== 'string') {
+    return false;
+  }
 
-function formatDate(value: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function isTinyUrlItem(value: unknown): value is TinyUrlItem {
+  return (
+    isJsonObject(value) &&
+    typeof value.code === 'string' &&
+    CODE_PATTERN.test(value.code) &&
+    typeof value.preview === 'string' &&
+    typeof value.contentLength === 'number' &&
+    Number.isSafeInteger(value.contentLength) &&
+    value.contentLength >= 0 &&
+    typeof value.createdAt === 'string' &&
+    !Number.isNaN(Date.parse(value.createdAt)) &&
+    typeof value.expiresAt === 'string' &&
+    !Number.isNaN(Date.parse(value.expiresAt)) &&
+    typeof value.visitCount === 'number' &&
+    Number.isSafeInteger(value.visitCount) &&
+    value.visitCount >= 0 &&
+    isHttpUrl(value.shortUrl)
+  );
 }
 
 export function TinyUrlForm() {
@@ -55,7 +85,7 @@ export function TinyUrlForm() {
   const [error, setError] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingItems, setIsLoadingItems] = useState(true);
-  const [copiedCode, setCopiedCode] = useState<string>();
+  const copiedCode = useTransientValue<string>();
   const [deletingCode, setDeletingCode] = useState<string>();
   const [deleteDialogCode, setDeleteDialogCode] = useState<string>();
 
@@ -68,15 +98,15 @@ export function TinyUrlForm() {
           cache: 'no-store',
           signal: controller.signal,
         });
-        const body = (await response.json()) as
-          { items: TinyUrlItem[] } | ApiErrorResponse;
+        const body = await readJsonResponse(response);
 
-        if (!response.ok || !('items' in body)) {
-          throw new Error(
-            'error' in body && typeof body.error === 'string'
-              ? body.error
-              : strings.loadFailed,
-          );
+        if (
+          !response.ok ||
+          !isJsonObject(body) ||
+          !Array.isArray(body.items) ||
+          !body.items.every(isTinyUrlItem)
+        ) {
+          throw new Error(getApiError(body, strings.loadFailed));
         }
 
         setItems(body.items);
@@ -118,18 +148,13 @@ export function TinyUrlForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),
       });
-      const body = (await response.json()) as
-        { item: TinyUrlItem } | ApiErrorResponse;
+      const body = await readJsonResponse(response);
 
       if (!response.ok) {
-        throw new Error(
-          'error' in body && typeof body.error === 'string'
-            ? body.error
-            : strings.saveFailed,
-        );
+        throw new Error(getApiError(body, strings.saveFailed));
       }
 
-      if (!('item' in body)) {
+      if (!isJsonObject(body) || !isTinyUrlItem(body.item)) {
         throw new Error(strings.invalidServerResponse);
       }
 
@@ -151,8 +176,7 @@ export function TinyUrlForm() {
   async function copyShortUrl(item: TinyUrlItem) {
     try {
       await navigator.clipboard.writeText(item.shortUrl);
-      setCopiedCode(item.code);
-      window.setTimeout(() => setCopiedCode(undefined), 2_000);
+      copiedCode.show(item.code);
     } catch {
       setError(strings.copyFailed);
     }
@@ -167,10 +191,14 @@ export function TinyUrlForm() {
         `/api/short-urls?code=${encodeURIComponent(item.code)}`,
         { method: 'DELETE' },
       );
-      const body = (await response.json()) as ApiErrorResponse;
+      const body = await readJsonResponse(response);
 
       if (!response.ok) {
-        throw new Error(body.error ?? strings.deleteFailed);
+        throw new Error(getApiError(body, strings.deleteFailed));
+      }
+
+      if (!isJsonObject(body) || body.code !== item.code) {
+        throw new Error(strings.invalidServerResponse);
       }
 
       setItems((currentItems) =>
@@ -288,14 +316,14 @@ export function TinyUrlForm() {
                     {item.preview || strings.emptyData}
                   </Card.Title>
                   <Card.Description>
-                    {formatDate(item.createdAt, localeTag)} ·{' '}
+                    {formatDateTime(item.createdAt, localeTag)} ·{' '}
                     {item.contentLength.toLocaleString(localeTag)}{' '}
                     {strings.characters} ·{' '}
                     {strings.visits.replace('{count}', String(item.visitCount))}
                     {' · '}
                     {strings.expires.replace(
                       '{date}',
-                      formatDate(item.expiresAt, localeTag),
+                      formatDateTime(item.expiresAt, localeTag),
                     )}
                   </Card.Description>
                 </Card.Header>
@@ -316,7 +344,7 @@ export function TinyUrlForm() {
                       variant="tertiary"
                       onPress={() => void copyShortUrl(item)}
                     >
-                      {copiedCode === item.code ? <Check /> : <Copy />}
+                      {copiedCode.value === item.code ? <Check /> : <Copy />}
                     </Button>
                     <Button
                       isIconOnly

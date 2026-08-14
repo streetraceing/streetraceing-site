@@ -1,12 +1,11 @@
-import { NextResponse } from 'next/server';
-
+import { isJsonObject, readJsonBody } from '@/lib/api-http';
+import { noStoreJson } from '@/lib/api-response';
 import {
   createCloudinarySignature,
   getCloudinaryConfig,
 } from '@/lib/cloudinary-media';
 import { registerPendingMediaUpload } from '@/lib/pending-media-uploads';
 import { isAdmin } from '@/utils/auth';
-import { mainPageConfig } from '@/utils/config';
 import { getRequestLocale, translations } from '@/utils/i18n';
 import {
   createMediaPublicId,
@@ -16,69 +15,65 @@ import {
   MAX_PROJECT_IMAGES,
 } from '@/utils/media';
 import { parseNonNegativeInteger } from '@/utils/numbers';
+import { getProjectBySlug } from '@/utils/project-catalog';
 
 export const runtime = 'nodejs';
 
 const CLOUDINARY_ALLOWED_FORMATS = 'avif,jpeg,jpg,png,webp';
-
-type UploadAuthorizationRequest = {
-  scope?: unknown;
-  index?: unknown;
-};
+const MAX_UPLOAD_AUTHORIZATION_REQUEST_BYTES = 4 * 1_024;
 
 export async function POST(request: Request) {
   const apiStrings = translations[getRequestLocale(request)].api;
   const strings = apiStrings.media;
 
   if (!(await isAdmin())) {
-    return NextResponse.json(
-      { error: apiStrings.auth.required },
-      { status: 401 },
-    );
+    return noStoreJson({ error: apiStrings.auth.required }, { status: 401 });
   }
 
   const config = getCloudinaryConfig();
 
   if (!config) {
-    return NextResponse.json({ error: strings.notConfigured }, { status: 503 });
+    return noStoreJson({ error: strings.notConfigured }, { status: 503 });
   }
 
-  let body: UploadAuthorizationRequest;
+  const bodyResult = await readJsonBody(
+    request,
+    MAX_UPLOAD_AUTHORIZATION_REQUEST_BYTES,
+  );
 
-  try {
-    body = (await request.json()) as UploadAuthorizationRequest;
-  } catch {
-    return NextResponse.json({ error: strings.invalid }, { status: 400 });
+  if (!bodyResult.ok || !isJsonObject(bodyResult.value)) {
+    return noStoreJson(
+      { error: strings.invalid },
+      {
+        status: bodyResult.ok || bodyResult.reason === 'invalid' ? 400 : 413,
+      },
+    );
   }
 
-  const scope = body.scope;
-  const index = parseNonNegativeInteger(body.index, -1, MAX_MEDIA_IMAGES - 1);
+  const scope = bodyResult.value.scope;
+  const index = parseNonNegativeInteger(
+    bodyResult.value.index,
+    -1,
+    MAX_MEDIA_IMAGES - 1,
+  );
 
   if (!isMediaUploadScope(scope) || index < 0) {
-    return NextResponse.json({ error: strings.invalid }, { status: 400 });
+    return noStoreJson({ error: strings.invalid }, { status: 400 });
   }
 
   const maximumImages =
     scope.type === 'project' ? MAX_PROJECT_IMAGES : MAX_DEV_UPDATE_IMAGES;
 
   if (index >= maximumImages) {
-    return NextResponse.json({ error: strings.invalid }, { status: 400 });
+    return noStoreJson({ error: strings.invalid }, { status: 400 });
   }
 
-  if (
-    scope.type === 'project' &&
-    !mainPageConfig.projects.some(
-      (project) => project.slug === scope.projectSlug,
-    )
-  ) {
-    return NextResponse.json({ error: strings.invalid }, { status: 400 });
+  if (scope.type === 'project' && !getProjectBySlug(scope.projectSlug)) {
+    return noStoreJson({ error: strings.invalid }, { status: 400 });
   }
 
   if (!process.env.DATABASE_URL) {
-    return NextResponse.json(
-      { error: strings.trackingUnavailable },
-      { status: 503 },
-    );
+    return noStoreJson({ error: strings.trackingUnavailable }, { status: 503 });
   }
 
   const publicId = createMediaPublicId(scope, index);
@@ -87,10 +82,7 @@ export async function POST(request: Request) {
     await registerPendingMediaUpload(publicId);
   } catch (error) {
     console.error('Could not register a pending media upload.', error);
-    return NextResponse.json(
-      { error: strings.trackingUnavailable },
-      { status: 503 },
-    );
+    return noStoreJson({ error: strings.trackingUnavailable }, { status: 503 });
   }
 
   const timestamp = Math.floor(Date.now() / 1_000);
@@ -104,7 +96,7 @@ export async function POST(request: Request) {
     config.apiSecret,
   );
 
-  return NextResponse.json({
+  return noStoreJson({
     allowedFormats: CLOUDINARY_ALLOWED_FORMATS,
     apiKey: config.apiKey,
     cloudName: config.cloudName,

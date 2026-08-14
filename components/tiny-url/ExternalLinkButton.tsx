@@ -1,7 +1,8 @@
 'use client';
 
-import { Button } from '@/components/ui/Button';
+import { ButtonRipple } from '@/components/ui/Button';
 import { ArrowUpRight } from 'lucide-react';
+import Link from 'next/link';
 
 import { useLocale } from '@/app/providers';
 import { normalizeInternalAnchorHref } from '@/utils/links';
@@ -10,11 +11,14 @@ export function ExternalLinkButton({ url }: { url: string }) {
   const { copy } = useLocale();
 
   return (
-    <Button
-      onPress={() => window.location.assign(normalizeInternalAnchorHref(url))}
+    <Link
+      href={normalizeInternalAnchorHref(url)}
+      prefetch={false}
+      className="button button--primary button--md"
     >
-      <ArrowUpRight />
+      <ButtonRipple />
+      <ArrowUpRight className="size-4" />
       {copy.tinyUrl.openLink}
-    </Button>
+    </Link>
   );
 }

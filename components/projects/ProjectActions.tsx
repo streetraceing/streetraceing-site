@@ -9,6 +9,7 @@ import { ButtonRipple } from '@/components/ui/Button';
 import type { ProjectConfig } from '@/utils/config';
 import { getText } from '@/utils/i18n';
 import { isExternalHttpHref, normalizeInternalAnchorHref } from '@/utils/links';
+import { getProjectHref } from '@/utils/project-catalog';
 
 type ProjectActionsProps = {
   project: ProjectConfig;
@@ -26,7 +27,7 @@ export function ProjectActions({ project, className }: ProjectActionsProps) {
       )}
     >
       <Link
-        href={`/project/${project.slug}`}
+        href={getProjectHref(project)}
         className="button button--secondary button--md w-full sm:w-auto"
       >
         <ButtonRipple />

@@ -87,6 +87,8 @@ export type ProjectConfig = {
 };
 
 export type ToolStatus = 'available' | 'planned';
+export type ToolCategory =
+  'developer' | 'data' | 'text' | 'security' | 'time-design';
 export type GenericToolComponent =
   | 'json-viewer'
   | 'uuid-generator'
@@ -109,7 +111,9 @@ export type ToolConfig = {
   name: LocalizedText;
   description: LocalizedText;
   status: ToolStatus;
+  category: ToolCategory;
   component?: GenericToolComponent;
+  featured?: boolean;
   tags: LocalizedText[];
 };
 
@@ -421,6 +425,8 @@ export const mainPageConfig: MainPageConfig = {
   tools: [
     {
       slug: 'tiny-url',
+      category: 'data',
+      featured: true,
       name: text('Tiny URL и другие данные', 'Tiny URL and other data'),
       description: text(
         'Сохраняй ссылку, текст или другие данные и получай короткий адрес.',
@@ -436,6 +442,8 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'json-viewer',
+      category: 'data',
+      featured: true,
       component: 'json-viewer',
       name: text('JSON Viewer', 'JSON Viewer'),
       description: text(
@@ -452,6 +460,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'uuid-generator',
+      category: 'developer',
       component: 'uuid-generator',
       name: text('Генератор UUID', 'UUID Generator'),
       description: text(
@@ -468,6 +477,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'text-tools',
+      category: 'text',
       component: 'text-tools',
       name: text('Инструменты текста', 'Text tools'),
       description: text(
@@ -484,6 +494,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'base64',
+      category: 'developer',
       component: 'base64',
       name: text('Base64', 'Base64'),
       description: text(
@@ -500,6 +511,8 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'password-generator',
+      category: 'security',
+      featured: true,
       component: 'password-generator',
       name: text('Генератор паролей', 'Password Generator'),
       description: text(
@@ -516,6 +529,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'jwt-inspector',
+      category: 'security',
       component: 'jwt-inspector',
       name: text('JWT Inspector', 'JWT Inspector'),
       description: text(
@@ -532,6 +546,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'hash-generator',
+      category: 'security',
       component: 'hash-generator',
       name: text('Генератор хешей', 'Hash Generator'),
       description: text(
@@ -548,6 +563,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'regex-tester',
+      category: 'developer',
       component: 'regex-tester',
       name: text('Тестер RegExp', 'RegExp Tester'),
       description: text(
@@ -564,6 +580,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'url-inspector',
+      category: 'developer',
       component: 'url-inspector',
       name: text('URL Inspector', 'URL Inspector'),
       description: text(
@@ -580,6 +597,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'timestamp-converter',
+      category: 'time-design',
       component: 'timestamp-converter',
       name: text('Конвертер времени', 'Timestamp Converter'),
       description: text(
@@ -596,6 +614,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'json-to-typescript',
+      category: 'developer',
       component: 'json-to-typescript',
       name: text('JSON в TypeScript', 'JSON to TypeScript'),
       description: text(
@@ -612,6 +631,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'text-diff',
+      category: 'text',
       component: 'text-diff',
       name: text('Сравнение текста', 'Text Diff'),
       description: text(
@@ -628,6 +648,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'color-contrast',
+      category: 'time-design',
       component: 'color-contrast',
       name: text('Контраст цветов', 'Color Contrast'),
       description: text(
@@ -644,6 +665,7 @@ export const mainPageConfig: MainPageConfig = {
     },
     {
       slug: 'cron-builder',
+      category: 'time-design',
       component: 'cron-builder',
       name: text('Конструктор Cron', 'Cron Builder'),
       description: text(

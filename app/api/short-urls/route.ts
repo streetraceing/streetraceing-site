@@ -1,8 +1,10 @@
 import { and, count, desc, eq, gt, sql } from 'drizzle-orm';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 import { db } from '@/db';
 import { shortUrls } from '@/db/schema';
+import { isJsonObject, readJsonBody } from '@/lib/api-http';
+import { noStoreJson } from '@/lib/api-response';
 import {
   CODE_PATTERN,
   createOwnerToken,
@@ -59,21 +61,6 @@ function isUniqueViolation(error: unknown) {
     'code' in error &&
     error.code === '23505'
   );
-}
-
-function noStoreJson(
-  body: unknown,
-  init?: ResponseInit,
-  additionalHeaders?: Record<string, string>,
-) {
-  const response = NextResponse.json(body, init);
-  response.headers.set('Cache-Control', 'no-store');
-
-  for (const [name, value] of Object.entries(additionalHeaders ?? {})) {
-    response.headers.set(name, value);
-  }
-
-  return response;
 }
 
 export async function GET(request: NextRequest) {
@@ -135,9 +122,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const contentLength = Number(request.headers.get('content-length') ?? '0');
+  const bodyResult = await readJsonBody(request, MAX_REQUEST_BYTES);
 
-  if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) {
+  if (!bodyResult.ok && bodyResult.reason === 'too-large') {
     return noStoreJson(
       {
         error: strings.contentTooLong.replace(
@@ -150,11 +137,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { content?: unknown };
-
-  try {
-    body = (await request.json()) as { content?: unknown };
-  } catch {
+  if (!bodyResult.ok || !isJsonObject(bodyResult.value)) {
     return noStoreJson(
       { error: strings.invalidJson },
       { status: 400 },
@@ -162,7 +145,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const content = getContent(body.content);
+  const content = getContent(bodyResult.value.content);
   if (!content) {
     return noStoreJson(
       {

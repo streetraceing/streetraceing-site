@@ -83,6 +83,10 @@ button:not(:has(> .button-ripple-layer)):active::after {
 
 @media (prefers-reduced-motion: reduce) {
   .button-ripple-wave {
-    animation: none;
+    display: none;
+  }
+
+  button:not(:has(> .button-ripple-layer))::after {
+    display: none;
   }
 }

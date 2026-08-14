@@ -5,19 +5,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useLocale } from '@/app/providers';
 import { MarkdownContent } from '@/components/stats/MarkdownContent';
+import { getJsonError, isJsonObject, readJsonResponse } from '@/utils/json';
+import { createMarkdownHeadingId } from '@/utils/markdown';
 import {
   getProjectDocumentationBreadcrumbs,
   type ProjectDocumentation,
-} from '@/lib/project-documentation';
-import { createMarkdownHeadingId } from '@/utils/markdown';
+} from '@/utils/project-documentation';
 
 const HEADING_ID_PREFIX = 'project-documentation';
 const DOCUMENTATION_HISTORY_KEY = 'streetraceingDocumentation';
-
-type DocumentationResponse = {
-  documentation?: ProjectDocumentation;
-  error?: string;
-};
 
 type DocumentationHistoryEntry = {
   projectSlug: string;
@@ -32,29 +28,29 @@ function getLocationWithoutHash() {
 }
 
 function getHistoryEntry(state: unknown, projectSlug: string) {
-  if (!state || typeof state !== 'object') {
+  if (!isJsonObject(state)) {
     return undefined;
   }
 
-  const candidate = (state as Record<string, unknown>)[
-    DOCUMENTATION_HISTORY_KEY
-  ];
+  const candidate = state[DOCUMENTATION_HISTORY_KEY];
 
-  if (!candidate || typeof candidate !== 'object') {
+  if (!isJsonObject(candidate)) {
     return undefined;
   }
-
-  const entry = candidate as Partial<DocumentationHistoryEntry>;
 
   if (
-    entry.projectSlug !== projectSlug ||
-    typeof entry.sourceUrl !== 'string' ||
-    typeof entry.fragment !== 'string'
+    candidate.projectSlug !== projectSlug ||
+    typeof candidate.sourceUrl !== 'string' ||
+    typeof candidate.fragment !== 'string'
   ) {
     return undefined;
   }
 
-  return entry as DocumentationHistoryEntry;
+  return {
+    projectSlug,
+    sourceUrl: candidate.sourceUrl,
+    fragment: candidate.fragment,
+  };
 }
 
 function isSameHistoryEntry(
@@ -232,24 +228,38 @@ export function ProjectDocumentationViewer({
           `/api/projects/${encodeURIComponent(projectSlug)}/documentation?url=${encodeURIComponent(sourceUrl)}`,
           { cache: 'no-store', signal: controller.signal },
         );
-        const body = (await response.json()) as DocumentationResponse;
-        const nextDocumentation = body.documentation;
+        const body = await readJsonResponse(response);
+        const nextDocumentation = isJsonObject(body)
+          ? body.documentation
+          : undefined;
 
-        if (!response.ok || !nextDocumentation) {
-          throw new Error(body.error ?? strings.documentationLoadFailed);
+        if (
+          !response.ok ||
+          !isJsonObject(nextDocumentation) ||
+          typeof nextDocumentation.content !== 'string' ||
+          typeof nextDocumentation.sourceUrl !== 'string'
+        ) {
+          throw new Error(
+            getJsonError(body) ?? strings.documentationLoadFailed,
+          );
         }
 
+        const loadedDocumentation: ProjectDocumentation = {
+          content: nextDocumentation.content,
+          sourceUrl: nextDocumentation.sourceUrl,
+        };
+
         documentCacheRef.current.set(
-          nextDocumentation.sourceUrl,
-          nextDocumentation,
+          loadedDocumentation.sourceUrl,
+          loadedDocumentation,
         );
-        setDocumentation(nextDocumentation);
+        setDocumentation(loadedDocumentation);
         setPendingFragment(fragment);
 
         if (historyMode !== 'none') {
           writeHistoryEntry(historyMode, {
             projectSlug,
-            sourceUrl: nextDocumentation.sourceUrl,
+            sourceUrl: loadedDocumentation.sourceUrl,
             fragment,
           });
         }

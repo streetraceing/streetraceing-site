@@ -118,22 +118,41 @@ export const translations = {
     },
     toolsPage: {
       metadataTitle: 'Инструменты разработчика',
+      eyebrow: 'Браузерный набор разработчика',
       title: 'Полезные инструменты ({count})',
       description:
         'Набор небольших утилит для разработки, безопасности, работы с текстом, датами и дизайном.',
       localTitle: 'Локальная обработка',
       localDescription:
         'Клиентские инструменты выполняют вычисления в браузере. Файлы, токены и введённый текст не отправляются на сервер.',
+      featuredTitle: 'С чего начать',
+      featuredDescription:
+        'Самые полезные сценарии для быстрого знакомства с набором.',
+      catalogTitle: 'Весь каталог',
+      catalogDescription:
+        'Ищи по названию и описанию или выбери нужное направление.',
+      availableStat: 'доступно сейчас',
+      localStat: 'работают локально',
+      categoriesStat: 'направлений',
       searchLabel: 'Поиск по инструментам',
       searchPlaceholder: 'Название, тег или описание…',
-      filters: 'Фильтр инструментов по тегу',
+      filters: 'Категория инструментов',
       noTools: 'По этим условиям инструментов пока не нашлось.',
-      all: 'Все',
+      allCategories: 'Все категории',
+      resultCount: 'Найдено: {count}',
+      resetAll: 'Сбросить поиск и фильтры',
       clearFilters: 'Сбросить фильтры',
       clearSort: 'Сбросить сортировку',
       sort: 'Сортировка инструментов',
       sortRelevance: 'По релевантности',
       sortName: 'По названию (А–Я)',
+      categories: {
+        developer: 'Разработка',
+        data: 'Данные',
+        text: 'Текст',
+        security: 'Безопасность',
+        'time-design': 'Время и дизайн',
+      },
     },
     footer: {
       slogan: 'life is good ❤️',
@@ -572,7 +591,10 @@ export const translations = {
         timezoneNote: 'Часовой пояс определяется средой, где запускается cron.',
       },
     },
-    notFound: 'Не найдено',
+    notFound: 'Страница не найдена',
+    notFoundDescription:
+      'Возможно, адрес изменился или такой страницы больше нет.',
+    backHome: 'Вернуться на главную',
     avatar: {
       title: 'Аватарка аккуратно взята из одной песни',
       description: 'Вот ссылочка на неё в Spotify',
@@ -688,22 +710,41 @@ export const translations = {
     },
     toolsPage: {
       metadataTitle: 'Developer tools',
+      eyebrow: 'Browser developer toolkit',
       title: 'Useful tools ({count})',
       description:
         'A collection of small utilities for development, security, text, dates, and design work.',
       localTitle: 'Local processing',
       localDescription:
         'Client-side tools run in your browser. Files, tokens, and entered text are not sent to the server.',
+      featuredTitle: 'Start here',
+      featuredDescription:
+        'The most useful workflows for a quick introduction to the collection.',
+      catalogTitle: 'Full catalog',
+      catalogDescription:
+        'Search by name and description or choose the area you need.',
+      availableStat: 'available now',
+      localStat: 'run locally',
+      categoriesStat: 'categories',
       searchLabel: 'Search tools',
       searchPlaceholder: 'Name, tag, or description…',
-      filters: 'Filter tools by tag',
+      filters: 'Tool category',
       noTools: 'No tools match these filters yet.',
-      all: 'All',
+      allCategories: 'All categories',
+      resultCount: 'Found: {count}',
+      resetAll: 'Reset search and filters',
       clearFilters: 'Clear filters',
       clearSort: 'Reset ordering',
       sort: 'Tool order',
       sortRelevance: 'By relevance',
       sortName: 'By name (A–Z)',
+      categories: {
+        developer: 'Development',
+        data: 'Data',
+        text: 'Text',
+        security: 'Security',
+        'time-design': 'Time and design',
+      },
     },
     footer: {
       slogan: 'life is good ❤️',
@@ -1143,7 +1184,10 @@ export const translations = {
           'The timezone is defined by the environment running cron.',
       },
     },
-    notFound: 'Not found',
+    notFound: 'Page not found',
+    notFoundDescription:
+      'The address may have changed, or this page no longer exists.',
+    backHome: 'Back to home',
     avatar: {
       title: 'The avatar is neatly borrowed from a song',
       description: 'Here is the Spotify link to it',

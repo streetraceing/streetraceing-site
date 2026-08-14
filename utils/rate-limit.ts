@@ -27,14 +27,17 @@ export type RateLimitResult = {
 
 const MAX_RATE_LIMIT_ENTRIES = 20_000;
 const RATE_LIMIT_TRIM_TARGET = 18_000;
+const MAX_POSTGRES_INTEGER = 2_147_483_647;
 const DATABASE_CLEANUP_INTERVAL = 100;
 const DATABASE_CLEANUP_GRACE_MS = 24 * 60 * 60 * 1_000;
+const DATABASE_RETRY_DELAY_MS = 30_000;
 
 const globalForRateLimit = globalThis as typeof globalThis & {
   streetraceingRateLimits?: Map<string, RateLimitEntry>;
   streetraceingRateLimitChecks?: number;
   streetraceingDatabaseRateLimitChecks?: number;
   streetraceingRateLimitFallbackLoggedAt?: number;
+  streetraceingRateLimitDatabaseRetryAt?: number;
 };
 
 const entries =
@@ -48,8 +51,14 @@ function validateOptions({ key, limit, windowMs }: RateLimitOptions) {
     throw new RangeError('Rate limit key must contain 1 to 191 characters.');
   }
 
-  if (!Number.isSafeInteger(limit) || limit < 1) {
-    throw new RangeError('Rate limit must be a positive safe integer.');
+  if (
+    !Number.isSafeInteger(limit) ||
+    limit < 1 ||
+    limit >= MAX_POSTGRES_INTEGER
+  ) {
+    throw new RangeError(
+      'Rate limit must be a positive integer below the PostgreSQL integer maximum.',
+    );
   }
 
   if (!Number.isSafeInteger(windowMs) || windowMs < 1) {
@@ -116,7 +125,7 @@ export function checkRateLimit(options: RateLimitOptions): RateLimitResult {
       ? { count: 0, resetAt: now + windowMs }
       : current;
 
-  entry.count += 1;
+  entry.count = Math.min(entry.count + 1, limit + 1);
   entries.set(key, entry);
 
   return createRateLimitResult(entry.count, entry.resetAt, limit, now);
@@ -156,7 +165,7 @@ async function checkDatabaseRateLimit({
       return createRateLimitResult(1, nextResetAt.getTime(), limit, now);
     }
 
-    const count = current.count + 1;
+    const count = Math.min(current.count + 1, limit + 1);
 
     await transaction
       .update(rateLimitWindows)
@@ -197,6 +206,15 @@ function logDatabaseFallback(error: unknown) {
   );
 }
 
+function deferDatabaseRateLimitRetry(now = Date.now()) {
+  globalForRateLimit.streetraceingRateLimitDatabaseRetryAt =
+    now + DATABASE_RETRY_DELAY_MS;
+}
+
+function canTryDatabaseRateLimit(now = Date.now()) {
+  return (globalForRateLimit.streetraceingRateLimitDatabaseRetryAt ?? 0) <= now;
+}
+
 export async function checkDurableRateLimit(
   options: RateLimitOptions,
 ): Promise<RateLimitResult> {
@@ -206,9 +224,16 @@ export async function checkDurableRateLimit(
     return checkRateLimit(options);
   }
 
+  if (!canTryDatabaseRateLimit(options.now)) {
+    return checkRateLimit(options);
+  }
+
   try {
-    return await checkDatabaseRateLimit(options);
+    const result = await checkDatabaseRateLimit(options);
+    globalForRateLimit.streetraceingRateLimitDatabaseRetryAt = undefined;
+    return result;
   } catch (error) {
+    deferDatabaseRateLimitRetry(options.now);
     logDatabaseFallback(error);
     return checkRateLimit(options);
   }
@@ -225,9 +250,14 @@ export async function resetDurableRateLimit(key: string) {
     return;
   }
 
+  if (!canTryDatabaseRateLimit()) {
+    return;
+  }
+
   try {
     await db.delete(rateLimitWindows).where(eq(rateLimitWindows.key, key));
   } catch (error) {
+    deferDatabaseRateLimitRetry();
     logDatabaseFallback(error);
   }
 }
