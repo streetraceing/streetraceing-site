@@ -158,10 +158,12 @@ export function TinyUrlForm() {
         throw new Error(strings.invalidServerResponse);
       }
 
-      setCreatedItem(body.item);
+      const item = body.item;
+
+      setCreatedItem(item);
       setItems((currentItems) => [
-        body.item,
-        ...currentItems.filter((item) => item.code !== body.item.code),
+        item,
+        ...currentItems.filter((currentItem) => currentItem.code !== item.code),
       ]);
       setContent('');
     } catch (caughtError) {

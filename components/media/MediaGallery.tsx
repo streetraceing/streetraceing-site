@@ -126,16 +126,17 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
   const swipeState = useRef<SwipeState | undefined>(undefined);
 
   useEffect(() => {
+    const controllers = metadataControllers.current;
     isMounted.current = true;
 
     return () => {
       isMounted.current = false;
 
-      for (const controller of metadataControllers.current.values()) {
+      for (const controller of controllers.values()) {
         controller.abort();
       }
 
-      metadataControllers.current.clear();
+      controllers.clear();
     };
   }, []);
 
@@ -198,6 +199,8 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
         throw new Error('metadata-response-invalid');
       }
 
+      const width = input.width;
+      const height = input.height;
       const bytes =
         typeof input.bytes === 'number' &&
         Number.isFinite(input.bytes) &&
@@ -214,8 +217,8 @@ export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
           ...current,
           [url]: {
             status: 'ready',
-            width: input.width,
-            height: input.height,
+            width,
+            height,
             bytes,
             format,
           },
