@@ -4,9 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function useTransientValue<T>() {
   const [value, setValue] = useState<T>();
-  const timeoutRef = useRef<ReturnType<typeof window.setTimeout> | undefined>(
-    undefined,
-  );
+  const timeoutRef = useRef<number | undefined>(undefined);
 
   const cancelTimeout = useCallback(() => {
     if (timeoutRef.current !== undefined) {
