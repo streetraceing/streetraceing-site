@@ -107,7 +107,7 @@ export default function StatsAuthorControls({
   }
 
   return (
-    <Card variant="default" className="dark:bg-default/15">
+    <Card variant="default" className="dark:bg-default/20">
       <Card.Header>
         <div>
           <Card.Title>{strings.newNote}</Card.Title>

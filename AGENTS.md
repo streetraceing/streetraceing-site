@@ -12,9 +12,3 @@ Before changing this application, read `.agents/PROJECT_GUIDE.md` for architectu
 
 - Assistant handoffs are static-only: do not install dependencies, start the application, run migrations, lint, tests, builds, or formatters locally.
 - Executable checks belong to the repository CI workflow.
-
-## Handoff
-
-- Package only changed and newly added files, preserving their repository-relative paths.
-- Present the ZIP under the heading `скачать архив`.
-- End with one short, informative Git commit message in the project's existing style.

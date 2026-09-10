@@ -35,8 +35,8 @@ const skillVariantStyles: Record<SkillVariant, SkillStyle> = {
   },
   gray: {
     chip: 'border-0 bg-default/20 text-foreground',
-    card: 'bg-default/25 hover:bg-default/50',
-    icon: 'bg-default/15 text-foreground',
+    card: 'bg-default/20 hover:bg-default/50',
+    icon: 'bg-default/20 text-foreground',
   },
   yellow: {
     chip: 'border-0 bg-amber-500/10 text-amber-700 dark:text-amber-300',

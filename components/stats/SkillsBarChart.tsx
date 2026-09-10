@@ -69,7 +69,7 @@ export function SkillsBarChart() {
     <Card
       variant="default"
       aria-labelledby="skills-chart-heading"
-      className="dark:bg-default/15"
+      className="dark:bg-default/20"
     >
       <Card.Header>
         <Card.Title id="skills-chart-heading">
@@ -172,7 +172,7 @@ export function SkillsBarChart() {
                 className={`h-auto min-w-0 justify-start rounded-xl border px-3 py-2 ${
                   isActive
                     ? 'border-default bg-default'
-                    : 'border-transparent bg-surface-secondary/50'
+                    : 'border-transparent bg-surface-secondary/45'
                 }`}
                 onPress={() => toggleDirection(direction.id)}
                 onPointerEnter={(event) =>
