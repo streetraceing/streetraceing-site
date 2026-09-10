@@ -1,5 +1,4 @@
-import { isJsonObject, readJsonBody } from '@/lib/api-http';
-import { noStoreJson } from '@/lib/api-response';
+import { noStoreJson, readJsonObjectBody } from '@/lib/api-response';
 import {
   adminSessionCookie,
   createAdminSessionToken,
@@ -37,16 +36,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const bodyResult = await readJsonBody(request, MAX_LOGIN_BODY_BYTES);
+  const bodyResult = await readJsonObjectBody(request, MAX_LOGIN_BODY_BYTES, {
+    invalidError: strings.invalidRequest,
+    headers: rateLimitHeaders,
+  });
 
-  if (!bodyResult.ok || !isJsonObject(bodyResult.value)) {
-    return noStoreJson(
-      { error: strings.invalidRequest },
-      {
-        status: bodyResult.ok || bodyResult.reason === 'invalid' ? 400 : 413,
-        headers: rateLimitHeaders,
-      },
-    );
+  if (!bodyResult.ok) {
+    return bodyResult.response;
   }
 
   const password =

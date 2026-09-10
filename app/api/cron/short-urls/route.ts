@@ -4,7 +4,7 @@ import { lte } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { shortUrls } from '@/db/schema';
-import { noStoreJson } from '@/lib/api-response';
+import { noStoreJson, requireDatabase } from '@/lib/api-response';
 import { cleanupExpiredPendingMediaUploads } from '@/lib/pending-media-uploads';
 import { getTinyUrlRetentionThreshold } from '@/lib/tiny-url';
 import { cleanupExpiredRateLimits } from '@/utils/rate-limit';
@@ -39,11 +39,9 @@ export async function GET(request: Request) {
     return noStoreJson({ error: 'Unauthorized.' }, { status: 401 });
   }
 
-  if (!process.env.DATABASE_URL) {
-    return noStoreJson(
-      { error: 'DATABASE_URL is not configured.' },
-      { status: 503 },
-    );
+  const databaseGuard = requireDatabase('DATABASE_URL is not configured.');
+  if (databaseGuard) {
+    return databaseGuard;
   }
 
   try {

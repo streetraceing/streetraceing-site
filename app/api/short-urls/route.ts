@@ -3,8 +3,11 @@ import { NextRequest } from 'next/server';
 
 import { db } from '@/db';
 import { shortUrls } from '@/db/schema';
-import { isJsonObject, readJsonBody } from '@/lib/api-http';
-import { noStoreJson } from '@/lib/api-response';
+import {
+  noStoreJson,
+  readJsonObjectBody,
+  requireDatabase,
+} from '@/lib/api-response';
 import {
   CODE_PATTERN,
   createOwnerToken,
@@ -122,27 +125,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const bodyResult = await readJsonBody(request, MAX_REQUEST_BYTES);
+  const bodyResult = await readJsonObjectBody(request, MAX_REQUEST_BYTES, {
+    invalidError: strings.invalidJson,
+    tooLargeError: strings.contentTooLong.replace(
+      '{count}',
+      MAX_CONTENT_LENGTH.toLocaleString(getLocaleTag(locale)),
+    ),
+    headers: getRateLimitHeaders(rateLimit),
+  });
 
-  if (!bodyResult.ok && bodyResult.reason === 'too-large') {
-    return noStoreJson(
-      {
-        error: strings.contentTooLong.replace(
-          '{count}',
-          MAX_CONTENT_LENGTH.toLocaleString(getLocaleTag(locale)),
-        ),
-      },
-      { status: 413 },
-      getRateLimitHeaders(rateLimit),
-    );
-  }
-
-  if (!bodyResult.ok || !isJsonObject(bodyResult.value)) {
-    return noStoreJson(
-      { error: strings.invalidJson },
-      { status: 400 },
-      getRateLimitHeaders(rateLimit),
-    );
+  if (!bodyResult.ok) {
+    return bodyResult.response;
   }
 
   const content = getContent(bodyResult.value.content);
@@ -159,12 +152,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!process.env.DATABASE_URL) {
-    return noStoreJson(
-      { error: strings.databaseMissing },
-      { status: 503 },
-      getRateLimitHeaders(rateLimit),
-    );
+  const databaseGuard = requireDatabase(
+    strings.databaseMissing,
+    getRateLimitHeaders(rateLimit),
+  );
+  if (databaseGuard) {
+    return databaseGuard;
   }
 
   const storedOwnerToken = getOwnerToken(request);
@@ -287,12 +280,12 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  if (!process.env.DATABASE_URL) {
-    return noStoreJson(
-      { error: strings.databaseMissing },
-      { status: 503 },
-      getRateLimitHeaders(rateLimit),
-    );
+  const databaseGuard = requireDatabase(
+    strings.databaseMissing,
+    getRateLimitHeaders(rateLimit),
+  );
+  if (databaseGuard) {
+    return databaseGuard;
   }
 
   if (!ownerToken || !CODE_PATTERN.test(code)) {

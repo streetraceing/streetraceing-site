@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
 import {
-  Alert,
   Description,
   FieldError,
   Form,
@@ -14,6 +13,7 @@ import {
 import { Braces, Minimize2, Sparkles } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
+import { ErrorAlert } from './ErrorAlert';
 import { ToolOutput } from './ToolOutput';
 
 const jsonExample =
@@ -96,15 +96,7 @@ export function JsonViewerTool() {
         </div>
       </Form>
 
-      {error && (
-        <Alert status="danger">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>{strings.errorTitle}</Alert.Title>
-            <Alert.Description>{error}</Alert.Description>
-          </Alert.Content>
-        </Alert>
-      )}
+      {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
 
       {output && (
         <ToolOutput content={output} label={strings.output} format="json" />

@@ -1,11 +1,14 @@
-import { isJsonObject, readJsonBody } from '@/lib/api-http';
-import { noStoreJson } from '@/lib/api-response';
+import {
+  noStoreJson,
+  readJsonObjectBody,
+  requireAdminApi,
+  requireDatabase,
+} from '@/lib/api-response';
 import {
   createCloudinarySignature,
   getCloudinaryConfig,
 } from '@/lib/cloudinary-media';
 import { registerPendingMediaUpload } from '@/lib/pending-media-uploads';
-import { isAdmin } from '@/utils/auth';
 import { getRequestLocale, translations } from '@/utils/i18n';
 import {
   createMediaPublicId,
@@ -26,8 +29,9 @@ export async function POST(request: Request) {
   const apiStrings = translations[getRequestLocale(request)].api;
   const strings = apiStrings.media;
 
-  if (!(await isAdmin())) {
-    return noStoreJson({ error: apiStrings.auth.required }, { status: 401 });
+  const adminGuard = await requireAdminApi(request);
+  if (adminGuard) {
+    return adminGuard;
   }
 
   const config = getCloudinaryConfig();
@@ -36,18 +40,14 @@ export async function POST(request: Request) {
     return noStoreJson({ error: strings.notConfigured }, { status: 503 });
   }
 
-  const bodyResult = await readJsonBody(
+  const bodyResult = await readJsonObjectBody(
     request,
     MAX_UPLOAD_AUTHORIZATION_REQUEST_BYTES,
+    { invalidError: strings.invalid },
   );
 
-  if (!bodyResult.ok || !isJsonObject(bodyResult.value)) {
-    return noStoreJson(
-      { error: strings.invalid },
-      {
-        status: bodyResult.ok || bodyResult.reason === 'invalid' ? 400 : 413,
-      },
-    );
+  if (!bodyResult.ok) {
+    return bodyResult.response;
   }
 
   const scope = bodyResult.value.scope;
@@ -72,8 +72,9 @@ export async function POST(request: Request) {
     return noStoreJson({ error: strings.invalid }, { status: 400 });
   }
 
-  if (!process.env.DATABASE_URL) {
-    return noStoreJson({ error: strings.trackingUnavailable }, { status: 503 });
+  const databaseGuard = requireDatabase(strings.trackingUnavailable);
+  if (databaseGuard) {
+    return databaseGuard;
   }
 
   const publicId = createMediaPublicId(scope, index);

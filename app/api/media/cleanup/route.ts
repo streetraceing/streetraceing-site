@@ -1,7 +1,10 @@
-import { isJsonObject, readJsonBody } from '@/lib/api-http';
-import { noStoreJson } from '@/lib/api-response';
+import {
+  noStoreJson,
+  readJsonObjectBody,
+  requireAdminApi,
+  requireDatabase,
+} from '@/lib/api-response';
 import { discardPendingMediaUploads } from '@/lib/pending-media-uploads';
-import { isAdmin } from '@/utils/auth';
 import { getRequestLocale, translations } from '@/utils/i18n';
 import { MAX_MEDIA_IMAGES, normalizeMediaUrls } from '@/utils/media';
 
@@ -13,22 +16,19 @@ export async function POST(request: Request) {
   const apiStrings = translations[getRequestLocale(request)].api;
   const strings = apiStrings.media;
 
-  if (!(await isAdmin())) {
-    return noStoreJson({ error: apiStrings.auth.required }, { status: 401 });
+  const adminGuard = await requireAdminApi(request);
+  if (adminGuard) {
+    return adminGuard;
   }
 
-  const bodyResult = await readJsonBody(
+  const bodyResult = await readJsonObjectBody(
     request,
     MAX_MEDIA_CLEANUP_REQUEST_BYTES,
+    { invalidError: strings.invalid },
   );
 
-  if (!bodyResult.ok || !isJsonObject(bodyResult.value)) {
-    return noStoreJson(
-      { error: strings.invalid },
-      {
-        status: bodyResult.ok || bodyResult.reason === 'invalid' ? 400 : 413,
-      },
-    );
+  if (!bodyResult.ok) {
+    return bodyResult.response;
   }
 
   const urls = normalizeMediaUrls(
@@ -36,8 +36,10 @@ export async function POST(request: Request) {
     MAX_MEDIA_IMAGES,
     process.env.CLOUDINARY_CLOUD_NAME,
   );
-  if (!process.env.DATABASE_URL) {
-    return noStoreJson({ error: strings.trackingUnavailable }, { status: 503 });
+
+  const databaseGuard = requireDatabase(strings.trackingUnavailable);
+  if (databaseGuard) {
+    return databaseGuard;
   }
 
   const result = await discardPendingMediaUploads(urls);

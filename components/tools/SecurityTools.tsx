@@ -32,6 +32,7 @@ import {
   useState,
 } from 'react';
 
+import { ErrorAlert } from './ErrorAlert';
 import { ToolOutput } from './ToolOutput';
 
 type HashAlgorithm = 'SHA-256' | 'SHA-384' | 'SHA-512';
@@ -53,18 +54,6 @@ function ToggleField({ checked, label, onChange }: ToggleFieldProps) {
       />
       <span>{label}</span>
     </label>
-  );
-}
-
-function ErrorAlert({ title, message }: { title: string; message: string }) {
-  return (
-    <Alert status="danger">
-      <Alert.Indicator />
-      <Alert.Content>
-        <Alert.Title>{title}</Alert.Title>
-        <Alert.Description>{message}</Alert.Description>
-      </Alert.Content>
-    </Alert>
   );
 }
 

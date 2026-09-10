@@ -1,13 +1,16 @@
 import { db } from '@/db';
 import { devUpdates } from '@/db/schema';
-import { isJsonObject, readJsonBody } from '@/lib/api-http';
-import { noStoreJson } from '@/lib/api-response';
+import {
+  noStoreJson,
+  readJsonObjectBody,
+  requireAdminApi,
+  requireDatabase,
+} from '@/lib/api-response';
 import {
   confirmPendingMediaUploads,
   discardPendingMediaUploads,
 } from '@/lib/pending-media-uploads';
 import { readDevUpdatesFeed } from '@/lib/dev-updates';
-import { isAdmin } from '@/utils/auth';
 import {
   MAX_DEV_UPDATE_REQUEST_BYTES,
   parseDevUpdateInput,
@@ -22,8 +25,9 @@ export async function GET(request: Request) {
   const locale = getRequestLocale(request);
   const strings = translations[locale].api.devNotes;
 
-  if (!process.env.DATABASE_URL) {
-    return noStoreJson({ error: strings.databaseMissing }, { status: 503 });
+  const databaseGuard = requireDatabase(strings.databaseMissing);
+  if (databaseGuard) {
+    return databaseGuard;
   }
 
   const { searchParams } = new URL(request.url);
@@ -46,19 +50,19 @@ export async function POST(request: Request) {
   const apiStrings = translations[locale].api;
   const strings = apiStrings.devNotes;
 
-  if (!(await isAdmin())) {
-    return noStoreJson({ error: apiStrings.auth.required }, { status: 401 });
+  const adminGuard = await requireAdminApi(request);
+  if (adminGuard) {
+    return adminGuard;
   }
 
-  const bodyResult = await readJsonBody(request, MAX_DEV_UPDATE_REQUEST_BYTES);
+  const bodyResult = await readJsonObjectBody(
+    request,
+    MAX_DEV_UPDATE_REQUEST_BYTES,
+    { invalidError: apiStrings.auth.invalidRequest },
+  );
 
-  if (!bodyResult.ok || !isJsonObject(bodyResult.value)) {
-    return noStoreJson(
-      { error: apiStrings.auth.invalidRequest },
-      {
-        status: bodyResult.ok || bodyResult.reason === 'invalid' ? 400 : 413,
-      },
-    );
+  if (!bodyResult.ok) {
+    return bodyResult.response;
   }
 
   const parsedInput = parseDevUpdateInput(
@@ -82,9 +86,10 @@ export async function POST(request: Request) {
   const { title, content, topic, imageUrls, uploadedImageUrls } =
     parsedInput.input;
 
-  if (!process.env.DATABASE_URL) {
+  const databaseGuard = requireDatabase(strings.databaseMissing);
+  if (databaseGuard) {
     await discardPendingMediaUploads(uploadedImageUrls);
-    return noStoreJson({ error: strings.databaseMissing }, { status: 503 });
+    return databaseGuard;
   }
 
   try {

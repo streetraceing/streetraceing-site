@@ -9,7 +9,6 @@ import {
   normalizeHexColor,
 } from '@/utils/toolkit';
 import {
-  Alert,
   Card,
   Chip,
   Description,
@@ -24,22 +23,11 @@ import {
 import { CalendarClock, Clock3, RefreshCw } from 'lucide-react';
 import { type FormEvent, useMemo, useState } from 'react';
 
+import { ErrorAlert } from './ErrorAlert';
 import { ToolOutput } from './ToolOutput';
 
 type CronFrequency =
   'hourly' | 'daily' | 'weekdays' | 'weekends' | 'weekly' | 'monthly';
-
-function ErrorAlert({ title, message }: { title: string; message: string }) {
-  return (
-    <Alert status="danger">
-      <Alert.Indicator />
-      <Alert.Content>
-        <Alert.Title>{title}</Alert.Title>
-        <Alert.Description>{message}</Alert.Description>
-      </Alert.Content>
-    </Alert>
-  );
-}
 
 function parseTimestampValue(value: string) {
   const trimmed = value.trim();

@@ -8,7 +8,6 @@ import {
   removeTrackingParameters,
 } from '@/utils/toolkit';
 import {
-  Alert,
   Description,
   Form,
   Input,
@@ -27,19 +26,8 @@ import {
 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
+import { ErrorAlert } from './ErrorAlert';
 import { ToolOutput } from './ToolOutput';
-
-function ErrorAlert({ title, message }: { title: string; message: string }) {
-  return (
-    <Alert status="danger">
-      <Alert.Indicator />
-      <Alert.Content>
-        <Alert.Title>{title}</Alert.Title>
-        <Alert.Description>{message}</Alert.Description>
-      </Alert.Content>
-    </Alert>
-  );
-}
 
 export function RegexTesterTool() {
   const { copy } = useLocale();

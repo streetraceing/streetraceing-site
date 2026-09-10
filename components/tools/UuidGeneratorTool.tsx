@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
 import {
-  Alert,
   Description,
   FieldError,
   Form,
@@ -15,6 +14,7 @@ import { KeyRound, RefreshCw } from 'lucide-react';
 import { parsePositiveInteger } from '@/utils/numbers';
 import { type FormEvent, useState } from 'react';
 
+import { ErrorAlert } from './ErrorAlert';
 import { ToolOutput } from './ToolOutput';
 
 const MAX_UUIDS = 100;
@@ -67,15 +67,7 @@ export function UuidGeneratorTool() {
         </Button>
       </Form>
 
-      {error && (
-        <Alert status="danger">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Title>{strings.errorTitle}</Alert.Title>
-            <Alert.Description>{error}</Alert.Description>
-          </Alert.Content>
-        </Alert>
-      )}
+      {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
 
       {uuids.length > 0 && (
         <div className="flex flex-col gap-2">
