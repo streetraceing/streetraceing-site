@@ -340,7 +340,7 @@ export function ToolOutput({
   }
 
   return (
-    <Card variant="secondary">
+    <Card variant="secondary" className="dark:bg-default/20">
       <Card.Header className="flex-row items-center justify-between gap-3">
         <Card.Title className="truncate">
           {label ?? copy.tool.output}

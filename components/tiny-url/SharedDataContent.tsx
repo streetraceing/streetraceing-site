@@ -25,7 +25,7 @@ export function SharedDataContent({
   return (
     <Page header={<Header />} footer={<Footer />}>
       <Container className="flex items-center py-12 sm:py-20">
-        <Card className="mx-auto w-full max-w-3xl">
+        <Card className="mx-auto w-full max-w-3xl dark:bg-default/20">
           <Card.Header className="gap-2">
             <Typography.Heading level={1}>
               {externalUrl

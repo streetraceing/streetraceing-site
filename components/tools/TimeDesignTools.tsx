@@ -196,7 +196,7 @@ export function ColorContrastTool() {
 
       {result ? (
         <>
-          <Card variant="secondary">
+          <Card variant="secondary" className="dark:bg-default/20">
             <Card.Content>
               <div
                 className="rounded-xl border p-6"

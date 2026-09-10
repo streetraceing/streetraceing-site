@@ -302,7 +302,7 @@ export function TinyUrlForm() {
         ) : null}
 
         {!isLoadingItems && !error && items.length === 0 ? (
-          <Card variant="secondary">
+          <Card variant="secondary" className="dark:bg-default/20">
             <Card.Content className="text-sm text-muted">
               {strings.emptyList}
             </Card.Content>
@@ -312,7 +312,11 @@ export function TinyUrlForm() {
         {!isLoadingItems && items.length > 0 ? (
           <div className="space-y-3">
             {items.map((item) => (
-              <Card key={item.code} variant="secondary">
+              <Card
+                key={item.code}
+                variant="secondary"
+                className="dark:bg-default/20"
+              >
                 <Card.Header>
                   <Card.Title className="truncate">
                     {item.preview || strings.emptyData}

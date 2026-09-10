@@ -149,7 +149,7 @@ export function PasswordGeneratorTool() {
       {result ? (
         <div className="flex flex-col gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Card variant="secondary">
+            <Card variant="secondary" className="dark:bg-default/20">
               <Card.Content>
                 <Typography.Paragraph size="sm" className="text-muted">
                   {strings.entropy}
@@ -159,7 +159,7 @@ export function PasswordGeneratorTool() {
                 </Typography.Heading>
               </Card.Content>
             </Card>
-            <Card variant="secondary">
+            <Card variant="secondary" className="dark:bg-default/20">
               <Card.Content>
                 <Typography.Paragraph size="sm" className="text-muted">
                   {strings.pool}

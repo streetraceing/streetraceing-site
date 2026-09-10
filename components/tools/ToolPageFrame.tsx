@@ -38,7 +38,7 @@ export function ToolPageFrame({
           {copy.tool.allTools}
         </Link>
 
-        <Card className="mx-auto w-full max-w-5xl overflow-hidden">
+        <Card className="mx-auto w-full max-w-5xl overflow-hidden dark:bg-default/20">
           <Card.Header className="gap-4 border-b bg-surface-secondary/45 py-6 sm:py-8">
             <div className="flex items-start gap-3">
               {icon ? (

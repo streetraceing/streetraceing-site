@@ -138,9 +138,14 @@ export function ToolsDirectory() {
           </Typography.Paragraph>
         </div>
 
-        <Card variant="secondary" className="border-0">
+        <Card variant="secondary" className="border-0 dark:bg-default/20">
           <Card.Content className="flex flex-col gap-4">
-            <SearchField value={query} onChange={setQuery} fullWidth>
+            <SearchField
+              value={query}
+              onChange={setQuery}
+              fullWidth
+              variant="secondary"
+            >
               <Label className="sr-only">{strings.searchLabel}</Label>
               <SearchField.Group>
                 <SearchField.SearchIcon />
@@ -154,6 +159,7 @@ export function ToolsDirectory() {
                 <Select
                   className="min-w-0 flex-1"
                   value={selectedCategory ?? ALL_FILTER_ID}
+                  variant="secondary"
                   onChange={(value) => {
                     if (value === ALL_FILTER_ID || value === null) {
                       setSelectedCategory(undefined);
@@ -213,6 +219,7 @@ export function ToolsDirectory() {
                 <Select
                   className="min-w-0 flex-1 sm:w-72 sm:flex-none"
                   value={sort}
+                  variant="secondary"
                   onChange={(value) => {
                     if (value === 'relevance' || value === 'name-asc') {
                       setSort(value);
@@ -285,7 +292,7 @@ export function ToolsDirectory() {
           {tools.length === 0 ? (
             <Card
               variant="secondary"
-              className="border-0 md:col-span-2 xl:col-span-3"
+              className="border-0 dark:bg-default/20 md:col-span-2 xl:col-span-3"
             >
               <Card.Content className="items-center gap-3 py-10 text-center">
                 <span className="grid size-12 place-items-center rounded-2xl bg-surface-tertiary text-muted">

@@ -27,7 +27,7 @@ export function ToolsPageContent() {
   return (
     <Page header={<Header />} footer={<Footer />}>
       <Container className="flex flex-col gap-8 py-6 sm:py-10 lg:gap-10 lg:py-12">
-        <header className="rounded-3xl border bg-surface/90 px-5 py-7 shadow-sm sm:px-8 sm:py-10 lg:px-12 lg:py-12">
+        <header className="rounded-3xl border-0 bg-surface/90 px-5 py-7 shadow-sm dark:bg-default/20 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-end">
             <div className="flex max-w-3xl flex-col items-start gap-4">
               <Chip color="accent" size="sm" variant="soft">
@@ -67,7 +67,7 @@ export function ToolsPageContent() {
           </div>
         </header>
 
-        <Card variant="secondary" className="border-0">
+        <Card variant="secondary" className="border-0 dark:bg-default/20">
           <Card.Header className="flex-row items-start gap-4 sm:items-center">
             <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-surface-tertiary text-success">
               <ShieldCheck className="size-5" />
