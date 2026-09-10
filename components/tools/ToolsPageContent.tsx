@@ -11,7 +11,7 @@ import {
   toolCategories,
 } from '@/utils/tool-catalog';
 import { Card, Chip, Typography } from '@heroui/react';
-import { ShieldCheck, Sparkles } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 import { ToolsDirectory } from './ToolsDirectory';
 
@@ -27,20 +27,10 @@ export function ToolsPageContent() {
   return (
     <Page header={<Header />} footer={<Footer />}>
       <Container className="flex flex-col gap-8 py-6 sm:py-10 lg:gap-10 lg:py-12">
-        <header className="relative isolate overflow-hidden rounded-3xl border bg-surface/90 px-5 py-7 shadow-sm sm:px-8 sm:py-10 lg:px-12 lg:py-12">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-24 -top-28 -z-10 size-80 rounded-full bg-accent/12 blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -bottom-36 left-1/4 -z-10 size-72 rounded-full bg-success/10 blur-3xl"
-          />
-
+        <header className="rounded-3xl border bg-surface/90 px-5 py-7 shadow-sm sm:px-8 sm:py-10 lg:px-12 lg:py-12">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-end">
             <div className="flex max-w-3xl flex-col items-start gap-4">
               <Chip color="accent" size="sm" variant="soft">
-                <Sparkles className="size-3.5" />
                 {strings.eyebrow}
               </Chip>
               <div className="flex flex-col gap-3">

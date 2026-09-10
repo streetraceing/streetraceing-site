@@ -23,7 +23,7 @@ export function ToolCard({ tool, featured = false }: ToolCardProps) {
         'relative h-full overflow-hidden border-0 transition-[background-color,box-shadow,transform] duration-200',
         tool.status === 'planned'
           ? 'opacity-70 shadow-sm'
-          : 'group-hover:-translate-y-0.5 group-hover:bg-surface-tertiary group-hover:shadow-md group-focus-visible:-translate-y-0.5 group-focus-visible:bg-surface-tertiary group-focus-visible:shadow-md dark:bg-default/20 dark:group-hover:bg-default/50 dark:group-focus-visible:bg-default/50',
+          : 'group-hover:-translate-y-0.5 group-hover:bg-surface-tertiary group-hover:shadow-md group-focus-visible:-translate-y-0.5 group-focus-visible:bg-surface-tertiary group-focus-visible:shadow-md',
         featured && 'min-h-64 shadow-sm',
       )}
     >

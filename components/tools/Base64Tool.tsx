@@ -14,9 +14,10 @@ import { ArrowLeftRight, LockKeyhole, UnlockKeyhole } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 
 import { ErrorAlert } from './ErrorAlert';
+import { ToggleField } from './ToggleField';
 import { ToolOutput } from './ToolOutput';
 
-function encodeBase64(value: string) {
+function encodeBase64(value: string, urlSafe: boolean) {
   const bytes = new TextEncoder().encode(value);
   let binary = '';
 
@@ -24,11 +25,22 @@ function encodeBase64(value: string) {
     binary += String.fromCharCode(byte);
   });
 
-  return btoa(binary);
+  const encoded = btoa(binary);
+
+  if (!urlSafe) {
+    return encoded;
+  }
+
+  return encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
 function decodeBase64(value: string) {
-  const binary = atob(value.replace(/\s/g, ''));
+  const normalized = value
+    .replace(/\s/g, '')
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  const padding = '='.repeat((4 - (normalized.length % 4)) % 4);
+  const binary = atob(`${normalized}${padding}`);
   const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
 
   return new TextDecoder().decode(bytes);
@@ -38,6 +50,7 @@ export function Base64Tool() {
   const { copy } = useLocale();
   const strings = copy.tools.base64;
   const [source, setSource] = useState('');
+  const [urlSafe, setUrlSafe] = useState(false);
   const [output, setOutput] = useState('');
   const [outputFormat, setOutputFormat] = useState<'base64' | 'plain'>(
     'base64',
@@ -47,7 +60,9 @@ export function Base64Tool() {
   function transform(direction: 'encode' | 'decode') {
     try {
       setOutput(
-        direction === 'encode' ? encodeBase64(source) : decodeBase64(source),
+        direction === 'encode'
+          ? encodeBase64(source, urlSafe)
+          : decodeBase64(source),
       );
       setOutputFormat(direction === 'encode' ? 'base64' : 'plain');
       setError(undefined);
@@ -83,6 +98,12 @@ export function Base64Tool() {
           <Description>{strings.description}</Description>
           <FieldError />
         </TextField>
+
+        <ToggleField
+          checked={urlSafe}
+          label={strings.urlSafe}
+          onChange={setUrlSafe}
+        />
 
         <div className="flex flex-wrap gap-2">
           <Button type="submit">

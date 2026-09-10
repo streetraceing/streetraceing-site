@@ -33,29 +33,10 @@ import {
 } from 'react';
 
 import { ErrorAlert } from './ErrorAlert';
+import { ToggleField } from './ToggleField';
 import { ToolOutput } from './ToolOutput';
 
 type HashAlgorithm = 'SHA-256' | 'SHA-384' | 'SHA-512';
-
-type ToggleFieldProps = {
-  checked: boolean;
-  label: string;
-  onChange: (checked: boolean) => void;
-};
-
-function ToggleField({ checked, label, onChange }: ToggleFieldProps) {
-  return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.currentTarget.checked)}
-        className="size-4 accent-accent"
-      />
-      <span>{label}</span>
-    </label>
-  );
-}
 
 export function PasswordGeneratorTool() {
   const { copy } = useLocale();

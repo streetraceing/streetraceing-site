@@ -31,11 +31,17 @@ const toolComponents: Record<GenericToolComponent, ComponentType> = {
   'hash-generator': dynamic(() =>
     import('./SecurityTools').then((module) => module.HashGeneratorTool),
   ),
+  'hmac-generator': dynamic(() =>
+    import('./HmacGeneratorTool').then((module) => module.HmacGeneratorTool),
+  ),
   'regex-tester': dynamic(() =>
     import('./DeveloperTools').then((module) => module.RegexTesterTool),
   ),
   'url-inspector': dynamic(() =>
     import('./DeveloperTools').then((module) => module.UrlInspectorTool),
+  ),
+  'url-codec': dynamic(() =>
+    import('./UrlCodecTool').then((module) => module.UrlCodecTool),
   ),
   'json-to-typescript': dynamic(() =>
     import('./DeveloperTools').then((module) => module.JsonToTypeScriptTool),
@@ -49,8 +55,17 @@ const toolComponents: Record<GenericToolComponent, ComponentType> = {
   'color-contrast': dynamic(() =>
     import('./TimeDesignTools').then((module) => module.ColorContrastTool),
   ),
+  'color-converter': dynamic(() =>
+    import('./ColorConverterTool').then((module) => module.ColorConverterTool),
+  ),
   'cron-builder': dynamic(() =>
     import('./TimeDesignTools').then((module) => module.CronBuilderTool),
+  ),
+  'base-converter': dynamic(() =>
+    import('./BaseConverterTool').then((module) => module.BaseConverterTool),
+  ),
+  'slug-generator': dynamic(() =>
+    import('./SlugGeneratorTool').then((module) => module.SlugGeneratorTool),
   ),
 };
 

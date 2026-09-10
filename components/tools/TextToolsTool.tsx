@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
+import { getLocaleTag } from '@/utils/i18n';
 import {
   Chip,
   Description,
@@ -11,6 +12,7 @@ import {
   TextField,
 } from '@heroui/react';
 import {
+  ArrowDownAZ,
   CaseLower,
   CaseUpper,
   ListFilter,
@@ -25,10 +27,15 @@ type TextOperation =
   | 'uppercase'
   | 'lowercase'
   | 'trim-lines'
+  | 'sort-lines'
   | 'remove-empty-lines'
   | 'unique-lines';
 
-function applyOperation(value: string, operation: TextOperation) {
+function applyOperation(
+  value: string,
+  operation: TextOperation,
+  collator: Intl.Collator,
+) {
   const lines = value.split(/\r?\n/);
 
   switch (operation) {
@@ -38,6 +45,10 @@ function applyOperation(value: string, operation: TextOperation) {
       return value.toLowerCase();
     case 'trim-lines':
       return lines.map((line) => line.trim()).join('\n');
+    case 'sort-lines':
+      return [...lines]
+        .sort((first, second) => collator.compare(first, second))
+        .join('\n');
     case 'remove-empty-lines':
       return lines.filter((line) => line.trim()).join('\n');
     case 'unique-lines':
@@ -48,10 +59,14 @@ function applyOperation(value: string, operation: TextOperation) {
 }
 
 export function TextToolsTool() {
-  const { copy } = useLocale();
+  const { copy, locale } = useLocale();
   const strings = copy.tools.text;
   const [source, setSource] = useState('');
   const [output, setOutput] = useState('');
+  const collator = useMemo(
+    () => new Intl.Collator(getLocaleTag(locale)),
+    [locale],
+  );
 
   const textStats = useMemo(() => {
     const trimmedSource = source.trim();
@@ -64,7 +79,7 @@ export function TextToolsTool() {
   }, [source]);
 
   function transformText(operation: TextOperation) {
-    setOutput(applyOperation(source, operation));
+    setOutput(applyOperation(source, operation, collator));
   }
 
   return (
@@ -118,6 +133,14 @@ export function TextToolsTool() {
           >
             <ListFilter />
             {strings.trimLines}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onPress={() => transformText('sort-lines')}
+          >
+            <ArrowDownAZ />
+            {strings.sortLines}
           </Button>
           <Button
             type="button"

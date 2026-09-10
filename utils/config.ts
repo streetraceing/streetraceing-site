@@ -1,4 +1,5 @@
 import {
+  Binary,
   Bot,
   Braces,
   BarChart3,
@@ -14,15 +15,19 @@ import {
   Hammer,
   Home,
   KeyRound,
+  KeySquare,
+  Link,
   LucideIcon,
   Package,
   Link2,
   PackageSearch,
   Newspaper,
   Palette,
+  Pipette,
   Regex,
   ShieldCheck,
   Sparkles,
+  Type,
 } from 'lucide-react';
 import { IconType } from 'react-icons';
 import { FaGithub, FaSpotify, FaTelegram, FaVk } from 'react-icons/fa6';
@@ -97,13 +102,18 @@ export type GenericToolComponent =
   | 'password-generator'
   | 'jwt-inspector'
   | 'hash-generator'
+  | 'hmac-generator'
   | 'regex-tester'
   | 'url-inspector'
+  | 'url-codec'
   | 'timestamp-converter'
   | 'json-to-typescript'
   | 'text-diff'
   | 'color-contrast'
-  | 'cron-builder';
+  | 'color-converter'
+  | 'cron-builder'
+  | 'base-converter'
+  | 'slug-generator';
 
 export type ToolConfig = {
   slug: string;
@@ -493,6 +503,23 @@ export const mainPageConfig: MainPageConfig = {
       ],
     },
     {
+      slug: 'slug-generator',
+      category: 'text',
+      component: 'slug-generator',
+      name: text('Генератор slug', 'Slug Generator'),
+      description: text(
+        'Превращает заголовки в аккуратные адреса: транслит кириллицы и чистый разделитель.',
+        'Turns headings into clean address slugs with Cyrillic transliteration.',
+      ),
+      icon: Type,
+      status: 'available',
+      tags: [
+        text('Slug', 'Slug'),
+        text('Транслит', 'Translit'),
+        text('Текст', 'Text'),
+      ],
+    },
+    {
       slug: 'base64',
       category: 'developer',
       component: 'base64',
@@ -506,6 +533,40 @@ export const mainPageConfig: MainPageConfig = {
       tags: [
         text('Base64', 'Base64'),
         text('Код', 'Code'),
+        text('Клиент', 'Client'),
+      ],
+    },
+    {
+      slug: 'base-converter',
+      category: 'developer',
+      component: 'base-converter',
+      name: text('Конвертер систем счисления', 'Number Base Converter'),
+      description: text(
+        'Переводит числа между BIN, OCT, DEC и HEX, поддерживая большие значения.',
+        'Converts numbers between BIN, OCT, DEC, and HEX, including big values.',
+      ),
+      icon: Binary,
+      status: 'available',
+      tags: [
+        text('Системы счисления', 'Number bases'),
+        text('BigInt', 'BigInt'),
+        text('Клиент', 'Client'),
+      ],
+    },
+    {
+      slug: 'url-codec',
+      category: 'developer',
+      component: 'url-codec',
+      name: text('URL Encode/Decode', 'URL Encode/Decode'),
+      description: text(
+        'Кодирует и декодирует текст для безопасной передачи в ссылках и параметрах.',
+        'Encodes and decodes text for safe use in links and query parameters.',
+      ),
+      icon: Link,
+      status: 'available',
+      tags: [
+        text('URL', 'URL'),
+        text('Кодирование', 'Encoding'),
         text('Клиент', 'Client'),
       ],
     },
@@ -558,6 +619,23 @@ export const mainPageConfig: MainPageConfig = {
       tags: [
         text('Хеши', 'Hashes'),
         text('Файлы', 'Files'),
+        text('Безопасность', 'Security'),
+      ],
+    },
+    {
+      slug: 'hmac-generator',
+      category: 'security',
+      component: 'hmac-generator',
+      name: text('Генератор HMAC', 'HMAC Generator'),
+      description: text(
+        'HMAC-подпись SHA-256/384/512 для текста с секретным ключом, полностью локально.',
+        'HMAC SHA-256/384/512 signatures for text with a secret key, fully local.',
+      ),
+      icon: KeySquare,
+      status: 'available',
+      tags: [
+        text('HMAC', 'HMAC'),
+        text('Подпись', 'Signature'),
         text('Безопасность', 'Security'),
       ],
     },
@@ -660,6 +738,23 @@ export const mainPageConfig: MainPageConfig = {
       tags: [
         text('Цвет', 'Color'),
         text('Доступность', 'Accessibility'),
+        text('Дизайн', 'Design'),
+      ],
+    },
+    {
+      slug: 'color-converter',
+      category: 'time-design',
+      component: 'color-converter',
+      name: text('Конвертер цветов', 'Color Converter'),
+      description: text(
+        'Переводит HEX в RGB и HSL с моментальным предпросмотром значения.',
+        'Converts HEX to RGB and HSL with an instant value preview.',
+      ),
+      icon: Pipette,
+      status: 'available',
+      tags: [
+        text('Цвет', 'Color'),
+        text('HEX', 'HEX'),
         text('Дизайн', 'Design'),
       ],
     },

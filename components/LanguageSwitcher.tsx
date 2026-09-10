@@ -23,7 +23,12 @@ export function LanguageSwitcher({ fullWidth = false }: LanguageSwitcherProps) {
         variant={locale === 'ru' ? 'primary' : 'tertiary'}
         onPress={() => setLocale('ru')}
       >
-        <span aria-hidden="true">🇷🇺</span>
+        <span
+          aria-hidden="true"
+          className="text-xs font-semibold tracking-wider"
+        >
+          {copy.language.ru}
+        </span>
       </Button>
       <Button
         aria-label={copy.language.english}
@@ -31,7 +36,12 @@ export function LanguageSwitcher({ fullWidth = false }: LanguageSwitcherProps) {
         onPress={() => setLocale('en')}
       >
         <ButtonGroup.Separator />
-        <span aria-hidden="true">🇺🇸</span>
+        <span
+          aria-hidden="true"
+          className="text-xs font-semibold tracking-wider"
+        >
+          {copy.language.en}
+        </span>
       </Button>
     </ButtonGroup>
   );

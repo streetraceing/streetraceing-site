@@ -417,3 +417,193 @@ export function buildCronExpression({
     }
   }
 }
+
+export type NumberBaseFormats = {
+  binary: string;
+  octal: string;
+  decimal: string;
+  hexadecimal: string;
+};
+
+const MAX_BASE_INPUT_LENGTH = 64;
+
+/** Parses a non-negative integer written in `fromBase` (2-36) with BigInt
+ * precision and returns its representations in the common bases. */
+export function convertNumberBase(
+  value: string,
+  fromBase: number,
+): NumberBaseFormats | undefined {
+  const trimmed = value.trim().toLowerCase().replace(/[\s_]/g, '');
+
+  if (
+    !Number.isInteger(fromBase) ||
+    fromBase < 2 ||
+    fromBase > 36 ||
+    trimmed.length === 0 ||
+    trimmed.length > MAX_BASE_INPUT_LENGTH
+  ) {
+    return undefined;
+  }
+
+  const bigBase = BigInt(fromBase);
+  let parsed = 0n;
+
+  for (const character of trimmed) {
+    const digit = digitToValue(character);
+
+    if (digit === undefined || digit >= fromBase) {
+      return undefined;
+    }
+
+    parsed = parsed * bigBase + BigInt(digit);
+  }
+
+  return {
+    binary: parsed.toString(2),
+    octal: parsed.toString(8),
+    decimal: parsed.toString(10),
+    hexadecimal: parsed.toString(16).toUpperCase(),
+  };
+}
+
+function digitToValue(character: string) {
+  const code = character.charCodeAt(0);
+
+  if (code >= 48 && code <= 57) {
+    return code - 48;
+  }
+
+  if (code >= 97 && code <= 122) {
+    return code - 87;
+  }
+
+  return undefined;
+}
+
+export type ColorFormatResult = {
+  hex: string;
+  rgbCss: string;
+  hslCss: string;
+};
+
+function getRgbChannels(hex: string) {
+  return [1, 3, 5].map((offset) =>
+    Number.parseInt(hex.slice(offset, offset + 2), 16),
+  );
+}
+
+/** Converts a HEX color into reusable HEX, rgb(), and hsl() notations. */
+export function getColorFormats(value: string): ColorFormatResult | undefined {
+  const hex = normalizeHexColor(value);
+
+  if (!hex) {
+    return undefined;
+  }
+
+  const [red = 0, green = 0, blue = 0] = getRgbChannels(hex);
+  const [hue, saturation, lightness] = rgbToHsl(red, green, blue);
+
+  return {
+    hex,
+    rgbCss: `rgb(${red}, ${green}, ${blue})`,
+    hslCss: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+  };
+}
+
+function rgbToHsl(red: number, green: number, blue: number) {
+  const normalizedRed = red / 255;
+  const normalizedGreen = green / 255;
+  const normalizedBlue = blue / 255;
+  const maximum = Math.max(normalizedRed, normalizedGreen, normalizedBlue);
+  const minimum = Math.min(normalizedRed, normalizedGreen, normalizedBlue);
+  const delta = maximum - minimum;
+  const lightness = (maximum + minimum) / 2;
+
+  let hue = 0;
+
+  if (delta !== 0) {
+    if (maximum === normalizedRed) {
+      hue = ((normalizedGreen - normalizedBlue) / delta) % 6;
+    } else if (maximum === normalizedGreen) {
+      hue = (normalizedBlue - normalizedRed) / delta + 2;
+    } else {
+      hue = (normalizedRed - normalizedGreen) / delta + 4;
+    }
+
+    hue = Math.round(hue * 60);
+
+    if (hue < 0) {
+      hue += 360;
+    }
+  }
+
+  const saturation =
+    delta === 0
+      ? 0
+      : Math.round((delta / (1 - Math.abs(2 * lightness - 1))) * 100);
+
+  return [hue, saturation, Math.round(lightness * 100)] as const;
+}
+
+const CYRILLIC_TRANSLIT: Record<string, string> = {
+  а: 'a',
+  б: 'b',
+  в: 'v',
+  г: 'g',
+  д: 'd',
+  е: 'e',
+  ё: 'yo',
+  ж: 'zh',
+  з: 'z',
+  и: 'i',
+  й: 'i',
+  к: 'k',
+  л: 'l',
+  м: 'm',
+  н: 'n',
+  о: 'o',
+  п: 'p',
+  р: 'r',
+  с: 's',
+  т: 't',
+  у: 'u',
+  ф: 'f',
+  х: 'h',
+  ц: 'ts',
+  ч: 'ch',
+  ш: 'sh',
+  щ: 'shch',
+  ъ: '',
+  ы: 'y',
+  ь: '',
+  э: 'e',
+  ю: 'yu',
+  я: 'ya',
+  і: 'i',
+  ї: 'yi',
+  є: 'e',
+  ґ: 'g',
+};
+
+const SLUG_SEPARATOR_PATTERN = /[^a-z0-9]+/g;
+const MAX_SLUG_LENGTH = 128;
+
+/** Builds a lowercase URL slug: Cyrillic letters are transliterated, Latin
+ * diacritics are folded, and non-alphanumeric runs collapse into `separator`. */
+export function createSlug(value: string, separator: '-' | '_' = '-'): string {
+  const transliterated = [...value.trim().toLowerCase()]
+    .map((character) => CYRILLIC_TRANSLIT[character] ?? character)
+    .join('');
+  const slug = transliterated
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(SLUG_SEPARATOR_PATTERN, separator)
+    .slice(0, MAX_SLUG_LENGTH);
+  const escapedSeparator = separator === '_' ? '_' : '-';
+  const trimPattern = new RegExp(
+    `^[${escapedSeparator}]+|[${escapedSeparator}]+$`,
+    'g',
+  );
+
+  return slug.replace(trimPattern, '');
+}

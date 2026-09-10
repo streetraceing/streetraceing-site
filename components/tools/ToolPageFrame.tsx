@@ -39,18 +39,14 @@ export function ToolPageFrame({
         </Link>
 
         <Card className="mx-auto w-full max-w-5xl overflow-hidden">
-          <Card.Header className="relative gap-4 border-b bg-surface-secondary/45 py-6 sm:py-8">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full bg-accent/10 blur-3xl"
-            />
+          <Card.Header className="gap-4 border-b bg-surface-secondary/45 py-6 sm:py-8">
             <div className="flex items-start gap-3">
               {icon ? (
-                <span className="relative grid size-12 shrink-0 place-items-center rounded-2xl bg-surface-tertiary shadow-sm">
+                <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-surface-tertiary shadow-sm">
                   {icon}
                 </span>
               ) : null}
-              <div className="relative flex min-w-0 flex-col gap-1">
+              <div className="flex min-w-0 flex-col gap-1">
                 <Typography.Heading level={1}>{title}</Typography.Heading>
                 <Card.Description>{description}</Card.Description>
               </div>
