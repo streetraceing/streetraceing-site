@@ -10,5 +10,5 @@ Before changing this application, read `.agents/PROJECT_GUIDE.md` for architectu
 
 ## Verification
 
-- Assistant handoffs are static-only: do not install dependencies, start the application, run migrations, lint, tests, builds, or formatters locally.
-- Executable checks belong to the repository CI workflow.
+- After making changes, run `npm run typecheck` and `npm run lint:check` in the prepared environment and fix every error and warning you introduced before handing off.
+- Do not install dependencies, start the application, run migrations, tests, builds, or formatters locally; the package apply pipeline and repository CI cover them.

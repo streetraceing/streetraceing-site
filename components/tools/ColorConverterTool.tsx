@@ -3,7 +3,6 @@
 import { useLocale } from '@/app/providers';
 import { getColorFormats, normalizeHexColor } from '@/utils/toolkit';
 import { Description, Form, Input, Label, TextField } from '@heroui/react';
-import { Pipette } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { ErrorAlert } from './ErrorAlert';

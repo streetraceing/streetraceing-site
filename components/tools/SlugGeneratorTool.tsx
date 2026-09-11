@@ -12,7 +12,6 @@ import {
   Select,
   TextField,
 } from '@heroui/react';
-import { Type } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { ToolOutput } from './ToolOutput';

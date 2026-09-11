@@ -11,7 +11,6 @@ import {
   Select,
   TextField,
 } from '@heroui/react';
-import { Binary } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { ErrorAlert } from './ErrorAlert';
