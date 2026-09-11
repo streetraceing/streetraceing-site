@@ -12,3 +12,8 @@ Before changing this application, read `.agents/PROJECT_GUIDE.md` for architectu
 
 - After making changes, run `npm run typecheck` and `npm run lint:check` in the prepared environment and fix every error and warning you introduced before handing off.
 - Do not install dependencies, start the application, run migrations, tests, builds, or formatters locally; the package apply pipeline and repository CI cover them.
+
+## Handoff
+
+- Do not create ZIP archives or package deliverables unless the user explicitly asks for one. Changes are made directly in the working tree.
+- Finish with one concise Git commit message in the project's existing conventional style.
