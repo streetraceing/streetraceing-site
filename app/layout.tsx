@@ -14,7 +14,6 @@ import { getTheme, THEME_COOKIE, THEME_STORAGE_KEY } from '@/utils/theme';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
-import Script from 'next/script';
 import { cookies, headers } from 'next/headers';
 
 const themeBootstrapScript = `
@@ -140,9 +139,10 @@ export default async function RootLayout({
     >
       <head>
         <style>{themePrepaintStyles}</style>
-        <Script id="theme-bootstrap" strategy="beforeInteractive">
-          {themeBootstrapScript}
-        </Script>
+        <script
+          id="theme-bootstrap"
+          dangerouslySetInnerHTML={{ __html: themeBootstrapScript }}
+        />
       </head>
       <body className="bg-background text-foreground">
         <JsonLd data={createWebsiteJsonLd(locale)} />

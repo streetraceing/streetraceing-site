@@ -67,7 +67,7 @@ export function ToolsPageContent() {
           </div>
         </header>
 
-        <Card variant="secondary" className="border-0 dark:bg-default/20">
+        <Card className="border-0 dark:bg-default/20">
           <Card.Header className="flex-row items-start gap-4 sm:items-center">
             <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-default text-success shadow-sm">
               <ShieldCheck className="size-5" />

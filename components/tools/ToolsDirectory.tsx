@@ -138,7 +138,7 @@ export function ToolsDirectory() {
           </Typography.Paragraph>
         </div>
 
-        <Card variant="secondary" className="border-0 dark:bg-default/20">
+        <Card className="border-0 dark:bg-default/20">
           <Card.Content className="flex flex-col gap-4">
             <SearchField
               value={query}
