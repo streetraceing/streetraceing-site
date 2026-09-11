@@ -158,12 +158,12 @@ function formatUrlDetails(value: string, labels: UrlLabels) {
     `${labels.protocol}: ${url.protocol}`,
     `${labels.origin}: ${url.origin}`,
     `${labels.host}: ${url.hostname}`,
-    `${labels.port}: ${url.port || '—'}`,
+    `${labels.port}: ${url.port || '-'}`,
     `${labels.path}: ${url.pathname}`,
-    `${labels.hash}: ${url.hash || '—'}`,
+    `${labels.hash}: ${url.hash || '-'}`,
     '',
     `${labels.query}:`,
-    query || '—',
+    query || '-',
   ].join('\n');
 }
 

@@ -114,7 +114,7 @@ export const translations = {
       toolsSort: 'Сортировка инструментов',
       sortRelevance: 'По релевантности',
       sortProgress: 'Сначала с большим прогрессом',
-      sortName: 'По названию (А–Я)',
+      sortName: 'По названию (А-Я)',
     },
     toolsPage: {
       metadataTitle: 'Инструменты разработчика',
@@ -126,8 +126,7 @@ export const translations = {
       localDescription:
         'Клиентские инструменты выполняют вычисления в браузере. Файлы, токены и введённый текст не отправляются на сервер.',
       featuredTitle: 'С чего начать',
-      featuredDescription:
-        'Самые полезные сценарии для быстрого знакомства с набором.',
+      featuredDescription: 'Избранные инструменты для быстрого старта.',
       catalogTitle: 'Весь каталог',
       catalogDescription:
         'Ищи по названию и описанию или выбери нужное направление.',
@@ -145,7 +144,7 @@ export const translations = {
       clearSort: 'Сбросить сортировку',
       sort: 'Сортировка инструментов',
       sortRelevance: 'По релевантности',
-      sortName: 'По названию (А–Я)',
+      sortName: 'По названию (А-Я)',
       categories: {
         developer: 'Разработка',
         data: 'Данные',
@@ -566,8 +565,8 @@ export const translations = {
           weekly: 'Раз в неделю',
           monthly: 'Раз в месяц',
         },
-        minute: 'Минута (0–59)',
-        hour: 'Час (0–23)',
+        minute: 'Минута (0-59)',
+        hour: 'Час (0-23)',
         weekday: 'День недели',
         monthDay: 'День месяца',
         monthDayHint: 'От 1 до 31; учитывай длину конкретного месяца.',
@@ -769,7 +768,7 @@ export const translations = {
       toolsSort: 'Tool order',
       sortRelevance: 'By relevance',
       sortProgress: 'Highest progress first',
-      sortName: 'By name (A–Z)',
+      sortName: 'By name (A-Z)',
     },
     toolsPage: {
       metadataTitle: 'Developer tools',
@@ -781,8 +780,7 @@ export const translations = {
       localDescription:
         'Client-side tools run in your browser. Files, tokens, and entered text are not sent to the server.',
       featuredTitle: 'Start here',
-      featuredDescription:
-        'The most useful workflows for a quick introduction to the collection.',
+      featuredDescription: 'Featured tools for a quick start.',
       catalogTitle: 'Full catalog',
       catalogDescription:
         'Search by name and description or choose the area you need.',
@@ -800,7 +798,7 @@ export const translations = {
       clearSort: 'Reset ordering',
       sort: 'Tool order',
       sortRelevance: 'By relevance',
-      sortName: 'By name (A–Z)',
+      sortName: 'By name (A-Z)',
       categories: {
         developer: 'Development',
         data: 'Data',
@@ -1221,8 +1219,8 @@ export const translations = {
           weekly: 'Once a week',
           monthly: 'Once a month',
         },
-        minute: 'Minute (0–59)',
-        hour: 'Hour (0–23)',
+        minute: 'Minute (0-59)',
+        hour: 'Hour (0-23)',
         weekday: 'Weekday',
         monthDay: 'Day of month',
         monthDayHint: 'From 1 to 31; account for the length of each month.',

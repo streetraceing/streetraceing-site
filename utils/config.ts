@@ -143,8 +143,8 @@ export const mainPageConfig: MainPageConfig = {
         'A lightweight dynamic theme for Spicetify',
       ),
       longDescription: text(
-        'Красивая тема для Spotify через Spicetify с динамическим фоном, который подстраивается под текущий трек.',
-        'A beautiful Spotify theme for Spicetify with a dynamic background that adapts to the current track.',
+        'Тема для Spotify через Spicetify с динамическим фоном, который подстраивается под текущий трек.',
+        'A Spotify theme for Spicetify with a dynamic background that adapts to the current track.',
       ),
       colors: ['#73724E', '#767a7b', '#684f36'],
       status: ['released', 'maintained', 'open-source'],
@@ -156,8 +156,8 @@ export const mainPageConfig: MainPageConfig = {
           'A dynamic background based on the current track cover',
         ),
         text(
-          'Лёгкий способ освежить интерфейс Spotify',
-          'An easy way to refresh the Spotify interface',
+          'Меняет облик Spotify без замены плеера',
+          'Changes the Spotify look without replacing the player',
         ),
       ],
       links: [
@@ -186,8 +186,8 @@ export const mainPageConfig: MainPageConfig = {
         'A Telegram bot for quickly downloading TikTok videos from a link.',
       ),
       longDescription: text(
-        'Простой и удобный Telegram-бот: отправляешь ссылку на ролик из TikTok - получаешь видео для сохранения. Исходный код проекта закрыт.',
-        'A simple, convenient Telegram bot: send a TikTok video link and get the video to save. The source code is closed.',
+        'Telegram-бот: отправляешь ссылку на ролик из TikTok - получаешь видео для сохранения. Исходный код проекта закрыт.',
+        'A Telegram bot: send a TikTok video link and get the video to save. The source code is closed.',
       ),
       colors: ['#1C2C54', '#1394a6', '#22c55e'],
       status: ['released', 'maintained', 'closed-source'],
@@ -226,7 +226,7 @@ export const mainPageConfig: MainPageConfig = {
       ),
       colors: ['#21133e', '#a855f7', '#f472b6'],
       status: ['in-development', 'maintained', 'private', 'closed-source'],
-      progress: 70,
+      progress: 80,
       technologies: ['TypeScript', 'MTProto', '@mtcute', 'PostgreSQL', 'AI'],
       highlights: [
         text(
@@ -351,7 +351,7 @@ export const mainPageConfig: MainPageConfig = {
       ),
       colors: ['#111827', '#2563eb', '#7c3aed'],
       status: ['in-development', 'maintained', 'open-source'],
-      progress: 75,
+      progress: 85,
       technologies: ['Tauri', 'Rust', 'React', 'TypeScript', 'Vite', 'AI'],
       highlights: [
         text(
