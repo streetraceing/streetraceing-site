@@ -55,7 +55,7 @@ export function ProjectPageContent({
             />
             <div className="flex items-start gap-3">
               {project.icon && (
-                <span className="relative grid size-12 shrink-0 place-items-center rounded-2xl bg-default-soft shadow-sm">
+                <span className="relative grid size-12 shrink-0 place-items-center rounded-2xl bg-default shadow-sm">
                   <project.icon className="size-6" />
                 </span>
               )}

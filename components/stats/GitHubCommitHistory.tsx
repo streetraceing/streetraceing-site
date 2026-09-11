@@ -128,7 +128,7 @@ function GitHubCommitHistoryContent({
       <Card.Header className="gap-3 sm:flex-row sm:items-start sm:justify-between border-b pb-3">
         <div className="flex min-w-0 items-start gap-3">
           <span
-            className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-secondary"
+            className="grid size-10 shrink-0 place-items-center rounded-xl bg-default shadow-sm"
             aria-hidden="true"
           >
             <FaGithub className="size-5" />
@@ -168,7 +168,7 @@ function GitHubCommitHistoryContent({
                   className="group flex w-full min-w-0 items-start gap-3 rounded-xl px-2 py-3 transition-colors hover:bg-surface-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <span
-                    className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-secondary text-accent transition-colors group-hover:bg-accent/10"
+                    className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-default text-accent transition-colors group-hover:bg-accent/10"
                     aria-hidden="true"
                   >
                     <GitCommitHorizontal className="size-4" />

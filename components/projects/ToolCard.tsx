@@ -18,13 +18,10 @@ export function ToolCard({ tool, featured = false }: ToolCardProps) {
   const title = getText(tool.name, locale);
   const card = (
     <Card
-      variant={featured ? 'default' : 'secondary'}
       className={cn(
-        'relative h-full overflow-hidden border-0 transition-[background-color,box-shadow,transform] duration-200',
-        tool.status === 'planned'
-          ? 'opacity-70 shadow-sm'
-          : 'group-hover:-translate-y-0.5 group-hover:bg-surface-tertiary group-hover:shadow-md group-focus-visible:-translate-y-0.5 group-focus-visible:bg-surface-tertiary group-focus-visible:shadow-md',
-        featured && 'min-h-64 shadow-sm',
+        'relative h-full overflow-hidden border-0 transition-colors group-hover:bg-white/50 dark:bg-default/20 dark:group-hover:bg-default/50 dark:group-focus-visible:bg-default/50',
+        tool.status === 'planned' && 'opacity-70 shadow-sm',
+        featured && 'min-h-64',
       )}
     >
       <Card.Header className="gap-4">
@@ -41,13 +38,8 @@ export function ToolCard({ tool, featured = false }: ToolCardProps) {
 
         <div className="flex items-start gap-3">
           {tool.icon ? (
-            <span
-              className={cn(
-                'grid shrink-0 place-items-center bg-surface-tertiary text-foreground shadow-sm',
-                featured ? 'size-12 rounded-2xl' : 'size-10 rounded-xl',
-              )}
-            >
-              <tool.icon className={featured ? 'size-6' : 'size-5'} />
+            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-default shadow-sm">
+              <tool.icon className="size-5" />
             </span>
           ) : null}
           <div className="flex min-w-0 flex-col gap-1">

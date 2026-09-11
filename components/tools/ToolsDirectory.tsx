@@ -295,7 +295,7 @@ export function ToolsDirectory() {
               className="border-0 dark:bg-default/20 md:col-span-2 xl:col-span-3"
             >
               <Card.Content className="items-center gap-3 py-10 text-center">
-                <span className="grid size-12 place-items-center rounded-2xl bg-surface-tertiary text-muted">
+                <span className="grid size-12 place-items-center rounded-2xl bg-default text-muted shadow-sm">
                   <SearchX className="size-5" />
                 </span>
                 <Typography.Heading level={3}>

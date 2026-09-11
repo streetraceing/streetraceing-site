@@ -16,6 +16,17 @@
   --ripple-pressed-opacity: 0.22;
 }
 
+@keyframes seasonal-drift {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-8deg);
+  }
+
+  50% {
+    transform: translateY(-14px) rotate(8deg);
+  }
+}
+
 .button,
 button.button,
 :where(button, [role='button']):has(> .button-ripple-layer) {

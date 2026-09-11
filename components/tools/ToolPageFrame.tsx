@@ -42,7 +42,7 @@ export function ToolPageFrame({
           <Card.Header className="gap-4 border-b bg-surface-secondary/45 py-6 sm:py-8">
             <div className="flex items-start gap-3">
               {icon ? (
-                <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-surface-tertiary shadow-sm">
+                <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-default shadow-sm">
                   {icon}
                 </span>
               ) : null}

@@ -1,5 +1,7 @@
 import clsx from 'clsx';
 
+import { SeasonalDecorations } from '@/components/SeasonalDecorations';
+
 export interface PageProps extends React.ComponentPropsWithoutRef<'main'> {
   header?: React.ReactNode;
   footer?: React.ReactNode;
@@ -18,6 +20,7 @@ export function Page({ className, header, footer, ...props }: PageProps) {
           <div className="absolute inset-0 hidden bg-[url('/images/space-stars.gif')] bg-repeat bg-size-[640px_320px] opacity-40 mix-blend-lighten motion-safe:md:block" />
           <div className="absolute inset-0 hidden bg-[url('/images/space-stars.png')] bg-cover bg-center opacity-40 motion-reduce:md:block" />
         </div>
+        <SeasonalDecorations />
       </div>
 
       <div className="relative z-10 flex min-h-dvh flex-col">
