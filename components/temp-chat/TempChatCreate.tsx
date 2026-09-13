@@ -33,19 +33,41 @@ import { type FormEvent, useState, useSyncExternalStore } from 'react';
 
 const subscribeToNothing = () => () => {};
 
-function readHistory(): TempChatHistoryEntry[] {
-  try {
-    const raw = window.localStorage.getItem(TEMP_CHAT_HISTORY_STORAGE_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-
-    if (!Array.isArray(parsed)) {
-      return [];
+let historySnapshotCache:
+  | {
+      raw: string;
+      snapshot: TempChatHistoryEntry[];
     }
+  | undefined;
 
-    return pruneExpiredTempChatHistory(parsed.filter(isTempChatHistoryEntry));
+function readHistoryRaw() {
+  try {
+    return window.localStorage.getItem(TEMP_CHAT_HISTORY_STORAGE_KEY) ?? '';
   } catch {
-    return [];
+    return '';
   }
+}
+
+/** Parses the stored history. The result is cached per raw value because
+ * useSyncExternalStore requires a stable snapshot between renders. */
+function getHistorySnapshot(): TempChatHistoryEntry[] {
+  const raw = readHistoryRaw();
+
+  if (historySnapshotCache?.raw === raw) {
+    return historySnapshotCache.snapshot;
+  }
+
+  const parsed: unknown = raw ? JSON.parse(raw) : [];
+  const snapshot = Array.isArray(parsed)
+    ? pruneExpiredTempChatHistory(parsed.filter(isTempChatHistoryEntry))
+    : [];
+
+  historySnapshotCache = { raw, snapshot };
+  return snapshot;
+}
+
+function getServerHistorySnapshot(): TempChatHistoryEntry[] {
+  return [];
 }
 
 function writeHistory(entries: TempChatHistoryEntry[]) {
@@ -54,17 +76,11 @@ function writeHistory(entries: TempChatHistoryEntry[]) {
       TEMP_CHAT_HISTORY_STORAGE_KEY,
       JSON.stringify(entries),
     );
+    // Keep the snapshot cache in sync with the new storage value.
+    historySnapshotCache = { raw: readHistoryRaw(), snapshot: entries };
   } catch {
     // History is a convenience feature; failures are safe to ignore.
   }
-}
-
-function getHistorySnapshot() {
-  return pruneExpiredTempChatHistory(readHistory());
-}
-
-function getServerHistorySnapshot(): TempChatHistoryEntry[] {
-  return [];
 }
 
 export function TempChatCreate() {
@@ -113,7 +129,7 @@ export function TempChatCreate() {
         throw new Error(getJsonError(body) ?? strings.createFailed);
       }
 
-      const nextHistory = mergeTempChatHistoryEntry(readHistory(), {
+      const nextHistory = mergeTempChatHistoryEntry(getHistorySnapshot(), {
         code,
         title: title.trim(),
         expiresAt,
