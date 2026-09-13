@@ -49,6 +49,7 @@ type ChatMeta = {
 };
 
 type ChatMessageFile = {
+  url: string;
   name: string;
   size: number;
   type?: string;
@@ -431,7 +432,15 @@ export function TempChatRoom({ code }: { code: string }) {
 
     try {
       let filePayload:
-        { key: string; name: string; size: number; type: string } | undefined;
+        | {
+            url: string;
+            publicId: string;
+            resourceType: string;
+            name: string;
+            size: number;
+            type: string;
+          }
+        | undefined;
 
       if (file) {
         setIsUploading(true);
@@ -457,27 +466,50 @@ export function TempChatRoom({ code }: { code: string }) {
           !authorizeResponse.ok ||
           !isJsonObject(authorizeBody) ||
           typeof authorizeBody.uploadUrl !== 'string' ||
-          typeof authorizeBody.key !== 'string' ||
-          typeof authorizeBody.fileName !== 'string' ||
-          typeof authorizeBody.contentDisposition !== 'string'
+          typeof authorizeBody.publicId !== 'string' ||
+          typeof authorizeBody.apiKey !== 'string' ||
+          typeof authorizeBody.signature !== 'string' ||
+          typeof authorizeBody.timestamp !== 'number' ||
+          typeof authorizeBody.fileName !== 'string'
         ) {
           throw new Error(getJsonError(authorizeBody) ?? strings.uploadFailed);
         }
 
-        const putResponse = await fetch(authorizeBody.uploadUrl, {
-          method: 'PUT',
-          body: file,
-          headers: {
-            'content-disposition': authorizeBody.contentDisposition,
-          },
-        });
+        const uploadBody = new FormData();
 
-        if (!putResponse.ok) {
+        uploadBody.set('api_key', authorizeBody.apiKey);
+        uploadBody.set('file', file);
+        uploadBody.set('public_id', authorizeBody.publicId);
+        uploadBody.set('signature', authorizeBody.signature);
+        uploadBody.set('timestamp', String(authorizeBody.timestamp));
+
+        const uploadResponse = await fetch(authorizeBody.uploadUrl, {
+          method: 'POST',
+          body: uploadBody,
+        });
+        const uploadResult = await readJsonResponse(uploadResponse);
+        const uploadedUrl =
+          isJsonObject(uploadResult) &&
+          typeof uploadResult.secure_url === 'string'
+            ? uploadResult.secure_url
+            : undefined;
+
+        if (
+          !uploadResponse.ok ||
+          !uploadedUrl ||
+          !isJsonObject(uploadResult) ||
+          uploadResult.public_id !== authorizeBody.publicId
+        ) {
           throw new Error(strings.uploadFailed);
         }
 
         filePayload = {
-          key: authorizeBody.key,
+          url: uploadedUrl,
+          publicId: authorizeBody.publicId,
+          resourceType:
+            typeof uploadResult.resource_type === 'string'
+              ? uploadResult.resource_type
+              : 'raw',
           name: authorizeBody.fileName,
           size: file.size,
           type: file.type || 'application/octet-stream',
@@ -515,44 +547,19 @@ export function TempChatRoom({ code }: { code: string }) {
     }
   }
 
-  async function downloadFile(message: ChatMessage) {
-    const token = getStoredToken();
-
-    if (!token) {
+  function downloadFile(message: ChatMessage) {
+    if (!message.file?.url) {
       return;
     }
 
-    try {
-      const response = await fetch(`/api/temp-chats/${code}/files`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ messageId: message.id }),
-      });
-      const body = await readJsonResponse(response);
-      const url =
-        isJsonObject(body) && typeof body.url === 'string'
-          ? body.url
-          : undefined;
+    const anchor = document.createElement('a');
 
-      if (!response.ok || !url) {
-        throw new Error(getJsonError(body) ?? strings.linkFailed);
-      }
-
-      const anchor = document.createElement('a');
-
-      anchor.href = url;
-      anchor.rel = 'noopener';
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-    } catch (caughtError) {
-      setError(
-        caughtError instanceof Error ? caughtError.message : strings.linkFailed,
-      );
-    }
+    anchor.href = message.file.url;
+    anchor.rel = 'noopener';
+    anchor.target = '_blank';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
   }
 
   async function deleteChat(close: () => void) {

@@ -5,7 +5,8 @@ import { lte, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import { shortUrls, tempChatMessages, tempChats } from '@/db/schema';
 import { noStoreJson, requireDatabase } from '@/lib/api-response';
-import { deleteR2Objects } from '@/lib/r2';
+import { deleteCloudinaryPublicIds } from '@/lib/cloudinary-media';
+import { isTempChatResourceType } from '@/lib/temp-chat';
 import { cleanupExpiredPendingMediaUploads } from '@/lib/pending-media-uploads';
 import { getTinyUrlRetentionThreshold } from '@/lib/tiny-url';
 import { cleanupExpiredRateLimits } from '@/utils/rate-limit';
@@ -54,14 +55,29 @@ export async function GET(request: Request) {
     const expiredChatKeys =
       expiredChatIds.length > 0
         ? await db
-            .select({ fileKey: tempChatMessages.fileKey })
+            .select({
+              filePublicId: tempChatMessages.filePublicId,
+              fileResourceType: tempChatMessages.fileResourceType,
+            })
             .from(tempChatMessages)
             .where(inArray(tempChatMessages.chatId, expiredChatIds))
         : [];
-    const chatFiles = await deleteR2Objects(
-      expiredChatKeys
-        .map((row) => row.fileKey)
-        .filter((fileKey): fileKey is string => Boolean(fileKey)),
+    const chatFiles = await deleteCloudinaryPublicIds(
+      expiredChatKeys.flatMap((row) => {
+        if (
+          !row.filePublicId ||
+          !isTempChatResourceType(row.fileResourceType)
+        ) {
+          return [];
+        }
+
+        return [
+          {
+            publicId: row.filePublicId,
+            resourceType: row.fileResourceType,
+          },
+        ];
+      }),
     );
     const deletedChatRows =
       expiredChatIds.length > 0

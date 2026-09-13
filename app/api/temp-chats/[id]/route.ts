@@ -2,12 +2,13 @@ import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { tempChatMessages, tempChats } from '@/db/schema';
-import { deleteR2Objects } from '@/lib/r2';
+import { deleteCloudinaryPublicIds } from '@/lib/cloudinary-media';
 import { noStoreJson, requireDatabase } from '@/lib/api-response';
 import {
   getActiveTempChatByCode,
   getTempChatOwnerToken,
   isTempChatOwnerTokenEqual,
+  isTempChatResourceType,
   TEMP_CHAT_CODE_PATTERN,
 } from '@/lib/temp-chat';
 import { getRequestLocale, translations } from '@/utils/i18n';
@@ -83,14 +84,29 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   const attachments = await db
-    .select({ fileKey: tempChatMessages.fileKey })
+    .select({
+      filePublicId: tempChatMessages.filePublicId,
+      fileResourceType: tempChatMessages.fileResourceType,
+    })
     .from(tempChatMessages)
     .where(eq(tempChatMessages.chatId, chat.id));
 
-  const deleteResult = await deleteR2Objects(
-    attachments
-      .map((attachment) => attachment.fileKey)
-      .filter((fileKey): fileKey is string => Boolean(fileKey)),
+  const deleteResult = await deleteCloudinaryPublicIds(
+    attachments.flatMap((attachment) => {
+      if (
+        !attachment.filePublicId ||
+        !isTempChatResourceType(attachment.fileResourceType)
+      ) {
+        return [];
+      }
+
+      return [
+        {
+          publicId: attachment.filePublicId,
+          resourceType: attachment.fileResourceType,
+        },
+      ];
+    }),
   );
 
   if (deleteResult.failed > 0) {

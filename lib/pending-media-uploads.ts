@@ -77,7 +77,12 @@ async function cleanupPendingPublicIds(
   await removePendingRows(referenced);
 
   const { completedPublicIds, ...deleteResult } =
-    await deleteCloudinaryPublicIds(unreferenced);
+    await deleteCloudinaryPublicIds(
+      unreferenced.map((publicId) => ({
+        publicId,
+        resourceType: 'image' as const,
+      })),
+    );
 
   await removePendingRows(completedPublicIds);
 

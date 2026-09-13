@@ -7,10 +7,13 @@ import {
   readJsonObjectBody,
   requireDatabase,
 } from '@/lib/api-response';
+import { getCloudinaryConfig } from '@/lib/cloudinary-media';
 import {
+  buildTempChatDeliveryUrl,
   getActiveTempChatByCode,
   getTempChatBearerToken,
-  isTempChatFileKey,
+  isTempChatFilePublicId,
+  isTempChatResourceType,
   sanitizeTempChatFileName,
   verifyTempChatMemberToken,
   TEMP_CHAT_CODE_PATTERN,
@@ -18,6 +21,7 @@ import {
   TEMP_CHAT_MAX_MESSAGE_LENGTH,
 } from '@/lib/temp-chat';
 import { getRequestLocale, translations } from '@/utils/i18n';
+import { getCloudinaryPublicIdFromUrl } from '@/utils/media';
 import { checkDurableRateLimit } from '@/utils/rate-limit';
 
 export const runtime = 'nodejs';
@@ -27,7 +31,6 @@ const READ_RATE_WINDOW_MS = 60 * 1_000;
 const POST_RATE_LIMIT = 20;
 const POST_RATE_WINDOW_MS = 10 * 60 * 1_000;
 const MAX_POST_BODY_BYTES = 96 * 1_024;
-const MAX_MESSAGES_PER_REQUEST = 200;
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -100,7 +103,7 @@ export async function GET(request: Request, context: RouteContext) {
         : eq(tempChatMessages.chatId, chat.id),
     )
     .orderBy(asc(tempChatMessages.createdAt))
-    .limit(MAX_MESSAGES_PER_REQUEST);
+    .limit(200);
 
   return noStoreJson({
     messages: rows.map((row) => ({
@@ -109,8 +112,9 @@ export async function GET(request: Request, context: RouteContext) {
       authorName: row.authorName,
       content: row.content ?? undefined,
       createdAt: row.createdAt.toISOString(),
-      file: row.fileKey
+      file: row.fileUrl
         ? {
+            url: buildTempChatDeliveryUrl(row.fileUrl, row.fileName ?? 'file'),
             name: row.fileName ?? 'file',
             size: row.fileSize ?? 0,
             type: row.fileType ?? undefined,
@@ -185,7 +189,9 @@ export async function POST(request: Request, context: RouteContext) {
 
   let fileValues:
     | {
-        fileKey: string;
+        fileUrl: string;
+        filePublicId: string;
+        fileResourceType: string;
         fileName: string;
         fileType: string;
         fileSize: number;
@@ -193,13 +199,34 @@ export async function POST(request: Request, context: RouteContext) {
     | undefined;
 
   if (file) {
-    const fileKey = file.key;
-    const rawSize = file.size;
+    const storageConfig = getCloudinaryConfig();
+    const fileUrl =
+      typeof file.url === 'string' &&
+      file.url.startsWith('https://res.cloudinary.com/')
+        ? file.url
+        : undefined;
+    const filePublicId =
+      typeof file.publicId === 'string' ? file.publicId : undefined;
+    const fileResourceType = isTempChatResourceType(file.resourceType)
+      ? file.resourceType
+      : undefined;
 
-    if (!isTempChatFileKey(chat.id, fileKey)) {
+    if (
+      !storageConfig ||
+      !fileUrl ||
+      !filePublicId ||
+      !fileResourceType ||
+      !isTempChatFilePublicId(chat.id, filePublicId) ||
+      !fileUrl.startsWith(
+        `https://res.cloudinary.com/${storageConfig.cloudName}/${fileResourceType}/upload/`,
+      ) ||
+      getCloudinaryPublicIdFromUrl(fileUrl, storageConfig.cloudName) !==
+        filePublicId
+    ) {
       return noStoreJson({ error: strings.uploadFailed }, { status: 400 });
     }
 
+    const rawSize = file.size;
     const fileSize =
       typeof rawSize === 'number' && Number.isSafeInteger(rawSize)
         ? rawSize
@@ -215,7 +242,9 @@ export async function POST(request: Request, context: RouteContext) {
         : 'application/octet-stream';
 
     fileValues = {
-      fileKey,
+      fileUrl,
+      filePublicId,
+      fileResourceType,
       fileName: sanitizeTempChatFileName(
         typeof file.name === 'string' ? file.name : '',
       ),
@@ -232,7 +261,9 @@ export async function POST(request: Request, context: RouteContext) {
         memberId: member.memberId,
         authorName: member.name,
         content: hasContent ? content : null,
-        fileKey: fileValues?.fileKey ?? null,
+        fileUrl: fileValues?.fileUrl ?? null,
+        filePublicId: fileValues?.filePublicId ?? null,
+        fileResourceType: fileValues?.fileResourceType ?? null,
         fileName: fileValues?.fileName ?? null,
         fileType: fileValues?.fileType ?? null,
         fileSize: fileValues?.fileSize ?? null,
@@ -251,8 +282,12 @@ export async function POST(request: Request, context: RouteContext) {
           authorName: row.authorName,
           content: row.content ?? undefined,
           createdAt: row.createdAt.toISOString(),
-          file: row.fileKey
+          file: row.fileUrl
             ? {
+                url: buildTempChatDeliveryUrl(
+                  row.fileUrl,
+                  row.fileName ?? 'file',
+                ),
                 name: row.fileName ?? 'file',
                 size: row.fileSize ?? 0,
                 type: row.fileType ?? undefined,

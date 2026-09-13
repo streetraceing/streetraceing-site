@@ -50,9 +50,12 @@ export function createCloudinarySignature(
     .digest('hex');
 }
 
+export type CloudinaryResourceType = 'image' | 'video' | 'raw';
+
 async function deleteCloudinaryAsset(
   config: CloudinaryConfig,
   publicId: string,
+  resourceType: CloudinaryResourceType,
 ): Promise<'deleted' | 'not-found'> {
   const timestamp = Math.floor(Date.now() / 1_000);
   const parameters = {
@@ -72,7 +75,7 @@ async function deleteCloudinaryAsset(
   body.set('timestamp', String(timestamp));
 
   const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${encodeURIComponent(config.cloudName)}/image/destroy`,
+    `https://api.cloudinary.com/v1_1/${encodeURIComponent(config.cloudName)}/${resourceType}/destroy`,
     {
       method: 'POST',
       body,
@@ -107,24 +110,29 @@ async function deleteCloudinaryAsset(
   throw new Error('Cloudinary returned an unexpected destroy result.');
 }
 
+export type CloudinaryPublicIdEntry = {
+  publicId: string;
+  resourceType?: CloudinaryResourceType;
+};
+
 export async function deleteCloudinaryPublicIds(
-  values: string[],
+  entries: CloudinaryPublicIdEntry[],
 ): Promise<CloudinaryPublicIdDeleteResult> {
-  const publicIds = [...new Set(values.filter(Boolean))];
+  const publicIdEntries = entries.filter((entry) => Boolean(entry.publicId));
   const config = getCloudinaryConfig();
 
   if (!config) {
-    if (publicIds.length > 0) {
+    if (publicIdEntries.length > 0) {
       console.error(
         'Cloudinary deletion is unavailable because its credentials are incomplete.',
       );
     }
 
     return {
-      requested: publicIds.length,
+      requested: publicIdEntries.length,
       deleted: 0,
       notFound: 0,
-      failed: publicIds.length,
+      failed: publicIdEntries.length,
       completedPublicIds: [],
     };
   }
@@ -133,12 +141,12 @@ export async function deleteCloudinaryPublicIds(
   let nextIndex = 0;
 
   async function deleteNextAsset() {
-    while (nextIndex < publicIds.length) {
+    while (nextIndex < publicIdEntries.length) {
       const index = nextIndex;
       nextIndex += 1;
-      const publicId = publicIds[index];
+      const entry = publicIdEntries[index];
 
-      if (!publicId) {
+      if (!entry) {
         continue;
       }
 
@@ -147,38 +155,48 @@ export async function deleteCloudinaryPublicIds(
       }
 
       try {
-        outcomes.set(publicId, await deleteCloudinaryAsset(config, publicId));
+        outcomes.set(
+          entry.publicId,
+          await deleteCloudinaryAsset(
+            config,
+            entry.publicId,
+            entry.resourceType ?? 'image',
+          ),
+        );
       } catch (error) {
         console.error(
-          `Could not delete Cloudinary asset "${publicId}".`,
+          `Could not delete Cloudinary asset "${entry.publicId}".`,
           error,
         );
-        outcomes.set(publicId, 'failed');
+        outcomes.set(entry.publicId, 'failed');
       }
     }
   }
 
   await Promise.all(
     Array.from(
-      { length: Math.min(CLOUDINARY_DELETE_CONCURRENCY, publicIds.length) },
+      {
+        length: Math.min(CLOUDINARY_DELETE_CONCURRENCY, publicIdEntries.length),
+      },
       () => deleteNextAsset(),
     ),
   );
 
-  const completedPublicIds = publicIds.filter(
-    (publicId) => outcomes.get(publicId) !== 'failed',
-  );
+  const completedPublicIds = publicIdEntries
+    .map((entry) => entry.publicId)
+    .filter((publicId) => outcomes.get(publicId) !== 'failed');
 
   return {
-    requested: publicIds.length,
-    deleted: publicIds.filter(
-      (publicId) => outcomes.get(publicId) === 'deleted',
+    requested: publicIdEntries.length,
+    deleted: publicIdEntries.filter(
+      (entry) => outcomes.get(entry.publicId) === 'deleted',
     ).length,
-    notFound: publicIds.filter(
-      (publicId) => outcomes.get(publicId) === 'not-found',
+    notFound: publicIdEntries.filter(
+      (entry) => outcomes.get(entry.publicId) === 'not-found',
     ).length,
-    failed: publicIds.filter((publicId) => outcomes.get(publicId) === 'failed')
-      .length,
+    failed: publicIdEntries.filter(
+      (entry) => outcomes.get(entry.publicId) === 'failed',
+    ).length,
     completedPublicIds,
   };
 }
@@ -207,7 +225,9 @@ export async function deleteCloudinaryMedia(
         .filter((publicId): publicId is string => Boolean(publicId)),
     ),
   ];
-  const deletionResult = await deleteCloudinaryPublicIds(publicIds);
+  const deletionResult = await deleteCloudinaryPublicIds(
+    publicIds.map((publicId) => ({ publicId, resourceType: 'image' as const })),
+  );
 
   return {
     requested: deletionResult.requested,

@@ -16,6 +16,19 @@ export const TEMP_CHAT_FILE_PREFIX = 'temp-chat/';
 
 export const TEMP_CHAT_OWNER_COOKIE = 'temp-chat-owner';
 
+export const TEMP_CHAT_RESOURCE_TYPES = ['image', 'video', 'raw'] as const;
+
+export type TempChatResourceType = (typeof TEMP_CHAT_RESOURCE_TYPES)[number];
+
+export function isTempChatResourceType(
+  value: unknown,
+): value is TempChatResourceType {
+  return (
+    typeof value === 'string' &&
+    (TEMP_CHAT_RESOURCE_TYPES as readonly string[]).includes(value)
+  );
+}
+
 export function isTempChatTtlHours(value: unknown): value is TempChatTtlHours {
   return (
     typeof value === 'number' &&
@@ -41,13 +54,13 @@ export function isTempChatAuthorNameValid(value: string) {
   );
 }
 
-/** Builds the R2 object key for a chat attachment. */
-export function buildTempChatFileKey(chatId: string, fileId: string) {
+/** Builds the Cloudinary public id for a chat attachment. */
+export function buildTempChatPublicId(chatId: string, fileId: string) {
   return `${TEMP_CHAT_FILE_PREFIX}${chatId}/${fileId}`;
 }
 
-/** Only keys that belong to the given chat may be attached to its messages. */
-export function isTempChatFileKey(
+/** Only public ids that belong to the given chat may be attached to it. */
+export function isTempChatFilePublicId(
   chatId: string,
   value: unknown,
 ): value is string {
@@ -59,7 +72,7 @@ export function isTempChatFileKey(
 }
 
 /** Strips path segments and control characters from a client-supplied file
- * name so it is safe to store and to place into a Content-Disposition header. */
+ * name so it is safe to store and to place into a delivery URL. */
 export function sanitizeTempChatFileName(value: string) {
   const baseName = value
     .split(/[\\/]/)
@@ -99,15 +112,19 @@ export function formatTempChatFileSize(bytes: number, locale: string) {
   return `${rounded.toLocaleString(locale)} ${units[unitIndex]}`;
 }
 
-/** Builds an ASCII-safe Content-Disposition header so R2 serves the download
- * with the original (transliteration-safe) file name. */
-export function buildTempChatContentDisposition(fileName: string) {
-  const asciiName =
-    fileName
-      .replace(/[^\x20-\x7e]/g, '_')
-      .replace(/["\\]/g, '_')
-      .replace(/\s+/g, ' ')
-      .trim() || 'file';
+/** Appends the fl_attachment delivery transformation so the original file
+ * name is preserved when the browser downloads the attachment. */
+export function buildTempChatDeliveryUrl(url: string, fileName: string) {
+  const uploadMarker = '/upload/';
 
-  return `attachment; filename="${asciiName}"`;
+  if (!url.includes(uploadMarker)) {
+    return url;
+  }
+
+  const attachmentName = fileName.replace(/["\\]/g, '').trim() || 'file';
+
+  return url.replace(
+    uploadMarker,
+    `${uploadMarker}fl_attachment:${encodeURIComponent(attachmentName)}/`,
+  );
 }

@@ -464,7 +464,7 @@ export const mainPageConfig: MainPageConfig = {
       tags: [
         text('Чат', 'Chat'),
         text('Файлы', 'Files'),
-        text('Cloudflare R2', 'Cloudflare R2'),
+        text('Автоудаление', 'Auto-delete'),
       ],
     },
     {

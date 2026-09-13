@@ -1,13 +1,15 @@
 import {
+  createCloudinarySignature,
+  getCloudinaryConfig,
+} from '@/lib/cloudinary-media';
+import {
   noStoreJson,
   readJsonObjectBody,
   requireDatabase,
 } from '@/lib/api-response';
-import { createR2PresignedPutUrl, getR2Config } from '@/lib/r2';
 import {
-  buildTempChatContentDisposition,
-  buildTempChatFileKey,
-  createTempChatMemberId,
+  buildTempChatPublicId,
+  createTempChatFileId,
   getActiveTempChatByCode,
   getTempChatBearerToken,
   sanitizeTempChatFileName,
@@ -23,7 +25,6 @@ export const runtime = 'nodejs';
 
 const UPLOAD_RATE_LIMIT = 10;
 const UPLOAD_RATE_WINDOW_MS = 15 * 60 * 1_000;
-const UPLOAD_URL_EXPIRES_IN = 5 * 60;
 const MAX_AUTHORIZE_BODY_BYTES = 2 * 1_024;
 
 type RouteContext = {
@@ -38,7 +39,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const strings = translations[getRequestLocale(request)].tempChat;
-  const storageConfig = getR2Config();
+  const storageConfig = getCloudinaryConfig();
 
   if (!storageConfig) {
     return noStoreJson({ error: strings.storageUnavailable }, { status: 503 });
@@ -105,25 +106,21 @@ export async function POST(request: Request, context: RouteContext) {
       ? bodyResult.value.type.slice(0, 128)
       : 'application/octet-stream';
 
-  try {
-    const key = buildTempChatFileKey(chat.id, createTempChatMemberId());
-    const contentDisposition = buildTempChatContentDisposition(fileName);
-    const uploadUrl = await createR2PresignedPutUrl(key, {
-      expiresIn: UPLOAD_URL_EXPIRES_IN,
-      contentDisposition,
-    });
+  const publicId = buildTempChatPublicId(chat.id, createTempChatFileId());
+  const timestamp = Math.floor(Date.now() / 1_000);
 
-    return noStoreJson({
-      key,
-      uploadUrl,
-      expiresIn: UPLOAD_URL_EXPIRES_IN,
-      fileName,
-      fileType,
-      fileSize,
-      contentDisposition,
-    });
-  } catch (error) {
-    console.error('Could not sign a temp chat upload.', error);
-    return noStoreJson({ error: strings.uploadFailed }, { status: 500 });
-  }
+  return noStoreJson({
+    apiKey: storageConfig.apiKey,
+    cloudName: storageConfig.cloudName,
+    fileName,
+    fileSize,
+    fileType,
+    publicId,
+    signature: createCloudinarySignature(
+      { public_id: publicId, timestamp },
+      storageConfig.apiSecret,
+    ),
+    timestamp,
+    uploadUrl: `https://api.cloudinary.com/v1_1/${storageConfig.cloudName}/auto/upload`,
+  });
 }

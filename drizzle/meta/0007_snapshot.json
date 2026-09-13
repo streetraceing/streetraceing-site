@@ -1,5 +1,5 @@
 {
-  "id": "f567a0b6-6554-419f-a743-7d43001a4a5e",
+  "id": "41012937-1ead-443c-96fd-3cfc9d287d9a",
   "prevId": "9db25f1a-1a13-4de7-a933-c2e1d5f984cd",
   "version": "7",
   "dialect": "postgresql",
@@ -356,9 +356,21 @@
           "primaryKey": false,
           "notNull": false
         },
-        "file_key": {
-          "name": "file_key",
+        "file_url": {
+          "name": "file_url",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_public_id": {
+          "name": "file_public_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_resource_type": {
+          "name": "file_resource_type",
+          "type": "varchar(16)",
           "primaryKey": false,
           "notNull": false
         },

@@ -2,12 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  buildTempChatContentDisposition,
-  buildTempChatFileKey,
+  buildTempChatDeliveryUrl,
+  buildTempChatPublicId,
   formatTempChatFileSize,
   getTempChatExpirationDate,
   isTempChatAuthorNameValid,
-  isTempChatFileKey,
+  isTempChatFilePublicId,
+  isTempChatResourceType,
   isTempChatTtlHours,
   normalizeTempChatAuthorName,
   sanitizeTempChatFileName,
@@ -21,6 +22,14 @@ test('validates temp chat TTL values', () => {
   assert.equal(isTempChatTtlHours(null), false);
 });
 
+test('validates cloudinary resource types', () => {
+  assert.equal(isTempChatResourceType('image'), true);
+  assert.equal(isTempChatResourceType('video'), true);
+  assert.equal(isTempChatResourceType('raw'), true);
+  assert.equal(isTempChatResourceType('auto'), false);
+  assert.equal(isTempChatResourceType(undefined), false);
+});
+
 test('normalizes author names', () => {
   assert.equal(
     normalizeTempChatAuthorName('  Андрей   Иванов '),
@@ -31,15 +40,18 @@ test('normalizes author names', () => {
   assert.equal(isTempChatAuthorNameValid('x'.repeat(41)), false);
 });
 
-test('builds and validates chat file keys', () => {
+test('builds and validates chat attachment public ids', () => {
   const chatId = '0b7b8f78-0f2e-4d1f-9c9d-a0cf3f4f6f01';
-  const key = buildTempChatFileKey(chatId, 'abc123');
+  const publicId = buildTempChatPublicId(chatId, 'abc123');
 
-  assert.equal(key, `temp-chat/${chatId}/abc123`);
-  assert.equal(isTempChatFileKey(chatId, key), true);
-  assert.equal(isTempChatFileKey(chatId, 'temp-chat/other-chat/abc123'), false);
-  assert.equal(isTempChatFileKey(chatId, `temp-chat/${chatId}/`), false);
-  assert.equal(isTempChatFileKey(chatId, 42), false);
+  assert.equal(publicId, `temp-chat/${chatId}/abc123`);
+  assert.equal(isTempChatFilePublicId(chatId, publicId), true);
+  assert.equal(
+    isTempChatFilePublicId(chatId, 'temp-chat/other-chat/abc123'),
+    false,
+  );
+  assert.equal(isTempChatFilePublicId(chatId, `temp-chat/${chatId}/`), false);
+  assert.equal(isTempChatFilePublicId(chatId, 42), false);
 });
 
 test('sanitizes client file names', () => {
@@ -53,14 +65,17 @@ test('sanitizes client file names', () => {
   assert.equal(sanitizeTempChatFileName(`${'a'.repeat(300)}.txt`).length, 200);
 });
 
-test('builds ascii-safe content disposition headers', () => {
+test('appends the attachment delivery transformation', () => {
+  const url =
+    'https://res.cloudinary.com/demo/raw/upload/temp-chat/chat-1/abc123';
+
   assert.equal(
-    buildTempChatContentDisposition('report.pdf'),
-    'attachment; filename="report.pdf"',
+    buildTempChatDeliveryUrl(url, 'report.pdf'),
+    'https://res.cloudinary.com/demo/raw/upload/fl_attachment:report.pdf/temp-chat/chat-1/abc123',
   );
   assert.equal(
-    buildTempChatContentDisposition('отчёт.pdf'),
-    'attachment; filename="_____.pdf"',
+    buildTempChatDeliveryUrl('https://example.com/file', 'report.pdf'),
+    'https://example.com/file',
   );
 });
 

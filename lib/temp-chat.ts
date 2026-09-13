@@ -2,6 +2,7 @@ import {
   createHash,
   createHmac,
   randomBytes,
+  randomUUID,
   scrypt as scryptCallback,
   timingSafeEqual,
 } from 'node:crypto';
@@ -50,6 +51,10 @@ export function createTempChatOwnerToken() {
 
 export function createTempChatMemberId() {
   return randomBytes(16).toString('base64url');
+}
+
+export function createTempChatFileId() {
+  return randomUUID();
 }
 
 export async function hashTempChatPassword(password: string) {
