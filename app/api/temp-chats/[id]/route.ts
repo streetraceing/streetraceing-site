@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { tempChatMessages, tempChats } from '@/db/schema';
 import { deleteCloudinaryPublicIds } from '@/lib/cloudinary-media';
 import { noStoreJson, requireDatabase } from '@/lib/api-response';
+import { deleteR2Objects } from '@/lib/r2';
 import {
   getActiveTempChatByCode,
   getTempChatOwnerToken,
@@ -85,31 +86,55 @@ export async function DELETE(request: Request, context: RouteContext) {
 
   const attachments = await db
     .select({
-      filePublicId: tempChatMessages.filePublicId,
+      fileProvider: tempChatMessages.fileProvider,
+      filePath: tempChatMessages.filePath,
       fileResourceType: tempChatMessages.fileResourceType,
     })
     .from(tempChatMessages)
     .where(eq(tempChatMessages.chatId, chat.id));
 
-  const deleteResult = await deleteCloudinaryPublicIds(
-    attachments.flatMap((attachment) => {
-      if (
-        !attachment.filePublicId ||
-        !isTempChatResourceType(attachment.fileResourceType)
-      ) {
-        return [];
-      }
+  const cloudinaryEntries = attachments.flatMap((attachment) => {
+    if (
+      attachment.fileProvider === 'r2' ||
+      !attachment.filePath ||
+      !isTempChatResourceType(attachment.fileResourceType)
+    ) {
+      return [];
+    }
 
-      return [
-        {
-          publicId: attachment.filePublicId,
-          resourceType: attachment.fileResourceType,
-        },
-      ];
-    }),
-  );
+    return [
+      {
+        publicId: attachment.filePath,
+        resourceType: attachment.fileResourceType,
+      },
+    ];
+  });
+  const r2Keys = attachments
+    .filter(
+      (attachment) =>
+        attachment.fileProvider === 'r2' && Boolean(attachment.filePath),
+    )
+    .map((attachment) => attachment.filePath as string);
 
-  if (deleteResult.failed > 0) {
+  const emptyCloudinaryResult = {
+    requested: 0,
+    deleted: 0,
+    notFound: 0,
+    failed: 0,
+    completedPublicIds: [] as string[],
+  };
+  const emptyR2Result = { requested: 0, deleted: 0, failed: 0 };
+
+  const [cloudinaryResult, r2Result] = await Promise.all([
+    cloudinaryEntries.length > 0
+      ? deleteCloudinaryPublicIds(cloudinaryEntries)
+      : Promise.resolve(emptyCloudinaryResult),
+    r2Keys.length > 0
+      ? deleteR2Objects(r2Keys)
+      : Promise.resolve(emptyR2Result),
+  ]);
+
+  if (cloudinaryResult.failed + r2Result.failed > 0) {
     return noStoreJson({ error: strings.deleteFailed }, { status: 502 });
   }
 

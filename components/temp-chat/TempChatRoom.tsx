@@ -49,7 +49,8 @@ type ChatMeta = {
 };
 
 type ChatMessageFile = {
-  url: string;
+  provider: 'cloudinary' | 'r2';
+  url?: string;
   name: string;
   size: number;
   type?: string;
@@ -433,9 +434,9 @@ export function TempChatRoom({ code }: { code: string }) {
     try {
       let filePayload:
         | {
-            url: string;
-            publicId: string;
-            resourceType: string;
+            provider: 'cloudinary' | 'r2';
+            url?: string;
+            publicId?: string;
             name: string;
             size: number;
             type: string;
@@ -466,54 +467,88 @@ export function TempChatRoom({ code }: { code: string }) {
           !authorizeResponse.ok ||
           !isJsonObject(authorizeBody) ||
           typeof authorizeBody.uploadUrl !== 'string' ||
-          typeof authorizeBody.publicId !== 'string' ||
-          typeof authorizeBody.apiKey !== 'string' ||
-          typeof authorizeBody.signature !== 'string' ||
-          typeof authorizeBody.timestamp !== 'number' ||
-          typeof authorizeBody.fileName !== 'string'
+          typeof authorizeBody.fileName !== 'string' ||
+          (authorizeBody.provider !== 'cloudinary' &&
+            authorizeBody.provider !== 'r2')
         ) {
           throw new Error(getJsonError(authorizeBody) ?? strings.uploadFailed);
         }
 
-        const uploadBody = new FormData();
+        if (authorizeBody.provider === 'cloudinary') {
+          if (
+            typeof authorizeBody.publicId !== 'string' ||
+            typeof authorizeBody.apiKey !== 'string' ||
+            typeof authorizeBody.signature !== 'string' ||
+            typeof authorizeBody.timestamp !== 'number'
+          ) {
+            throw new Error(strings.uploadFailed);
+          }
 
-        uploadBody.set('api_key', authorizeBody.apiKey);
-        uploadBody.set('file', file);
-        uploadBody.set('public_id', authorizeBody.publicId);
-        uploadBody.set('signature', authorizeBody.signature);
-        uploadBody.set('timestamp', String(authorizeBody.timestamp));
+          const uploadBody = new FormData();
 
-        const uploadResponse = await fetch(authorizeBody.uploadUrl, {
-          method: 'POST',
-          body: uploadBody,
-        });
-        const uploadResult = await readJsonResponse(uploadResponse);
-        const uploadedUrl =
-          isJsonObject(uploadResult) &&
-          typeof uploadResult.secure_url === 'string'
-            ? uploadResult.secure_url
-            : undefined;
+          uploadBody.set('api_key', authorizeBody.apiKey);
+          uploadBody.set('file', file);
+          uploadBody.set('public_id', authorizeBody.publicId);
+          uploadBody.set('signature', authorizeBody.signature);
+          uploadBody.set('timestamp', String(authorizeBody.timestamp));
 
-        if (
-          !uploadResponse.ok ||
-          !uploadedUrl ||
-          !isJsonObject(uploadResult) ||
-          uploadResult.public_id !== authorizeBody.publicId
-        ) {
-          throw new Error(strings.uploadFailed);
+          const uploadResponse = await fetch(authorizeBody.uploadUrl, {
+            method: 'POST',
+            body: uploadBody,
+          });
+          const uploadResult = await readJsonResponse(uploadResponse);
+          const uploadedUrl =
+            isJsonObject(uploadResult) &&
+            typeof uploadResult.secure_url === 'string'
+              ? uploadResult.secure_url
+              : undefined;
+
+          if (
+            !uploadResponse.ok ||
+            !uploadedUrl ||
+            !isJsonObject(uploadResult) ||
+            uploadResult.public_id !== authorizeBody.publicId
+          ) {
+            throw new Error(strings.uploadFailed);
+          }
+
+          filePayload = {
+            provider: 'cloudinary',
+            url: uploadedUrl,
+            publicId: authorizeBody.publicId,
+            name: authorizeBody.fileName,
+            size: file.size,
+            type: file.type || 'application/octet-stream',
+          };
+        } else {
+          if (
+            typeof authorizeBody.key !== 'string' ||
+            typeof authorizeBody.contentDisposition !== 'string'
+          ) {
+            throw new Error(strings.uploadFailed);
+          }
+
+          const putResponse = await fetch(authorizeBody.uploadUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+              'content-disposition': authorizeBody.contentDisposition,
+            },
+          });
+
+          if (!putResponse.ok) {
+            throw new Error(strings.uploadFailed);
+          }
+
+          filePayload = {
+            provider: 'r2',
+            publicId: authorizeBody.key,
+            name: authorizeBody.fileName,
+            size: file.size,
+            type: file.type || 'application/octet-stream',
+          };
         }
 
-        filePayload = {
-          url: uploadedUrl,
-          publicId: authorizeBody.publicId,
-          resourceType:
-            typeof uploadResult.resource_type === 'string'
-              ? uploadResult.resource_type
-              : 'raw',
-          name: authorizeBody.fileName,
-          size: file.size,
-          type: file.type || 'application/octet-stream',
-        };
         setIsUploading(false);
       }
 
@@ -547,14 +582,59 @@ export function TempChatRoom({ code }: { code: string }) {
     }
   }
 
-  function downloadFile(message: ChatMessage) {
-    if (!message.file?.url) {
+  async function downloadFile(message: ChatMessage) {
+    const file = message.file;
+
+    if (!file) {
+      return;
+    }
+
+    let url = file.url;
+
+    if (!url && file.provider === 'r2') {
+      const token = getStoredToken();
+
+      if (!token) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/temp-chats/${code}/files`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ messageId: message.id }),
+        });
+        const body = await readJsonResponse(response);
+
+        if (
+          !response.ok ||
+          !isJsonObject(body) ||
+          typeof body.url !== 'string'
+        ) {
+          throw new Error(getJsonError(body) ?? strings.linkFailed);
+        }
+
+        url = body.url;
+      } catch (caughtError) {
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : strings.linkFailed,
+        );
+        return;
+      }
+    }
+
+    if (!url) {
       return;
     }
 
     const anchor = document.createElement('a');
 
-    anchor.href = message.file.url;
+    anchor.href = url;
     anchor.rel = 'noopener';
     anchor.target = '_blank';
     document.body.appendChild(anchor);

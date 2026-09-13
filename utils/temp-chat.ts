@@ -6,7 +6,23 @@ export const TEMP_CHAT_MAX_TITLE_LENGTH = 80;
 export const TEMP_CHAT_MAX_AUTHOR_NAME_LENGTH = 40;
 export const TEMP_CHAT_MAX_MESSAGE_LENGTH = 20_000;
 export const TEMP_CHAT_MAX_FILE_NAME_LENGTH = 200;
-export const TEMP_CHAT_MAX_FILE_BYTES = 25 * 1_024 * 1_024;
+export const TEMP_CHAT_MAX_FILE_BYTES = 20 * 1_024 * 1_024;
+
+export type TempChatStorageDriver = 'cloudinary' | 'r2';
+
+export const TEMP_CHAT_STORAGE_DRIVERS = [
+  'cloudinary',
+  'r2',
+] as const satisfies readonly TempChatStorageDriver[];
+
+export function isTempChatStorageDriver(
+  value: unknown,
+): value is TempChatStorageDriver {
+  return (
+    typeof value === 'string' &&
+    (TEMP_CHAT_STORAGE_DRIVERS as readonly string[]).includes(value)
+  );
+}
 
 export const TEMP_CHAT_TTL_HOURS = [1, 6, 24, 72, 168] as const;
 
@@ -71,6 +87,51 @@ export function isTempChatFilePublicId(
   );
 }
 
+/** Derives the public id from a Cloudinary delivery URL of a chat attachment.
+ * Unlike the project media parser this accepts every resource type and the
+ * `temp-chat/` root. Returns undefined for anything else. */
+export function getTempChatPublicIdFromUrl(
+  value: string,
+  expectedCloudName: string,
+  expectedResourceType: TempChatResourceType,
+) {
+  try {
+    const url = new URL(value);
+    const path = url.pathname.split('/').filter(Boolean);
+    const versionIndex = path.findIndex(
+      (segment, index) => index > 2 && /^v\d+$/.test(segment),
+    );
+
+    if (
+      url.protocol !== 'https:' ||
+      url.hostname !== 'res.cloudinary.com' ||
+      path[0] !== expectedCloudName ||
+      path[1] !== expectedResourceType ||
+      path[2] !== 'upload' ||
+      versionIndex < 0 ||
+      versionIndex >= path.length - 1
+    ) {
+      return undefined;
+    }
+
+    const encodedPublicId = path.slice(versionIndex + 1).join('/');
+    let publicId: string;
+
+    try {
+      publicId = decodeURIComponent(encodedPublicId).replace(
+        /\.[a-z0-9]+$/i,
+        '',
+      );
+    } catch {
+      return undefined;
+    }
+
+    return publicId.startsWith(TEMP_CHAT_FILE_PREFIX) ? publicId : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Strips path segments and control characters from a client-supplied file
  * name so it is safe to store and to place into a delivery URL. */
 export function sanitizeTempChatFileName(value: string) {
@@ -127,4 +188,17 @@ export function buildTempChatDeliveryUrl(url: string, fileName: string) {
     uploadMarker,
     `${uploadMarker}fl_attachment:${encodeURIComponent(attachmentName)}/`,
   );
+}
+
+/** Builds an ASCII-safe Content-Disposition header used by the R2 driver so
+ * the object downloads with the original (transliteration-safe) file name. */
+export function buildTempChatContentDisposition(fileName: string) {
+  const asciiName =
+    fileName
+      .replace(/[^\x20-\x7e]/g, '_')
+      .replace(/["\\]/g, '_')
+      .replace(/\s+/g, ' ')
+      .trim() || 'file';
+
+  return `attachment; filename="${asciiName}"`;
 }

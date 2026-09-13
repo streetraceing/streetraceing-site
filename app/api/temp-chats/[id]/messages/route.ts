@@ -12,6 +12,7 @@ import {
   buildTempChatDeliveryUrl,
   getActiveTempChatByCode,
   getTempChatBearerToken,
+  getTempChatPublicIdFromUrl,
   isTempChatFilePublicId,
   isTempChatResourceType,
   sanitizeTempChatFileName,
@@ -21,7 +22,6 @@ import {
   TEMP_CHAT_MAX_MESSAGE_LENGTH,
 } from '@/lib/temp-chat';
 import { getRequestLocale, translations } from '@/utils/i18n';
-import { getCloudinaryPublicIdFromUrl } from '@/utils/media';
 import { checkDurableRateLimit } from '@/utils/rate-limit';
 
 export const runtime = 'nodejs';
@@ -112,9 +112,13 @@ export async function GET(request: Request, context: RouteContext) {
       authorName: row.authorName,
       content: row.content ?? undefined,
       createdAt: row.createdAt.toISOString(),
-      file: row.fileUrl
+      file: row.filePath
         ? {
-            url: buildTempChatDeliveryUrl(row.fileUrl, row.fileName ?? 'file'),
+            provider: row.fileProvider ?? 'cloudinary',
+            url:
+              row.fileProvider === 'r2' || !row.fileUrl
+                ? undefined
+                : buildTempChatDeliveryUrl(row.fileUrl, row.fileName ?? 'file'),
             name: row.fileName ?? 'file',
             size: row.fileSize ?? 0,
             type: row.fileType ?? undefined,
@@ -189,9 +193,10 @@ export async function POST(request: Request, context: RouteContext) {
 
   let fileValues:
     | {
-        fileUrl: string;
-        filePublicId: string;
-        fileResourceType: string;
+        fileProvider: string;
+        filePath: string;
+        fileUrl: string | null;
+        fileResourceType: string | null;
         fileName: string;
         fileType: string;
         fileSize: number;
@@ -199,33 +204,6 @@ export async function POST(request: Request, context: RouteContext) {
     | undefined;
 
   if (file) {
-    const storageConfig = getCloudinaryConfig();
-    const fileUrl =
-      typeof file.url === 'string' &&
-      file.url.startsWith('https://res.cloudinary.com/')
-        ? file.url
-        : undefined;
-    const filePublicId =
-      typeof file.publicId === 'string' ? file.publicId : undefined;
-    const fileResourceType = isTempChatResourceType(file.resourceType)
-      ? file.resourceType
-      : undefined;
-
-    if (
-      !storageConfig ||
-      !fileUrl ||
-      !filePublicId ||
-      !fileResourceType ||
-      !isTempChatFilePublicId(chat.id, filePublicId) ||
-      !fileUrl.startsWith(
-        `https://res.cloudinary.com/${storageConfig.cloudName}/${fileResourceType}/upload/`,
-      ) ||
-      getCloudinaryPublicIdFromUrl(fileUrl, storageConfig.cloudName) !==
-        filePublicId
-    ) {
-      return noStoreJson({ error: strings.uploadFailed }, { status: 400 });
-    }
-
     const rawSize = file.size;
     const fileSize =
       typeof rawSize === 'number' && Number.isSafeInteger(rawSize)
@@ -236,21 +214,72 @@ export async function POST(request: Request, context: RouteContext) {
       return noStoreJson({ error: strings.fileTooLarge }, { status: 400 });
     }
 
+    const fileName = sanitizeTempChatFileName(
+      typeof file.name === 'string' ? file.name : '',
+    );
     const fileType =
       typeof file.type === 'string' && file.type.length <= 128
         ? file.type
         : 'application/octet-stream';
+    const provider = file.provider;
 
-    fileValues = {
-      fileUrl,
-      filePublicId,
-      fileResourceType,
-      fileName: sanitizeTempChatFileName(
-        typeof file.name === 'string' ? file.name : '',
-      ),
-      fileType,
-      fileSize,
-    };
+    if (provider === 'r2') {
+      if (!isTempChatFilePublicId(chat.id, file.key)) {
+        return noStoreJson({ error: strings.uploadFailed }, { status: 400 });
+      }
+
+      fileValues = {
+        fileProvider: 'r2',
+        filePath: file.key,
+        fileUrl: null,
+        fileResourceType: null,
+        fileName,
+        fileType,
+        fileSize,
+      };
+    } else if (provider === 'cloudinary') {
+      const storageConfig = getCloudinaryConfig();
+      const fileUrl =
+        typeof file.url === 'string' &&
+        file.url.startsWith('https://res.cloudinary.com/')
+          ? file.url
+          : undefined;
+      const filePublicId =
+        typeof file.publicId === 'string' ? file.publicId : undefined;
+      const fileResourceType = isTempChatResourceType(file.resourceType)
+        ? file.resourceType
+        : undefined;
+
+      if (
+        !storageConfig ||
+        !fileUrl ||
+        !filePublicId ||
+        !fileResourceType ||
+        !isTempChatFilePublicId(chat.id, filePublicId) ||
+        !fileUrl.startsWith(
+          `https://res.cloudinary.com/${storageConfig.cloudName}/${fileResourceType}/upload/`,
+        ) ||
+        getTempChatPublicIdFromUrl(
+          fileUrl,
+          storageConfig.cloudName,
+          fileResourceType,
+        ) !== filePublicId
+      ) {
+        return noStoreJson({ error: strings.uploadFailed }, { status: 400 });
+      }
+
+      fileValues = {
+        fileProvider: 'cloudinary',
+        filePath: filePublicId,
+        fileUrl,
+        fileResourceType,
+        fileName,
+        fileType,
+        fileSize,
+      };
+    } else {
+      return noStoreJson({ error: strings.uploadFailed }, { status: 400 });
+    }
   }
 
   try {
@@ -261,8 +290,9 @@ export async function POST(request: Request, context: RouteContext) {
         memberId: member.memberId,
         authorName: member.name,
         content: hasContent ? content : null,
+        fileProvider: fileValues?.fileProvider ?? null,
+        filePath: fileValues?.filePath ?? null,
         fileUrl: fileValues?.fileUrl ?? null,
-        filePublicId: fileValues?.filePublicId ?? null,
         fileResourceType: fileValues?.fileResourceType ?? null,
         fileName: fileValues?.fileName ?? null,
         fileType: fileValues?.fileType ?? null,
@@ -282,12 +312,16 @@ export async function POST(request: Request, context: RouteContext) {
           authorName: row.authorName,
           content: row.content ?? undefined,
           createdAt: row.createdAt.toISOString(),
-          file: row.fileUrl
+          file: row.filePath
             ? {
-                url: buildTempChatDeliveryUrl(
-                  row.fileUrl,
-                  row.fileName ?? 'file',
-                ),
+                provider: row.fileProvider ?? 'cloudinary',
+                url:
+                  row.fileProvider === 'r2' || !row.fileUrl
+                    ? undefined
+                    : buildTempChatDeliveryUrl(
+                        row.fileUrl,
+                        row.fileName ?? 'file',
+                      ),
                 name: row.fileName ?? 'file',
                 size: row.fileSize ?? 0,
                 type: row.fileType ?? undefined,

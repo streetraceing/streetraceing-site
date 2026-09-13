@@ -456,8 +456,8 @@ export const mainPageConfig: MainPageConfig = {
       category: 'data',
       name: text('Временный чат', 'Temporary chat'),
       description: text(
-        'Чат по ссылке с автоудалением, паролем и обменом файлами до 25 МБ.',
-        'A shareable chat with auto-deletion, a password, and file sharing up to 25 MB.',
+        'Чат по ссылке с автоудалением, паролем и обменом файлами до 20 МБ.',
+        'A shareable chat with auto-deletion, a password, and file sharing up to 20 MB.',
       ),
       icon: MessagesSquare,
       status: 'available',

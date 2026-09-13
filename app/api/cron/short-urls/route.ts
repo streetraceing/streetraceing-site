@@ -6,6 +6,7 @@ import { db } from '@/db';
 import { shortUrls, tempChatMessages, tempChats } from '@/db/schema';
 import { noStoreJson, requireDatabase } from '@/lib/api-response';
 import { deleteCloudinaryPublicIds } from '@/lib/cloudinary-media';
+import { deleteR2Objects } from '@/lib/r2';
 import { isTempChatResourceType } from '@/lib/temp-chat';
 import { cleanupExpiredPendingMediaUploads } from '@/lib/pending-media-uploads';
 import { getTinyUrlRetentionThreshold } from '@/lib/tiny-url';
@@ -56,29 +57,37 @@ export async function GET(request: Request) {
       expiredChatIds.length > 0
         ? await db
             .select({
-              filePublicId: tempChatMessages.filePublicId,
+              fileProvider: tempChatMessages.fileProvider,
+              filePath: tempChatMessages.filePath,
               fileResourceType: tempChatMessages.fileResourceType,
             })
             .from(tempChatMessages)
             .where(inArray(tempChatMessages.chatId, expiredChatIds))
         : [];
-    const chatFiles = await deleteCloudinaryPublicIds(
-      expiredChatKeys.flatMap((row) => {
-        if (
-          !row.filePublicId ||
-          !isTempChatResourceType(row.fileResourceType)
-        ) {
-          return [];
-        }
+    const cloudinaryEntries = expiredChatKeys.flatMap((row) => {
+      if (
+        row.fileProvider === 'r2' ||
+        !row.filePath ||
+        !isTempChatResourceType(row.fileResourceType)
+      ) {
+        return [];
+      }
 
-        return [
-          {
-            publicId: row.filePublicId,
-            resourceType: row.fileResourceType,
-          },
-        ];
-      }),
-    );
+      return [{ publicId: row.filePath, resourceType: row.fileResourceType }];
+    });
+    const r2Keys = expiredChatKeys
+      .filter((row) => row.fileProvider === 'r2' && Boolean(row.filePath))
+      .map((row) => row.filePath as string);
+    const chatFileResults = await Promise.all([
+      cloudinaryEntries.length > 0
+        ? deleteCloudinaryPublicIds(cloudinaryEntries)
+        : Promise.resolve({ failed: 0 }),
+      r2Keys.length > 0
+        ? deleteR2Objects(r2Keys)
+        : Promise.resolve({ failed: 0 }),
+    ]);
+    const chatFilesFailed =
+      chatFileResults[0].failed + chatFileResults[1].failed;
     const deletedChatRows =
       expiredChatIds.length > 0
         ? await db
@@ -102,8 +111,7 @@ export async function GET(request: Request) {
       expiredRateLimits,
       tempChats: {
         deleted: deletedChatRows.length,
-        filesDeleted: chatFiles.deleted,
-        filesFailed: chatFiles.failed,
+        filesFailed: chatFilesFailed,
       },
     });
   } catch (error) {

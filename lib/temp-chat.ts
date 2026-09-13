@@ -12,9 +12,11 @@ export * from '@/utils/temp-chat';
 
 import {
   isTempChatAuthorNameValid,
+  isTempChatStorageDriver,
   TEMP_CHAT_MEMBER_ID_PATTERN,
   TEMP_CHAT_OWNER_COOKIE,
   TEMP_CHAT_OWNER_TOKEN_PATTERN,
+  type TempChatStorageDriver,
 } from '@/utils/temp-chat';
 import { and, eq, gt } from 'drizzle-orm';
 
@@ -30,6 +32,14 @@ export async function getActiveTempChatByCode(code: string) {
     .limit(1);
 
   return chat;
+}
+
+/** Resolves the attachment storage driver: the TEMP_CHAT_STORAGE environment
+ * variable selects 'r2', everything else falls back to Cloudinary. */
+export function getTempChatStorageDriver(): TempChatStorageDriver {
+  const configured = process.env.TEMP_CHAT_STORAGE?.trim();
+
+  return isTempChatStorageDriver(configured) ? configured : 'cloudinary';
 }
 
 const SCRYPT_KEY_LENGTH = 64;
