@@ -6,12 +6,14 @@ import {
   buildTempChatPublicId,
   formatTempChatFileSize,
   getTempChatExpirationDate,
+  getTempChatMemberTone,
   isTempChatAuthorNameValid,
   isTempChatFilePublicId,
   isTempChatResourceType,
   isTempChatTtlHours,
   normalizeTempChatAuthorName,
   sanitizeTempChatFileName,
+  TEMP_CHAT_MEMBER_TONES,
 } from '../utils/temp-chat';
 
 test('validates temp chat TTL values', () => {
@@ -84,6 +86,18 @@ test('formats file sizes for display', () => {
   assert.equal(formatTempChatFileSize(2_048, 'en-US'), '2 KB');
   assert.equal(formatTempChatFileSize(5 * 1_024 * 1_024, 'en-US'), '5 MB');
   assert.equal(formatTempChatFileSize(-1, 'en-US'), '');
+});
+
+test('derives a stable color tone per member', () => {
+  assert.equal(
+    getTempChatMemberTone('member-1'),
+    getTempChatMemberTone('member-1'),
+  );
+  assert.ok(
+    (TEMP_CHAT_MEMBER_TONES as readonly string[]).includes(
+      getTempChatMemberTone('member-1'),
+    ),
+  );
 });
 
 test('computes chat expiration from TTL hours', () => {

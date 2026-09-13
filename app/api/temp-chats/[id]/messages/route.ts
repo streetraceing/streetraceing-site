@@ -249,6 +249,23 @@ export async function POST(request: Request, context: RouteContext) {
       const fileResourceType = isTempChatResourceType(file.resourceType)
         ? file.resourceType
         : undefined;
+      const derivedPublicId =
+        storageConfig && fileUrl && fileResourceType
+          ? getTempChatPublicIdFromUrl(
+              fileUrl,
+              storageConfig.cloudName,
+              fileResourceType,
+            )
+          : undefined;
+      // Cloudinary appends the detected format (".jpg", ".png", …) to the
+      // public id inside delivery URLs, so accept that exact suffix too.
+      const publicIdMatches =
+        Boolean(derivedPublicId) &&
+        Boolean(filePublicId) &&
+        (derivedPublicId === filePublicId ||
+          Boolean(
+            filePublicId && derivedPublicId?.startsWith(`${filePublicId}.`),
+          ));
 
       if (
         !storageConfig ||
@@ -259,12 +276,16 @@ export async function POST(request: Request, context: RouteContext) {
         !fileUrl.startsWith(
           `https://res.cloudinary.com/${storageConfig.cloudName}/${fileResourceType}/upload/`,
         ) ||
-        getTempChatPublicIdFromUrl(
-          fileUrl,
-          storageConfig.cloudName,
-          fileResourceType,
-        ) !== filePublicId
+        !publicIdMatches
       ) {
+        console.error('Temp chat attachment rejected.', {
+          cloudNameConfigured: Boolean(storageConfig),
+          fileUrl: fileUrl?.slice(0, 160),
+          filePublicId,
+          fileResourceType,
+          derivedPublicId,
+        });
+
         return noStoreJson({ error: strings.uploadFailed }, { status: 400 });
       }
 

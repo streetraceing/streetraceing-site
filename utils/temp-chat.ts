@@ -149,6 +149,26 @@ export function sanitizeTempChatFileName(value: string) {
   return baseName.slice(0, TEMP_CHAT_MAX_FILE_NAME_LENGTH);
 }
 
+export const TEMP_CHAT_MEMBER_TONES = [
+  'text-accent',
+  'text-success',
+  'text-warning',
+  'text-danger',
+  'text-muted',
+] as const;
+
+/** Stable color tone for a chat member: one member keeps one tone for the
+ * whole chat. */
+export function getTempChatMemberTone(memberId: string) {
+  let hash = 0;
+
+  for (let index = 0; index < memberId.length; index += 1) {
+    hash = (hash * 31 + memberId.charCodeAt(index)) % 2_147_483_647;
+  }
+
+  return TEMP_CHAT_MEMBER_TONES[hash % TEMP_CHAT_MEMBER_TONES.length];
+}
+
 export function formatTempChatFileSize(bytes: number, locale: string) {
   if (!Number.isFinite(bytes) || bytes < 0) {
     return '';

@@ -9,6 +9,7 @@ import { getJsonError, isJsonObject, readJsonResponse } from '@/utils/json';
 import { getLocaleTag } from '@/utils/i18n';
 import {
   formatTempChatFileSize,
+  getTempChatMemberTone,
   isTempChatAuthorNameValid,
   isTempChatHistoryEntry,
   mergeTempChatHistoryEntry,
@@ -458,9 +459,7 @@ export function TempChatRoom({ code }: { code: string }) {
     }
   }
 
-  async function send(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
+  async function send() {
     const token = getStoredToken();
 
     if (!token) {
@@ -860,7 +859,7 @@ export function TempChatRoom({ code }: { code: string }) {
 
           <div
             ref={listRef}
-            className="flex max-h-[28rem] min-h-40 flex-col gap-3 overflow-y-auto rounded-2xl border bg-surface-secondary/45 p-4"
+            className="flex h-96 flex-col gap-3 overflow-y-auto rounded-2xl border bg-surface-secondary/45 p-4"
           >
             {messages.length === 0 ? (
               <Typography.Paragraph className="text-sm text-muted">
@@ -872,25 +871,21 @@ export function TempChatRoom({ code }: { code: string }) {
                   const isOwn = message.memberId === memberId;
 
                   return (
-                    <li
-                      key={message.id}
-                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`flex max-w-[85%] flex-col gap-1.5 rounded-2xl px-3.5 py-2.5 ${
-                          isOwn
-                            ? 'bg-accent-soft text-accent-soft-foreground'
-                            : 'bg-surface-tertiary'
-                        }`}
+                    <li key={message.id} className="flex flex-col gap-0.5">
+                      <span
+                        className={`text-xs font-semibold ${getTempChatMemberTone(message.memberId)}`}
                       >
-                        <span className="text-xs font-medium opacity-80">
-                          {isOwn ? strings.you : message.authorName} ·{' '}
+                        {isOwn ? strings.you : message.authorName}
+                        <span className="font-normal text-muted">
+                          {' · '}
                           {new Date(message.createdAt).toLocaleTimeString(
                             localeTag,
                             { hour: '2-digit', minute: '2-digit' },
                           )}
                         </span>
+                      </span>
 
+                      <div className="flex max-w-[85%] flex-col gap-1.5 self-start rounded-2xl rounded-tl-sm bg-surface-tertiary px-3.5 py-2.5">
                         {message.content ? (
                           <Typography.Paragraph
                             size="sm"
@@ -904,7 +899,7 @@ export function TempChatRoom({ code }: { code: string }) {
                           <Button
                             type="button"
                             size="sm"
-                            variant={isOwn ? 'secondary' : 'tertiary'}
+                            variant="tertiary"
                             onPress={() => void downloadFile(message)}
                           >
                             <Download className="size-4" />
@@ -937,7 +932,10 @@ export function TempChatRoom({ code }: { code: string }) {
 
           <Form
             className="flex flex-col gap-3"
-            onSubmit={(event) => void send(event)}
+            onSubmit={(event) => {
+              event.preventDefault();
+              void send();
+            }}
           >
             {file ? (
               <div className="flex items-center justify-between gap-2 rounded-xl border bg-surface-secondary px-3 py-2 text-sm">
@@ -973,6 +971,15 @@ export function TempChatRoom({ code }: { code: string }) {
                 variant="secondary"
                 placeholder={strings.placeholder}
                 maxLength={TEMP_CHAT_MAX_MESSAGE_LENGTH}
+                onKeyDown={(event) => {
+                  if (
+                    event.key === 'Enter' &&
+                    (event.ctrlKey || event.metaKey)
+                  ) {
+                    event.preventDefault();
+                    void send();
+                  }
+                }}
               />
             </TextField>
 
@@ -995,7 +1002,10 @@ export function TempChatRoom({ code }: { code: string }) {
                 <Send className="size-4" />
                 {strings.send}
               </Button>
-              <span className="ml-auto text-xs text-muted">
+              <span className="ml-auto hidden text-xs text-muted pointer-fine:inline">
+                {strings.sendHint}
+              </span>
+              <span className="text-xs text-muted">
                 {content.length.toLocaleString(localeTag)} /{' '}
                 {TEMP_CHAT_MAX_MESSAGE_LENGTH.toLocaleString(localeTag)}
               </span>
