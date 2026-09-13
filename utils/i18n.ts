@@ -125,8 +125,6 @@ export const translations = {
       localTitle: 'Локальная обработка',
       localDescription:
         'Клиентские инструменты выполняют вычисления в браузере. Файлы, токены и введённый текст не отправляются на сервер.',
-      featuredTitle: 'С чего начать',
-      featuredDescription: 'Избранные инструменты для быстрого старта.',
       catalogTitle: 'Весь каталог',
       catalogDescription:
         'Ищи по названию и описанию или выбери нужное направление.',
@@ -337,6 +335,12 @@ export const translations = {
       storageUnavailable: 'Хранилище файлов не настроено.',
       linkFailed: 'Не удалось получить ссылку на файл.',
       deleteChat: 'Удалить чат',
+      myChatsTitle: 'Твои чаты',
+      myChatsEmpty: 'Пока ничего нет - создай чат или открой ссылку.',
+      copyLink: 'Скопировать ссылку',
+      copied: 'Скопировано',
+      share: 'Поделиться',
+      shareFailed: 'Не удалось поделиться.',
       deleteChatTitle: 'Удалить чат?',
       deleteChatDescription:
         'Сообщения и файлы будут удалены у всех участников сразу.',
@@ -839,8 +843,6 @@ export const translations = {
       localTitle: 'Local processing',
       localDescription:
         'Client-side tools run in your browser. Files, tokens, and entered text are not sent to the server.',
-      featuredTitle: 'Start here',
-      featuredDescription: 'Featured tools for a quick start.',
       catalogTitle: 'Full catalog',
       catalogDescription:
         'Search by name and description or choose the area you need.',
@@ -1048,6 +1050,12 @@ export const translations = {
       storageUnavailable: 'File storage is not configured.',
       linkFailed: 'Could not get the file link.',
       deleteChat: 'Delete chat',
+      myChatsTitle: 'Your chats',
+      myChatsEmpty: 'Nothing here yet - create a chat or open a link.',
+      copyLink: 'Copy link',
+      copied: 'Copied',
+      share: 'Share',
+      shareFailed: 'Could not share.',
       deleteChatTitle: 'Delete the chat?',
       deleteChatDescription:
         'Messages and files will be removed for every member immediately.',

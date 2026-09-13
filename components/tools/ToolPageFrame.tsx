@@ -39,7 +39,7 @@ export function ToolPageFrame({
         </Link>
 
         <Card className="mx-auto w-full max-w-5xl overflow-hidden dark:bg-default/20">
-          <Card.Header className="gap-4 border-b bg-surface-secondary/45 py-6 sm:py-8">
+          <Card.Header className="gap-4">
             <div className="flex items-start gap-3">
               {icon ? (
                 <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-default shadow-sm">

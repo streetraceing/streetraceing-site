@@ -1,3 +1,7 @@
+DROP TABLE IF EXISTS "temp_chat_messages";
+--> statement-breakpoint
+DROP TABLE IF EXISTS "temp_chats";
+--> statement-breakpoint
 CREATE TABLE "temp_chat_messages" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"chat_id" uuid NOT NULL,

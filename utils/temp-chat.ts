@@ -173,6 +173,19 @@ export function formatTempChatFileSize(bytes: number, locale: string) {
   return `${rounded.toLocaleString(locale)} ${units[unitIndex]}`;
 }
 
+/** Builds an ASCII-safe Content-Disposition header used by the R2 driver so
+ * the object downloads with the original (transliteration-safe) file name. */
+export function buildTempChatContentDisposition(fileName: string) {
+  const asciiName =
+    fileName
+      .replace(/[^\x20-\x7e]/g, '_')
+      .replace(/["\\]/g, '_')
+      .replace(/\s+/g, ' ')
+      .trim() || 'file';
+
+  return `attachment; filename="${asciiName}"`;
+}
+
 /** Appends the fl_attachment delivery transformation so the original file
  * name is preserved when the browser downloads the attachment. */
 export function buildTempChatDeliveryUrl(url: string, fileName: string) {
@@ -190,15 +203,60 @@ export function buildTempChatDeliveryUrl(url: string, fileName: string) {
   );
 }
 
-/** Builds an ASCII-safe Content-Disposition header used by the R2 driver so
- * the object downloads with the original (transliteration-safe) file name. */
-export function buildTempChatContentDisposition(fileName: string) {
-  const asciiName =
-    fileName
-      .replace(/[^\x20-\x7e]/g, '_')
-      .replace(/["\\]/g, '_')
-      .replace(/\s+/g, ' ')
-      .trim() || 'file';
+export const TEMP_CHAT_HISTORY_STORAGE_KEY = 'temp-chat-history';
 
-  return `attachment; filename="${asciiName}"`;
+export type TempChatHistoryEntry = {
+  code: string;
+  title: string;
+  expiresAt: string;
+  isOwner: boolean;
+  joinedAt: string;
+};
+
+export function isTempChatHistoryEntry(
+  value: unknown,
+): value is TempChatHistoryEntry {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const entry = value as Record<string, unknown>;
+
+  return (
+    typeof entry.code === 'string' &&
+    TEMP_CHAT_CODE_PATTERN.test(entry.code) &&
+    typeof entry.title === 'string' &&
+    entry.title.length > 0 &&
+    typeof entry.expiresAt === 'string' &&
+    !Number.isNaN(new Date(entry.expiresAt).getTime()) &&
+    typeof entry.isOwner === 'boolean' &&
+    typeof entry.joinedAt === 'string' &&
+    !Number.isNaN(new Date(entry.joinedAt).getTime())
+  );
+}
+
+export function pruneExpiredTempChatHistory(
+  entries: TempChatHistoryEntry[],
+  now = new Date(),
+) {
+  const nowMs = now.getTime();
+
+  return entries.filter((entry) => new Date(entry.expiresAt).getTime() > nowMs);
+}
+
+/** Upserts an entry by code, keeping the original join time, newest first. */
+export function mergeTempChatHistoryEntry(
+  entries: TempChatHistoryEntry[],
+  entry: TempChatHistoryEntry,
+) {
+  const existing = entries.find((item) => item.code === entry.code);
+  const rest = entries.filter((item) => item.code !== entry.code);
+  const merged: TempChatHistoryEntry = {
+    ...entry,
+    joinedAt: existing?.joinedAt ?? entry.joinedAt,
+  };
+
+  return [merged, ...rest].sort((first, second) =>
+    second.joinedAt.localeCompare(first.joinedAt),
+  );
 }

@@ -5,11 +5,7 @@ import { ToolCard } from '@/components/projects/ToolCard';
 import { Button } from '@/components/ui/Button';
 import type { ToolCategory, ToolConfig } from '@/utils/config';
 import { getLocaleTag, getText } from '@/utils/i18n';
-import {
-  availableTools,
-  featuredTools,
-  toolCategories,
-} from '@/utils/tool-catalog';
+import { availableTools, toolCategories } from '@/utils/tool-catalog';
 import {
   Card,
   Label,
@@ -91,10 +87,6 @@ export function ToolsDirectory() {
   const hasActiveControls = Boolean(
     query.trim() || selectedCategory || sort !== 'relevance',
   );
-  const showFeatured = !hasActiveControls;
-  const catalogTools = showFeatured
-    ? tools.filter((tool) => !tool.featured)
-    : tools;
 
   function resetControls() {
     setQuery('');
@@ -104,27 +96,6 @@ export function ToolsDirectory() {
 
   return (
     <div className="flex flex-col gap-8 lg:gap-10">
-      {showFeatured && featuredTools.length > 0 ? (
-        <section
-          className="flex flex-col gap-4"
-          aria-labelledby="featured-tools-heading"
-        >
-          <div className="flex max-w-2xl flex-col gap-1">
-            <Typography.Heading id="featured-tools-heading" level={2}>
-              {strings.featuredTitle}
-            </Typography.Heading>
-            <Typography.Paragraph className="text-sm text-muted">
-              {strings.featuredDescription}
-            </Typography.Paragraph>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {featuredTools.map((tool) => (
-              <ToolCard key={tool.slug} tool={tool} featured />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
       <section
         className="flex flex-col gap-5"
         aria-labelledby="tools-catalog-heading"
@@ -286,7 +257,7 @@ export function ToolsDirectory() {
         </Card>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {catalogTools.map((tool) => (
+          {tools.map((tool) => (
             <ToolCard key={tool.slug} tool={tool} />
           ))}
           {tools.length === 0 ? (

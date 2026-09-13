@@ -14,7 +14,7 @@ type ToolCardProps = {
 };
 
 export function ToolCard({ tool, featured = false }: ToolCardProps) {
-  const { copy, locale } = useLocale();
+  const { locale } = useLocale();
   const title = getText(tool.name, locale);
   const card = (
     <Card
@@ -25,29 +25,23 @@ export function ToolCard({ tool, featured = false }: ToolCardProps) {
       )}
     >
       <Card.Header className="gap-4">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-semibold tracking-wider text-muted uppercase">
-            {copy.toolsPage.categories[tool.category]}
-          </span>
-          {tool.status === 'available' ? (
-            <ArrowUpRight className="size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          ) : (
-            <Clock3 className="size-4 shrink-0 text-muted" />
-          )}
-        </div>
-
         <div className="flex items-start gap-3">
           {tool.icon ? (
             <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-default shadow-sm">
               <tool.icon className="size-5" />
             </span>
           ) : null}
-          <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
             <Card.Title className="truncate">{title}</Card.Title>
             <Card.Description>
               {getText(tool.description, locale)}
             </Card.Description>
           </div>
+          {tool.status === 'available' ? (
+            <ArrowUpRight className="mt-1 size-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          ) : (
+            <Clock3 className="mt-1 size-4 shrink-0 text-muted" />
+          )}
         </div>
       </Card.Header>
       <Card.Content className="mt-auto">

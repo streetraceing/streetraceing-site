@@ -1,6 +1,7 @@
 'use client';
 
 import { useLocale } from '@/app/providers';
+import { useTransientValue } from '@/components/hooks/useTransientValue';
 import { ErrorAlert } from '@/components/tools/ErrorAlert';
 import { ToolPageFrame } from '@/components/tools/ToolPageFrame';
 import { Button } from '@/components/ui/Button';
@@ -9,7 +10,11 @@ import { getLocaleTag } from '@/utils/i18n';
 import {
   formatTempChatFileSize,
   isTempChatAuthorNameValid,
+  isTempChatHistoryEntry,
+  mergeTempChatHistoryEntry,
   normalizeTempChatAuthorName,
+  pruneExpiredTempChatHistory,
+  TEMP_CHAT_HISTORY_STORAGE_KEY,
   TEMP_CHAT_MAX_MESSAGE_LENGTH,
 } from '@/utils/temp-chat';
 import {
@@ -23,11 +28,14 @@ import {
   Typography,
 } from '@heroui/react';
 import {
+  Check,
   Download,
   FileText,
+  Link2,
   MessagesSquare,
   Paperclip,
   Send,
+  Share2,
   Trash2,
   X,
 } from 'lucide-react';
@@ -172,6 +180,39 @@ export function TempChatRoom({ code }: { code: string }) {
     return stored?.token;
   }, [code]);
 
+  const recordVisit = useCallback(
+    (chatMeta: ChatMeta) => {
+      try {
+        const raw = window.localStorage.getItem(TEMP_CHAT_HISTORY_STORAGE_KEY);
+        const parsed: unknown = raw ? JSON.parse(raw) : [];
+
+        if (!Array.isArray(parsed)) {
+          return;
+        }
+
+        const merged = pruneExpiredTempChatHistory(
+          mergeTempChatHistoryEntry(parsed.filter(isTempChatHistoryEntry), {
+            code,
+            title: chatMeta.title,
+            expiresAt: chatMeta.expiresAt,
+            isOwner: chatMeta.isOwner,
+            joinedAt: new Date().toISOString(),
+          }),
+        );
+
+        window.localStorage.setItem(
+          TEMP_CHAT_HISTORY_STORAGE_KEY,
+          JSON.stringify(merged),
+        );
+      } catch {
+        // History is a convenience feature; failures are safe to ignore.
+      }
+    },
+    [code],
+  );
+
+  const linkCopied = useTransientValue<string>();
+
   const applyMessages = useCallback((incoming: ChatMessage[]) => {
     if (incoming.length === 0) {
       return;
@@ -260,6 +301,13 @@ export function TempChatRoom({ code }: { code: string }) {
           isOwner: Boolean(metaBody.isOwner),
         });
 
+        recordVisit({
+          title: metaBody.title,
+          expiresAt: metaBody.expiresAt,
+          requiresPassword: Boolean(metaBody.requiresPassword),
+          isOwner: Boolean(metaBody.isOwner),
+        });
+
         const stored = readStoredMember(code);
 
         if (stored) {
@@ -287,7 +335,7 @@ export function TempChatRoom({ code }: { code: string }) {
     return () => {
       active = false;
     };
-  }, [code, loadMessages, strings.loadFailed]);
+  }, [code, loadMessages, recordVisit, strings.loadFailed]);
 
   useEffect(() => {
     if (state !== 'room') {
@@ -384,6 +432,9 @@ export function TempChatRoom({ code }: { code: string }) {
         normalizeTempChatAuthorName(name),
       );
       setMemberId(member.id);
+      if (meta) {
+        recordVisit(meta);
+      }
       await loadMessages(token);
       setState('room');
     } catch (caughtError) {
@@ -642,6 +693,36 @@ export function TempChatRoom({ code }: { code: string }) {
     anchor.remove();
   }
 
+  async function copyChatLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      linkCopied.show(strings.copied);
+    } catch {
+      linkCopied.show(strings.shareFailed);
+    }
+  }
+
+  function shareChat() {
+    const shareData = {
+      title: meta?.title ?? strings.gateTitle,
+      url: window.location.href,
+    };
+
+    if (typeof navigator.share === 'function') {
+      void navigator.share(shareData).catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
+
+        void copyChatLink();
+      });
+
+      return;
+    }
+
+    void copyChatLink();
+  }
+
   async function deleteChat(close: () => void) {
     setIsDeleting(true);
     setError(undefined);
@@ -751,6 +832,31 @@ export function TempChatRoom({ code }: { code: string }) {
           {error ? (
             <ErrorAlert title={strings.sendFailed} message={error} />
           ) : null}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onPress={() => void copyChatLink()}
+            >
+              {linkCopied.value ? (
+                <Check className="size-4" />
+              ) : (
+                <Link2 className="size-4" />
+              )}
+              {linkCopied.value ? strings.copied : strings.copyLink}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="tertiary"
+              onPress={shareChat}
+            >
+              <Share2 className="size-4" />
+              {strings.share}
+            </Button>
+          </div>
 
           <div
             ref={listRef}
