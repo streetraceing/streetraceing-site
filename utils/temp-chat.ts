@@ -45,6 +45,25 @@ export function isTempChatResourceType(
   );
 }
 
+/** Reads the resource type segment from a Cloudinary delivery URL. */
+export function getTempChatUrlResourceType(
+  value: string,
+): TempChatResourceType | undefined {
+  try {
+    const url = new URL(value);
+
+    if (url.protocol !== 'https:' || url.hostname !== 'res.cloudinary.com') {
+      return undefined;
+    }
+
+    const resourceType = url.pathname.split('/').filter(Boolean)[1];
+
+    return isTempChatResourceType(resourceType) ? resourceType : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function isTempChatTtlHours(value: unknown): value is TempChatTtlHours {
   return (
     typeof value === 'number' &&
@@ -149,17 +168,24 @@ export function sanitizeTempChatFileName(value: string) {
   return baseName.slice(0, TEMP_CHAT_MAX_FILE_NAME_LENGTH);
 }
 
-export const TEMP_CHAT_MEMBER_TONES = [
-  'text-accent',
-  'text-success',
-  'text-warning',
-  'text-danger',
-  'text-muted',
-] as const;
+export type TempChatMemberTone = {
+  /** Author name color, theme-adaptive. */
+  name: string;
+  /** Translucent bubble background tinted with the member color. */
+  bubble: string;
+};
 
-/** Stable color tone for a chat member: one member keeps one tone for the
- * whole chat. */
-export function getTempChatMemberTone(memberId: string) {
+export const TEMP_CHAT_MEMBER_TONES: readonly TempChatMemberTone[] = [
+  { name: 'text-accent-soft-foreground', bubble: 'bg-accent-soft/60' },
+  { name: 'text-success-soft-foreground', bubble: 'bg-success-soft/60' },
+  { name: 'text-warning-soft-foreground', bubble: 'bg-warning-soft/60' },
+  { name: 'text-danger-soft-foreground', bubble: 'bg-danger-soft/60' },
+  { name: 'text-muted', bubble: 'bg-default-soft/60' },
+];
+
+/** Stable soft color tone for a chat member: one member keeps one tone for
+ * the whole chat, in both light and dark themes. */
+export function getTempChatMemberTone(memberId: string): TempChatMemberTone {
   let hash = 0;
 
   for (let index = 0; index < memberId.length; index += 1) {

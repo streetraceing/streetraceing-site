@@ -487,6 +487,7 @@ export function TempChatRoom({ code }: { code: string }) {
             provider: 'cloudinary' | 'r2';
             url?: string;
             publicId?: string;
+            resourceType?: string;
             name: string;
             size: number;
             type: string;
@@ -566,6 +567,10 @@ export function TempChatRoom({ code }: { code: string }) {
             provider: 'cloudinary',
             url: uploadedUrl,
             publicId: authorizeBody.publicId,
+            resourceType:
+              typeof uploadResult.resource_type === 'string'
+                ? uploadResult.resource_type
+                : 'raw',
             name: authorizeBody.fileName,
             size: file.size,
             type: file.type || 'application/octet-stream',
@@ -869,12 +874,11 @@ export function TempChatRoom({ code }: { code: string }) {
               <ul className="flex flex-col gap-3">
                 {messages.map((message) => {
                   const isOwn = message.memberId === memberId;
+                  const tone = getTempChatMemberTone(message.memberId);
 
                   return (
                     <li key={message.id} className="flex flex-col gap-0.5">
-                      <span
-                        className={`text-xs font-semibold ${getTempChatMemberTone(message.memberId)}`}
-                      >
+                      <span className={`text-xs font-semibold ${tone.name}`}>
                         {isOwn ? strings.you : message.authorName}
                         <span className="font-normal text-muted">
                           {' · '}
@@ -885,7 +889,9 @@ export function TempChatRoom({ code }: { code: string }) {
                         </span>
                       </span>
 
-                      <div className="flex max-w-[85%] flex-col gap-1.5 self-start rounded-2xl rounded-tl-sm bg-surface-tertiary px-3.5 py-2.5">
+                      <div
+                        className={`flex max-w-[85%] flex-col gap-1.5 self-start rounded-2xl rounded-tl-sm px-3.5 py-2.5 ${tone.bubble}`}
+                      >
                         {message.content ? (
                           <Typography.Paragraph
                             size="sm"

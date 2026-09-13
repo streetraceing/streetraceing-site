@@ -93,11 +93,7 @@ test('derives a stable color tone per member', () => {
     getTempChatMemberTone('member-1'),
     getTempChatMemberTone('member-1'),
   );
-  assert.ok(
-    (TEMP_CHAT_MEMBER_TONES as readonly string[]).includes(
-      getTempChatMemberTone('member-1'),
-    ),
-  );
+  assert.ok(TEMP_CHAT_MEMBER_TONES.includes(getTempChatMemberTone('member-1')));
 });
 
 test('computes chat expiration from TTL hours', () => {

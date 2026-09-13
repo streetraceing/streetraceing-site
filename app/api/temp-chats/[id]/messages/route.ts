@@ -13,6 +13,7 @@ import {
   getActiveTempChatByCode,
   getTempChatBearerToken,
   getTempChatPublicIdFromUrl,
+  getTempChatUrlResourceType,
   isTempChatFilePublicId,
   isTempChatResourceType,
   sanitizeTempChatFileName,
@@ -224,13 +225,20 @@ export async function POST(request: Request, context: RouteContext) {
     const provider = file.provider;
 
     if (provider === 'r2') {
-      if (!isTempChatFilePublicId(chat.id, file.key)) {
+      const fileKey =
+        typeof file.key === 'string' && file.key
+          ? file.key
+          : typeof file.publicId === 'string'
+            ? file.publicId
+            : undefined;
+
+      if (!isTempChatFilePublicId(chat.id, fileKey)) {
         return noStoreJson({ error: strings.uploadFailed }, { status: 400 });
       }
 
       fileValues = {
         fileProvider: 'r2',
-        filePath: file.key,
+        filePath: fileKey,
         fileUrl: null,
         fileResourceType: null,
         fileName,
@@ -246,9 +254,13 @@ export async function POST(request: Request, context: RouteContext) {
           : undefined;
       const filePublicId =
         typeof file.publicId === 'string' ? file.publicId : undefined;
-      const fileResourceType = isTempChatResourceType(file.resourceType)
-        ? file.resourceType
-        : undefined;
+      // The URL path is the authoritative source for the resource type;
+      // the client-supplied value is only a fallback.
+      const fileResourceType =
+        (fileUrl ? getTempChatUrlResourceType(fileUrl) : undefined) ??
+        (isTempChatResourceType(file.resourceType)
+          ? file.resourceType
+          : undefined);
       const derivedPublicId =
         storageConfig && fileUrl && fileResourceType
           ? getTempChatPublicIdFromUrl(
