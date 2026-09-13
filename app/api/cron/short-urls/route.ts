@@ -1,10 +1,11 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 
-import { lte } from 'drizzle-orm';
+import { lte, inArray } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { shortUrls } from '@/db/schema';
+import { shortUrls, tempChatMessages, tempChats } from '@/db/schema';
 import { noStoreJson, requireDatabase } from '@/lib/api-response';
+import { deleteR2Objects } from '@/lib/r2';
 import { cleanupExpiredPendingMediaUploads } from '@/lib/pending-media-uploads';
 import { getTinyUrlRetentionThreshold } from '@/lib/tiny-url';
 import { cleanupExpiredRateLimits } from '@/utils/rate-limit';
@@ -45,6 +46,31 @@ export async function GET(request: Request) {
   }
 
   try {
+    const expiredChats = await db
+      .select({ id: tempChats.id })
+      .from(tempChats)
+      .where(lte(tempChats.expiresAt, new Date()));
+    const expiredChatIds = expiredChats.map((chat) => chat.id);
+    const expiredChatKeys =
+      expiredChatIds.length > 0
+        ? await db
+            .select({ fileKey: tempChatMessages.fileKey })
+            .from(tempChatMessages)
+            .where(inArray(tempChatMessages.chatId, expiredChatIds))
+        : [];
+    const chatFiles = await deleteR2Objects(
+      expiredChatKeys
+        .map((row) => row.fileKey)
+        .filter((fileKey): fileKey is string => Boolean(fileKey)),
+    );
+    const deletedChatRows =
+      expiredChatIds.length > 0
+        ? await db
+            .delete(tempChats)
+            .where(lte(tempChats.expiresAt, new Date()))
+            .returning({ id: tempChats.id })
+        : [];
+
     const deletedRows = await db
       .delete(shortUrls)
       .where(lte(shortUrls.createdAt, getTinyUrlRetentionThreshold()))
@@ -58,6 +84,11 @@ export async function GET(request: Request) {
       deleted: deletedRows.length,
       pendingMedia,
       expiredRateLimits,
+      tempChats: {
+        deleted: deletedChatRows.length,
+        filesDeleted: chatFiles.deleted,
+        filesFailed: chatFiles.failed,
+      },
     });
   } catch (error) {
     console.error('Could not complete scheduled maintenance.', error);

@@ -18,6 +18,7 @@ import {
   KeySquare,
   Link,
   LucideIcon,
+  MessagesSquare,
   Package,
   Link2,
   PackageSearch,
@@ -448,6 +449,22 @@ export const mainPageConfig: MainPageConfig = {
         text('PostgreSQL', 'PostgreSQL'),
         text('Cookies', 'Cookies'),
         text('Текст', 'Text'),
+      ],
+    },
+    {
+      slug: 'temp-chat',
+      category: 'data',
+      name: text('Временный чат', 'Temporary chat'),
+      description: text(
+        'Чат по ссылке с автоудалением, паролем и обменом файлами до 25 МБ.',
+        'A shareable chat with auto-deletion, a password, and file sharing up to 25 MB.',
+      ),
+      icon: MessagesSquare,
+      status: 'available',
+      tags: [
+        text('Чат', 'Chat'),
+        text('Файлы', 'Files'),
+        text('Cloudflare R2', 'Cloudflare R2'),
       ],
     },
     {

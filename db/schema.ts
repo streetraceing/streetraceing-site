@@ -88,3 +88,49 @@ export const rateLimitWindows = pgTable(
   },
   (table) => [index('rate_limit_windows_reset_at_idx').on(table.resetAt)],
 );
+
+export const tempChats = pgTable(
+  'temp_chats',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    code: varchar('code', { length: 12 }).notNull(),
+    title: varchar('title', { length: 80 }).notNull(),
+    passwordHash: text('password_hash'),
+    ttlHours: integer('ttl_hours').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    ownerToken: varchar('owner_token', { length: 64 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('temp_chats_code_unique').on(table.code),
+    index('temp_chats_expires_at_idx').on(table.expiresAt),
+  ],
+);
+
+export const tempChatMessages = pgTable(
+  'temp_chat_messages',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    chatId: uuid('chat_id')
+      .notNull()
+      .references(() => tempChats.id, { onDelete: 'cascade' }),
+    memberId: varchar('member_id', { length: 32 }).notNull(),
+    authorName: varchar('author_name', { length: 40 }).notNull(),
+    content: text('content'),
+    fileKey: text('file_key'),
+    fileName: text('file_name'),
+    fileType: varchar('file_type', { length: 128 }),
+    fileSize: integer('file_size'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('temp_chat_messages_chat_created_at_idx').on(
+      table.chatId,
+      table.createdAt,
+    ),
+  ],
+);

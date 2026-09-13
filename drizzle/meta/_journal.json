@@ -43,6 +43,13 @@
       "when": 1785592383701,
       "tag": "0005_shared_limits_and_documentation",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789249507862,
+      "tag": "0006_temp_chats",
+      "breakpoints": true
     }
   ]
 }
