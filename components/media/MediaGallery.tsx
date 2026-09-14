@@ -33,6 +33,8 @@ import { isJsonObject, readJsonResponse } from '@/utils/json';
 type MediaGalleryProps = {
   urls: string[];
   getAlt: (index: number) => string;
+  /** Image index to open first; defaults to the first image. */
+  initialIndex?: number;
 };
 
 type ImageMetadata = {
@@ -108,10 +110,16 @@ function formatBytes(bytes: number, locale: string) {
   }).format(value)} ${units[unitIndex]}`;
 }
 
-export function MediaGallery({ urls, getAlt }: MediaGalleryProps) {
+export function MediaGallery({
+  urls,
+  getAlt,
+  initialIndex = 0,
+}: MediaGalleryProps) {
   const { copy, locale } = useLocale();
   const strings = copy.mediaGallery;
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(() =>
+    normalizeIndex(initialIndex, urls.length),
+  );
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [pan, setPan] = useState<PanPosition>({ x: 0, y: 0 });

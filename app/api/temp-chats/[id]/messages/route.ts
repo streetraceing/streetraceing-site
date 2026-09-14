@@ -8,21 +8,24 @@ import {
   requireDatabase,
 } from '@/lib/api-response';
 import { getCloudinaryConfig } from '@/lib/cloudinary-media';
+import { createR2PresignedGetUrl, getR2Config } from '@/lib/r2';
 import {
-  buildTempChatDeliveryUrl,
   getActiveTempChatByCode,
   getTempChatBearerToken,
   getTempChatPublicIdFromUrl,
+  getTempChatStorageDriver,
   getTempChatUrlResourceType,
   isTempChatFilePublicId,
-  isTempChatResourceType,
   sanitizeTempChatFileName,
   verifyTempChatMemberToken,
   TEMP_CHAT_CODE_PATTERN,
+  TEMP_CHAT_MAX_ATTACHMENTS,
   TEMP_CHAT_MAX_FILE_BYTES,
   TEMP_CHAT_MAX_MESSAGE_LENGTH,
+  type TempChatMessageAttachment,
 } from '@/lib/temp-chat';
 import { getRequestLocale, translations } from '@/utils/i18n';
+import { getCloudinarySquareImageUrl } from '@/utils/media';
 import { checkDurableRateLimit } from '@/utils/rate-limit';
 
 export const runtime = 'nodejs';
@@ -31,7 +34,7 @@ const READ_RATE_LIMIT = 60;
 const READ_RATE_WINDOW_MS = 60 * 1_000;
 const POST_RATE_LIMIT = 20;
 const POST_RATE_WINDOW_MS = 10 * 60 * 1_000;
-const MAX_POST_BODY_BYTES = 96 * 1_024;
+const MAX_POST_BODY_BYTES = 256 * 1_024;
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -39,6 +42,169 @@ type RouteContext = {
 
 function isMessageFileValue(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+/** Validates one client-supplied attachment and builds the stored record.
+ * Returns an error string on failure. */
+function parseAttachment(
+  value: unknown,
+  chatId: string,
+  cloudName: string,
+  storageDriver: string,
+): { attachment: TempChatMessageAttachment } | { error: string } {
+  if (!isMessageFileValue(value)) {
+    return { error: 'invalid' };
+  }
+
+  const rawSize = value.size;
+  const size =
+    typeof rawSize === 'number' && Number.isSafeInteger(rawSize) ? rawSize : -1;
+
+  if (size < 1 || size > TEMP_CHAT_MAX_FILE_BYTES) {
+    return { error: 'size' };
+  }
+
+  const name = sanitizeTempChatFileName(
+    typeof value.name === 'string' ? value.name : '',
+  );
+  const type =
+    typeof value.type === 'string' && value.type.length <= 128
+      ? value.type
+      : 'application/octet-stream';
+  const provider = value.provider;
+  const clientPath =
+    typeof value.publicId === 'string'
+      ? value.publicId
+      : typeof value.key === 'string'
+        ? value.key
+        : undefined;
+
+  if (provider === 'cloudinary') {
+    const fileUrl =
+      typeof value.url === 'string' &&
+      value.url.startsWith(`https://res.cloudinary.com/${cloudName}/`)
+        ? value.url
+        : undefined;
+    const resourceType = fileUrl
+      ? getTempChatUrlResourceType(fileUrl)
+      : undefined;
+    const derivedPublicId =
+      fileUrl && resourceType
+        ? getTempChatPublicIdFromUrl(fileUrl, cloudName, resourceType)
+        : undefined;
+    // Cloudinary appends the detected format (".jpg", ".png", …) to the
+    // public id inside delivery URLs, so accept that exact suffix too.
+    const publicIdMatches =
+      Boolean(derivedPublicId) &&
+      Boolean(clientPath) &&
+      (derivedPublicId === clientPath ||
+        Boolean(clientPath && derivedPublicId?.startsWith(`${clientPath}.`)));
+
+    if (
+      !fileUrl ||
+      !clientPath ||
+      !resourceType ||
+      !isTempChatFilePublicId(chatId, clientPath) ||
+      !publicIdMatches
+    ) {
+      return { error: 'upload' };
+    }
+
+    return {
+      attachment: {
+        provider: 'cloudinary',
+        path: clientPath,
+        url: fileUrl,
+        resourceType,
+        name,
+        type,
+        size,
+      },
+    };
+  }
+
+  if (provider === 'r2') {
+    if (storageDriver !== 'r2' || !isTempChatFilePublicId(chatId, clientPath)) {
+      return { error: 'upload' };
+    }
+
+    return {
+      attachment: {
+        provider: 'r2',
+        path: clientPath,
+        url: null,
+        resourceType: null,
+        name,
+        type,
+        size,
+      },
+    };
+  }
+
+  return { error: 'provider' };
+}
+
+function buildAttachmentViews(
+  attachments: TempChatMessageAttachment[],
+  cloudName: string,
+  r2Configured: boolean,
+) {
+  const r2ExpiresIn = 30 * 60;
+
+  return attachments.map((attachment) => {
+    const isImage =
+      attachment.resourceType === 'image' ||
+      attachment.type.startsWith('image/');
+
+    if (attachment.provider === 'cloudinary' && attachment.url) {
+      return {
+        provider: 'cloudinary' as const,
+        path: attachment.path,
+        url: attachment.url,
+        previewUrl: isImage
+          ? getCloudinarySquareImageUrl(attachment.url, 320)
+          : undefined,
+        downloadUrl: attachment.url,
+        name: attachment.name,
+        size: attachment.size,
+        type: attachment.type,
+        isImage,
+      };
+    }
+
+    if (attachment.provider === 'r2' && r2Configured) {
+      try {
+        const url = createR2PresignedGetUrl(attachment.path, r2ExpiresIn);
+
+        return {
+          provider: 'r2' as const,
+          path: attachment.path,
+          url,
+          previewUrl: isImage ? url : undefined,
+          downloadUrl: url,
+          name: attachment.name,
+          size: attachment.size,
+          type: attachment.type,
+          isImage,
+        };
+      } catch {
+        // Presigning can only fail when R2 is removed mid-flight; fall
+        // through to the unconfigured view below.
+      }
+    }
+
+    return {
+      provider: attachment.provider,
+      path: attachment.path,
+      url: undefined,
+      previewUrl: undefined,
+      downloadUrl: undefined,
+      name: attachment.name,
+      size: attachment.size,
+      type: attachment.type,
+      isImage,
+    };
+  });
 }
 
 export async function GET(request: Request, context: RouteContext) {
@@ -106,6 +272,10 @@ export async function GET(request: Request, context: RouteContext) {
     .orderBy(asc(tempChatMessages.createdAt))
     .limit(200);
 
+  const storageDriver = getTempChatStorageDriver();
+  const r2Configured = storageDriver === 'r2' && Boolean(getR2Config());
+  const cloudName = getCloudinaryConfig()?.cloudName ?? '';
+
   return noStoreJson({
     messages: rows.map((row) => ({
       id: row.id,
@@ -113,18 +283,12 @@ export async function GET(request: Request, context: RouteContext) {
       authorName: row.authorName,
       content: row.content ?? undefined,
       createdAt: row.createdAt.toISOString(),
-      file: row.filePath
-        ? {
-            provider: row.fileProvider ?? 'cloudinary',
-            url:
-              row.fileProvider === 'r2' || !row.fileUrl
-                ? undefined
-                : buildTempChatDeliveryUrl(row.fileUrl, row.fileName ?? 'file'),
-            name: row.fileName ?? 'file',
-            size: row.fileSize ?? 0,
-            type: row.fileType ?? undefined,
-          }
-        : undefined,
+      editedAt: row.editedAt ? row.editedAt.toISOString() : undefined,
+      attachments: buildAttachmentViews(
+        row.attachments,
+        cloudName,
+        r2Configured,
+      ),
     })),
   });
 }
@@ -180,139 +344,50 @@ export async function POST(request: Request, context: RouteContext) {
       ? bodyResult.value.content
       : undefined;
   const hasContent = Boolean(content && content.trim().length > 0);
-  const file = isMessageFileValue(bodyResult.value.file)
-    ? bodyResult.value.file
-    : undefined;
-
-  if (hasContent === Boolean(file)) {
-    return noStoreJson({ error: strings.invalidMessage }, { status: 400 });
-  }
 
   if (content && content.length > TEMP_CHAT_MAX_MESSAGE_LENGTH) {
     return noStoreJson({ error: strings.messageTooLong }, { status: 400 });
   }
 
-  let fileValues:
-    | {
-        fileProvider: string;
-        filePath: string;
-        fileUrl: string | null;
-        fileResourceType: string | null;
-        fileName: string;
-        fileType: string;
-        fileSize: number;
-      }
-    | undefined;
+  const storageDriver = getTempChatStorageDriver();
+  const cloudName = getCloudinaryConfig()?.cloudName ?? '';
+  const clientAttachments = Array.isArray(bodyResult.value.attachments)
+    ? bodyResult.value.attachments
+    : [];
 
-  if (file) {
-    const rawSize = file.size;
-    const fileSize =
-      typeof rawSize === 'number' && Number.isSafeInteger(rawSize)
-        ? rawSize
-        : -1;
+  if (clientAttachments.length > TEMP_CHAT_MAX_ATTACHMENTS) {
+    return noStoreJson({ error: strings.attachmentsLimit }, { status: 400 });
+  }
 
-    if (fileSize < 1 || fileSize > TEMP_CHAT_MAX_FILE_BYTES) {
-      return noStoreJson({ error: strings.fileTooLarge }, { status: 400 });
-    }
+  let attachments: TempChatMessageAttachment[] | undefined;
 
-    const fileName = sanitizeTempChatFileName(
-      typeof file.name === 'string' ? file.name : '',
-    );
-    const fileType =
-      typeof file.type === 'string' && file.type.length <= 128
-        ? file.type
-        : 'application/octet-stream';
-    const provider = file.provider;
+  if (clientAttachments.length > 0) {
+    const parsed: TempChatMessageAttachment[] = [];
 
-    if (provider === 'r2') {
-      const fileKey =
-        typeof file.key === 'string' && file.key
-          ? file.key
-          : typeof file.publicId === 'string'
-            ? file.publicId
-            : undefined;
+    for (const clientAttachment of clientAttachments) {
+      const result = parseAttachment(
+        clientAttachment,
+        chat.id,
+        cloudName,
+        storageDriver,
+      );
 
-      if (!isTempChatFilePublicId(chat.id, fileKey)) {
-        return noStoreJson({ error: strings.uploadFailed }, { status: 400 });
-      }
-
-      fileValues = {
-        fileProvider: 'r2',
-        filePath: fileKey,
-        fileUrl: null,
-        fileResourceType: null,
-        fileName,
-        fileType,
-        fileSize,
-      };
-    } else if (provider === 'cloudinary') {
-      const storageConfig = getCloudinaryConfig();
-      const fileUrl =
-        typeof file.url === 'string' &&
-        file.url.startsWith('https://res.cloudinary.com/')
-          ? file.url
-          : undefined;
-      const filePublicId =
-        typeof file.publicId === 'string' ? file.publicId : undefined;
-      // The URL path is the authoritative source for the resource type;
-      // the client-supplied value is only a fallback.
-      const fileResourceType =
-        (fileUrl ? getTempChatUrlResourceType(fileUrl) : undefined) ??
-        (isTempChatResourceType(file.resourceType)
-          ? file.resourceType
-          : undefined);
-      const derivedPublicId =
-        storageConfig && fileUrl && fileResourceType
-          ? getTempChatPublicIdFromUrl(
-              fileUrl,
-              storageConfig.cloudName,
-              fileResourceType,
-            )
-          : undefined;
-      // Cloudinary appends the detected format (".jpg", ".png", …) to the
-      // public id inside delivery URLs, so accept that exact suffix too.
-      const publicIdMatches =
-        Boolean(derivedPublicId) &&
-        Boolean(filePublicId) &&
-        (derivedPublicId === filePublicId ||
-          Boolean(
-            filePublicId && derivedPublicId?.startsWith(`${filePublicId}.`),
-          ));
-
-      if (
-        !storageConfig ||
-        !fileUrl ||
-        !filePublicId ||
-        !fileResourceType ||
-        !isTempChatFilePublicId(chat.id, filePublicId) ||
-        !fileUrl.startsWith(
-          `https://res.cloudinary.com/${storageConfig.cloudName}/${fileResourceType}/upload/`,
-        ) ||
-        !publicIdMatches
-      ) {
-        console.error('Temp chat attachment rejected.', {
-          cloudNameConfigured: Boolean(storageConfig),
-          fileUrl: fileUrl?.slice(0, 160),
-          filePublicId,
-          fileResourceType,
-          derivedPublicId,
-        });
+      if ('error' in result) {
+        if (result.error === 'size') {
+          return noStoreJson({ error: strings.fileTooLarge }, { status: 400 });
+        }
 
         return noStoreJson({ error: strings.uploadFailed }, { status: 400 });
       }
 
-      fileValues = {
-        fileProvider: 'cloudinary',
-        filePath: filePublicId,
-        fileUrl,
-        fileResourceType,
-        fileName,
-        fileType,
-        fileSize,
-      };
-    } else {
-      return noStoreJson({ error: strings.uploadFailed }, { status: 400 });
+      parsed.push(result.attachment);
     }
+
+    attachments = parsed;
+  }
+
+  if (!hasContent && (!attachments || attachments.length === 0)) {
+    return noStoreJson({ error: strings.invalidMessage }, { status: 400 });
   }
 
   try {
@@ -323,13 +398,7 @@ export async function POST(request: Request, context: RouteContext) {
         memberId: member.memberId,
         authorName: member.name,
         content: hasContent ? content : null,
-        fileProvider: fileValues?.fileProvider ?? null,
-        filePath: fileValues?.filePath ?? null,
-        fileUrl: fileValues?.fileUrl ?? null,
-        fileResourceType: fileValues?.fileResourceType ?? null,
-        fileName: fileValues?.fileName ?? null,
-        fileType: fileValues?.fileType ?? null,
-        fileSize: fileValues?.fileSize ?? null,
+        attachments: attachments ?? [],
       })
       .returning();
 
@@ -345,21 +414,12 @@ export async function POST(request: Request, context: RouteContext) {
           authorName: row.authorName,
           content: row.content ?? undefined,
           createdAt: row.createdAt.toISOString(),
-          file: row.filePath
-            ? {
-                provider: row.fileProvider ?? 'cloudinary',
-                url:
-                  row.fileProvider === 'r2' || !row.fileUrl
-                    ? undefined
-                    : buildTempChatDeliveryUrl(
-                        row.fileUrl,
-                        row.fileName ?? 'file',
-                      ),
-                name: row.fileName ?? 'file',
-                size: row.fileSize ?? 0,
-                type: row.fileType ?? undefined,
-              }
-            : undefined,
+          editedAt: row.editedAt ? row.editedAt.toISOString() : undefined,
+          attachments: buildAttachmentViews(
+            row.attachments,
+            cloudName,
+            storageDriver === 'r2' && Boolean(getR2Config()),
+          ),
         },
       },
       { status: 201 },

@@ -85,36 +85,36 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   const attachments = await db
-    .select({
-      fileProvider: tempChatMessages.fileProvider,
-      filePath: tempChatMessages.filePath,
-      fileResourceType: tempChatMessages.fileResourceType,
-    })
+    .select({ attachments: tempChatMessages.attachments })
     .from(tempChatMessages)
     .where(eq(tempChatMessages.chatId, chat.id));
 
-  const cloudinaryEntries = attachments.flatMap((attachment) => {
-    if (
-      attachment.fileProvider === 'r2' ||
-      !attachment.filePath ||
-      !isTempChatResourceType(attachment.fileResourceType)
-    ) {
-      return [];
-    }
+  const cloudinaryEntries = attachments.flatMap(
+    ({ attachments: messageAttachments }) =>
+      messageAttachments.flatMap((attachment) => {
+        if (
+          attachment.provider !== 'cloudinary' ||
+          !isTempChatResourceType(attachment.resourceType)
+        ) {
+          return [];
+        }
 
-    return [
-      {
-        publicId: attachment.filePath,
-        resourceType: attachment.fileResourceType,
-      },
-    ];
-  });
-  const r2Keys = attachments
-    .filter(
-      (attachment) =>
-        attachment.fileProvider === 'r2' && Boolean(attachment.filePath),
-    )
-    .map((attachment) => attachment.filePath as string);
+        return [
+          {
+            publicId: attachment.path,
+            resourceType: attachment.resourceType,
+          },
+        ];
+      }),
+  );
+  const r2Keys = attachments.flatMap(({ attachments: messageAttachments }) =>
+    messageAttachments
+      .filter(
+        (attachment) =>
+          attachment.provider === 'r2' && Boolean(attachment.path),
+      )
+      .map((attachment) => attachment.path),
+  );
 
   const emptyCloudinaryResult = {
     requested: 0,

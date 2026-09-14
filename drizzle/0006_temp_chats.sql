@@ -8,13 +8,8 @@ CREATE TABLE "temp_chat_messages" (
 	"member_id" varchar(32) NOT NULL,
 	"author_name" varchar(40) NOT NULL,
 	"content" text,
-	"file_provider" varchar(16),
-	"file_path" varchar(255),
-	"file_url" text,
-	"file_resource_type" varchar(16),
-	"file_name" text,
-	"file_type" varchar(128),
-	"file_size" integer,
+	"attachments" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"edited_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint

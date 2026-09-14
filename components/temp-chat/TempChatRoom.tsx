@@ -1,6 +1,7 @@
 'use client';
 
 import { useLocale } from '@/app/providers';
+import { MediaGallery } from '@/components/media/MediaGallery';
 import { useTransientValue } from '@/components/hooks/useTransientValue';
 import { ErrorAlert } from '@/components/tools/ErrorAlert';
 import { ToolPageFrame } from '@/components/tools/ToolPageFrame';
@@ -9,20 +10,26 @@ import { getJsonError, isJsonObject, readJsonResponse } from '@/utils/json';
 import { getLocaleTag } from '@/utils/i18n';
 import {
   formatTempChatFileSize,
+  getTempChatInitials,
   getTempChatMemberTone,
   isTempChatAuthorNameValid,
   isTempChatHistoryEntry,
+  isTempChatResourceType,
   mergeTempChatHistoryEntry,
   normalizeTempChatAuthorName,
   pruneExpiredTempChatHistory,
   TEMP_CHAT_HISTORY_STORAGE_KEY,
+  TEMP_CHAT_MAX_ATTACHMENTS,
   TEMP_CHAT_MAX_MESSAGE_LENGTH,
+  type TempChatMessageAttachment,
 } from '@/utils/temp-chat';
 import {
   AlertDialog,
+  Dropdown,
   Form,
   Input,
   Label,
+  Modal,
   Spinner,
   TextArea,
   TextField,
@@ -31,6 +38,7 @@ import {
 import {
   Check,
   Download,
+  Ellipsis,
   FileText,
   Link2,
   MessagesSquare,
@@ -57,12 +65,16 @@ type ChatMeta = {
   isOwner: boolean;
 };
 
-type ChatMessageFile = {
+type ChatAttachment = {
   provider: 'cloudinary' | 'r2';
+  path: string;
   url?: string;
+  previewUrl?: string;
+  downloadUrl?: string;
   name: string;
   size: number;
   type?: string;
+  isImage: boolean;
 };
 
 type ChatMessage = {
@@ -71,7 +83,8 @@ type ChatMessage = {
   authorName: string;
   content?: string;
   createdAt: string;
-  file?: ChatMessageFile;
+  editedAt?: string;
+  attachments: ChatAttachment[];
 };
 
 type StoredMember = {
@@ -89,6 +102,17 @@ function tokenStorageKey(code: string) {
 }
 
 const MEMBER_NAME_STORAGE_KEY = 'temp-chat-name';
+
+function isChatMessage(value: unknown): value is ChatMessage {
+  return (
+    isJsonObject(value) &&
+    typeof value.id === 'string' &&
+    typeof value.memberId === 'string' &&
+    typeof value.authorName === 'string' &&
+    typeof value.createdAt === 'string' &&
+    Array.isArray(value.attachments)
+  );
+}
 
 function readStoredMember(code: string): StoredMember | undefined {
   try {
@@ -109,16 +133,6 @@ function readStoredMember(code: string): StoredMember | undefined {
   } catch {
     return undefined;
   }
-}
-
-function isChatMessage(value: unknown): value is ChatMessage {
-  return (
-    isJsonObject(value) &&
-    typeof value.id === 'string' &&
-    typeof value.memberId === 'string' &&
-    typeof value.authorName === 'string' &&
-    typeof value.createdAt === 'string'
-  );
 }
 
 function deriveDefaultDeviceName() {
@@ -153,6 +167,190 @@ function deriveDefaultDeviceName() {
   return `${browser} · ${platform}`;
 }
 
+type ChatMessageRowProps = {
+  message: ChatMessage;
+  isOwn: boolean;
+  localeTag: string;
+  labels: {
+    you: string;
+    edited: string;
+    copyText: string;
+    editMessage: string;
+    deleteMessage: string;
+    messageActions: string;
+    cancel: string;
+    save: string;
+    download: string;
+  };
+  isEditing: boolean;
+  editContent: string;
+  onEditContent: (value: string) => void;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
+  onCopyText: (content: string) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onDownload: (attachment: ChatAttachment) => void;
+  onOpenImage: (attachment: ChatAttachment) => void;
+};
+
+function ChatMessageRow({
+  message,
+  isOwn,
+  localeTag,
+  labels,
+  isEditing,
+  editContent,
+  onEditContent,
+  onSaveEdit,
+  onCancelEdit,
+  onCopyText,
+  onEdit,
+  onDelete,
+  onDownload,
+  onOpenImage,
+}: ChatMessageRowProps) {
+  const tone = getTempChatMemberTone(message.memberId);
+  const timeLabel = new Date(message.createdAt).toLocaleTimeString(localeTag, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  return (
+    <li className="group flex items-start gap-2.5">
+      <span
+        aria-hidden="true"
+        className={`grid size-9 shrink-0 place-items-center rounded-full text-xs font-semibold ${tone.avatar} ${tone.name}`}
+      >
+        {getTempChatInitials(message.authorName)}
+      </span>
+
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className={`text-xs font-semibold ${tone.name}`}>
+            {isOwn ? 'Вы' : message.authorName}
+            <span className="font-normal text-muted">
+              {' · '}
+              {timeLabel}
+              {message.editedAt ? ` · ${labels.edited}` : ''}
+            </span>
+          </span>
+
+          <Dropdown>
+            <Dropdown.Trigger
+              aria-label={labels.messageActions}
+              className="button button--icon-only button--sm button--tertiary flex opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+            >
+              <Ellipsis className="size-4" />
+            </Dropdown.Trigger>
+            <Dropdown.Popover placement="bottom end">
+              <Dropdown.Menu
+                onAction={(key) => {
+                  if (key === 'copy' && message.content) {
+                    onCopyText(message.content);
+                  } else if (key === 'edit') {
+                    onEdit();
+                  } else if (key === 'delete') {
+                    onDelete();
+                  }
+                }}
+              >
+                {message.content ? (
+                  <Dropdown.Item id="copy" textValue={labels.copyText}>
+                    <Label>{labels.copyText}</Label>
+                  </Dropdown.Item>
+                ) : null}
+                {isOwn && message.attachments.length === 0 ? (
+                  <Dropdown.Item id="edit" textValue={labels.editMessage}>
+                    <Label>{labels.editMessage}</Label>
+                  </Dropdown.Item>
+                ) : null}
+                {isOwn ? (
+                  <Dropdown.Item
+                    id="delete"
+                    textValue={labels.deleteMessage}
+                    variant="danger"
+                  >
+                    <Label>{labels.deleteMessage}</Label>
+                  </Dropdown.Item>
+                ) : null}
+              </Dropdown.Menu>
+            </Dropdown.Popover>
+          </Dropdown>
+        </div>
+
+        {isEditing ? (
+          <div className="flex flex-col gap-2 rounded-2xl bg-surface-tertiary px-3.5 py-2.5">
+            <TextArea
+              rows={3}
+              variant="secondary"
+              value={editContent}
+              maxLength={TEMP_CHAT_MAX_MESSAGE_LENGTH}
+              onChange={(event) => onEditContent(event.target.value)}
+            />
+            <div className="flex gap-2">
+              <Button size="sm" onPress={onSaveEdit}>
+                {labels.save}
+              </Button>
+              <Button size="sm" variant="tertiary" onPress={onCancelEdit}>
+                {labels.cancel}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div
+            className={`flex max-w-[85%] flex-col gap-2 rounded-2xl rounded-tl-sm px-3.5 py-2.5 ${tone.bubble}`}
+          >
+            {message.content ? (
+              <Typography.Paragraph
+                size="sm"
+                className="whitespace-pre-wrap wrap-break-word"
+              >
+                {message.content}
+              </Typography.Paragraph>
+            ) : null}
+
+            {message.attachments.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {message.attachments.map((attachment, attachmentIndex) =>
+                  attachment.isImage ? (
+                    <button
+                      key={`${attachment.path}-${attachmentIndex}`}
+                      type="button"
+                      className="overflow-hidden rounded-xl border-0 p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      onClick={() => onOpenImage(attachment)}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- the preview comes straight from the CDN url. */}
+                      <img
+                        src={attachment.previewUrl ?? attachment.url}
+                        alt={attachment.name}
+                        className="size-28 object-cover"
+                        loading="lazy"
+                      />
+                    </button>
+                  ) : (
+                    <Button
+                      key={`${attachment.path}-${attachmentIndex}`}
+                      type="button"
+                      size="sm"
+                      variant="tertiary"
+                      onPress={() => onDownload(attachment)}
+                    >
+                      <Download className="size-4" />
+                      {attachment.name} (
+                      {formatTempChatFileSize(attachment.size, localeTag)})
+                    </Button>
+                  ),
+                )}
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+    </li>
+  );
+}
+
 export function TempChatRoom({ code }: { code: string }) {
   const { copy, locale } = useLocale();
   const strings = copy.tempChat;
@@ -167,11 +365,21 @@ export function TempChatRoom({ code }: { code: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [memberId, setMemberId] = useState<string>();
   const [content, setContent] = useState('');
-  const [file, setFile] = useState<File>();
+  const [files, setFiles] = useState<File[]>([]);
   const [isSending, setIsSending] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{
+    done: number;
+    total: number;
+  }>();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [editing, setEditing] = useState<{ id: string; content: string }>();
+  const [viewer, setViewer] = useState<{
+    urls: string[];
+    names: string[];
+    index: number;
+  }>();
+  const linkCopied = useTransientValue<string>();
   const listRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastCreatedAtRef = useRef<string | undefined>(undefined);
@@ -212,7 +420,7 @@ export function TempChatRoom({ code }: { code: string }) {
     [code],
   );
 
-  const linkCopied = useTransientValue<string>();
+  const linkCopiedShow = linkCopied.show;
 
   const applyMessages = useCallback((incoming: ChatMessage[]) => {
     if (incoming.length === 0) {
@@ -224,9 +432,14 @@ export function TempChatRoom({ code }: { code: string }) {
       const merged = [
         ...current,
         ...incoming.filter((message) => !seen.has(message.id)),
-      ].sort((first, second) =>
-        first.createdAt.localeCompare(second.createdAt),
-      );
+      ]
+        .map(
+          (message) =>
+            incoming.find((item) => item.id === message.id) ?? message,
+        )
+        .sort((first, second) =>
+          first.createdAt.localeCompare(second.createdAt),
+        );
       const lastMessage = merged[merged.length - 1];
 
       if (lastMessage) {
@@ -295,19 +508,15 @@ export function TempChatRoom({ code }: { code: string }) {
           return;
         }
 
-        setMeta({
+        const chatMeta: ChatMeta = {
           title: metaBody.title,
           expiresAt: metaBody.expiresAt,
           requiresPassword: Boolean(metaBody.requiresPassword),
           isOwner: Boolean(metaBody.isOwner),
-        });
+        };
 
-        recordVisit({
-          title: metaBody.title,
-          expiresAt: metaBody.expiresAt,
-          requiresPassword: Boolean(metaBody.requiresPassword),
-          isOwner: Boolean(metaBody.isOwner),
-        });
+        setMeta(chatMeta);
+        recordVisit(chatMeta);
 
         const stored = readStoredMember(code);
 
@@ -383,7 +592,7 @@ export function TempChatRoom({ code }: { code: string }) {
     if (list) {
       list.scrollTop = list.scrollHeight;
     }
-  }, [messages.length]);
+  }, [messages.length, uploadProgress]);
 
   async function join(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -447,16 +656,140 @@ export function TempChatRoom({ code }: { code: string }) {
     }
   }
 
-  function selectFile(event: ChangeEvent<HTMLInputElement>) {
-    setFile(event.currentTarget.files?.[0]);
-  }
-
-  function clearFile() {
-    setFile(undefined);
+  function selectFiles(event: ChangeEvent<HTMLInputElement>) {
+    setFiles(
+      Array.from(event.currentTarget.files ?? []).slice(
+        0,
+        TEMP_CHAT_MAX_ATTACHMENTS,
+      ),
+    );
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  }
+
+  function removeFile(index: number) {
+    setFiles((current) =>
+      current.filter((_, fileIndex) => fileIndex !== index),
+    );
+  }
+
+  async function uploadAttachment(
+    token: string,
+    file: File,
+  ): Promise<TempChatMessageAttachment> {
+    const authorizeResponse = await fetch(
+      `/api/temp-chats/${code}/upload-authorize`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        }),
+      },
+    );
+    const authorizeBody = await readJsonResponse(authorizeResponse);
+
+    if (
+      !authorizeResponse.ok ||
+      !isJsonObject(authorizeBody) ||
+      typeof authorizeBody.uploadUrl !== 'string' ||
+      typeof authorizeBody.fileName !== 'string' ||
+      (authorizeBody.provider !== 'cloudinary' &&
+        authorizeBody.provider !== 'r2')
+    ) {
+      throw new Error(getJsonError(authorizeBody) ?? strings.uploadFailed);
+    }
+
+    if (authorizeBody.provider === 'cloudinary') {
+      if (
+        typeof authorizeBody.publicId !== 'string' ||
+        typeof authorizeBody.apiKey !== 'string' ||
+        typeof authorizeBody.signature !== 'string' ||
+        typeof authorizeBody.timestamp !== 'number'
+      ) {
+        throw new Error(strings.uploadFailed);
+      }
+
+      const uploadBody = new FormData();
+
+      uploadBody.set('api_key', authorizeBody.apiKey);
+      uploadBody.set('file', file);
+      uploadBody.set('public_id', authorizeBody.publicId);
+      uploadBody.set('signature', authorizeBody.signature);
+      uploadBody.set('timestamp', String(authorizeBody.timestamp));
+
+      const uploadResponse = await fetch(authorizeBody.uploadUrl, {
+        method: 'POST',
+        body: uploadBody,
+      });
+      const uploadResult = await readJsonResponse(uploadResponse);
+      const uploadedUrl =
+        isJsonObject(uploadResult) &&
+        typeof uploadResult.secure_url === 'string'
+          ? uploadResult.secure_url
+          : undefined;
+
+      if (
+        !uploadResponse.ok ||
+        !uploadedUrl ||
+        !isJsonObject(uploadResult) ||
+        uploadResult.public_id !== authorizeBody.publicId
+      ) {
+        throw new Error(strings.uploadFailed);
+      }
+
+      const uploadedResourceType =
+        typeof uploadResult.resource_type === 'string' &&
+        isTempChatResourceType(uploadResult.resource_type)
+          ? uploadResult.resource_type
+          : 'raw';
+
+      return {
+        provider: 'cloudinary',
+        path: authorizeBody.publicId,
+        url: uploadedUrl,
+        resourceType: uploadedResourceType,
+        name: authorizeBody.fileName,
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+      };
+    }
+
+    if (
+      typeof authorizeBody.key !== 'string' ||
+      typeof authorizeBody.contentDisposition !== 'string'
+    ) {
+      throw new Error(strings.uploadFailed);
+    }
+
+    const putResponse = await fetch(authorizeBody.uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'content-disposition': authorizeBody.contentDisposition,
+      },
+    });
+
+    if (!putResponse.ok) {
+      throw new Error(strings.uploadFailed);
+    }
+
+    return {
+      provider: 'r2',
+      path: authorizeBody.key,
+      url: null,
+      resourceType: null,
+      name: authorizeBody.fileName,
+      type: file.type || 'application/octet-stream',
+      size: file.size,
+    };
   }
 
   async function send() {
@@ -469,7 +802,7 @@ export function TempChatRoom({ code }: { code: string }) {
 
     const hasContent = content.trim().length > 0;
 
-    if (!hasContent && !file) {
+    if (!hasContent && files.length === 0) {
       return;
     }
 
@@ -482,129 +815,26 @@ export function TempChatRoom({ code }: { code: string }) {
     setError(undefined);
 
     try {
-      let filePayload:
-        | {
-            provider: 'cloudinary' | 'r2';
-            url?: string;
-            publicId?: string;
-            resourceType?: string;
-            name: string;
-            size: number;
-            type: string;
+      let attachments: TempChatMessageAttachment[] | undefined;
+
+      if (files.length > 0) {
+        const uploaded: TempChatMessageAttachment[] = [];
+
+        for (const [index, file] of files.entries()) {
+          setUploadProgress({ done: index, total: files.length });
+
+          try {
+            uploaded.push(await uploadAttachment(token, file));
+          } catch (uploadError) {
+            // Already uploaded files are cleaned up by the daily cron
+            // because they never become a message.
+            setUploadProgress(undefined);
+            throw uploadError;
           }
-        | undefined;
-
-      if (file) {
-        setIsUploading(true);
-
-        const authorizeResponse = await fetch(
-          `/api/temp-chats/${code}/upload-authorize`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              name: file.name,
-              size: file.size,
-              type: file.type,
-            }),
-          },
-        );
-        const authorizeBody = await readJsonResponse(authorizeResponse);
-
-        if (
-          !authorizeResponse.ok ||
-          !isJsonObject(authorizeBody) ||
-          typeof authorizeBody.uploadUrl !== 'string' ||
-          typeof authorizeBody.fileName !== 'string' ||
-          (authorizeBody.provider !== 'cloudinary' &&
-            authorizeBody.provider !== 'r2')
-        ) {
-          throw new Error(getJsonError(authorizeBody) ?? strings.uploadFailed);
         }
 
-        if (authorizeBody.provider === 'cloudinary') {
-          if (
-            typeof authorizeBody.publicId !== 'string' ||
-            typeof authorizeBody.apiKey !== 'string' ||
-            typeof authorizeBody.signature !== 'string' ||
-            typeof authorizeBody.timestamp !== 'number'
-          ) {
-            throw new Error(strings.uploadFailed);
-          }
-
-          const uploadBody = new FormData();
-
-          uploadBody.set('api_key', authorizeBody.apiKey);
-          uploadBody.set('file', file);
-          uploadBody.set('public_id', authorizeBody.publicId);
-          uploadBody.set('signature', authorizeBody.signature);
-          uploadBody.set('timestamp', String(authorizeBody.timestamp));
-
-          const uploadResponse = await fetch(authorizeBody.uploadUrl, {
-            method: 'POST',
-            body: uploadBody,
-          });
-          const uploadResult = await readJsonResponse(uploadResponse);
-          const uploadedUrl =
-            isJsonObject(uploadResult) &&
-            typeof uploadResult.secure_url === 'string'
-              ? uploadResult.secure_url
-              : undefined;
-
-          if (
-            !uploadResponse.ok ||
-            !uploadedUrl ||
-            !isJsonObject(uploadResult) ||
-            uploadResult.public_id !== authorizeBody.publicId
-          ) {
-            throw new Error(strings.uploadFailed);
-          }
-
-          filePayload = {
-            provider: 'cloudinary',
-            url: uploadedUrl,
-            publicId: authorizeBody.publicId,
-            resourceType:
-              typeof uploadResult.resource_type === 'string'
-                ? uploadResult.resource_type
-                : 'raw',
-            name: authorizeBody.fileName,
-            size: file.size,
-            type: file.type || 'application/octet-stream',
-          };
-        } else {
-          if (
-            typeof authorizeBody.key !== 'string' ||
-            typeof authorizeBody.contentDisposition !== 'string'
-          ) {
-            throw new Error(strings.uploadFailed);
-          }
-
-          const putResponse = await fetch(authorizeBody.uploadUrl, {
-            method: 'PUT',
-            body: file,
-            headers: {
-              'content-disposition': authorizeBody.contentDisposition,
-            },
-          });
-
-          if (!putResponse.ok) {
-            throw new Error(strings.uploadFailed);
-          }
-
-          filePayload = {
-            provider: 'r2',
-            publicId: authorizeBody.key,
-            name: authorizeBody.fileName,
-            size: file.size,
-            type: file.type || 'application/octet-stream',
-          };
-        }
-
-        setIsUploading(false);
+        setUploadProgress({ done: files.length, total: files.length });
+        attachments = uploaded;
       }
 
       const messageResponse = await fetch(`/api/temp-chats/${code}/messages`, {
@@ -613,7 +843,10 @@ export function TempChatRoom({ code }: { code: string }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(filePayload ? { file: filePayload } : { content }),
+        body: JSON.stringify({
+          content: hasContent ? content : undefined,
+          attachments,
+        }),
       });
       const messageBody = await readJsonResponse(messageResponse);
       const message = isJsonObject(messageBody)
@@ -626,83 +859,139 @@ export function TempChatRoom({ code }: { code: string }) {
 
       applyMessages([message]);
       setContent('');
-      clearFile();
+      setFiles([]);
+      setUploadProgress(undefined);
     } catch (caughtError) {
       setError(
         caughtError instanceof Error ? caughtError.message : strings.sendFailed,
       );
+      setUploadProgress(undefined);
     } finally {
       setIsSending(false);
-      setIsUploading(false);
     }
   }
 
-  async function downloadFile(message: ChatMessage) {
-    const file = message.file;
-
-    if (!file) {
+  async function saveEdit() {
+    if (!editing) {
       return;
     }
 
-    let url = file.url;
+    const token = getStoredToken();
 
-    if (!url && file.provider === 'r2') {
-      const token = getStoredToken();
+    if (!token) {
+      setState('gate');
+      return;
+    }
 
-      if (!token) {
-        return;
-      }
+    if (!editing.content.trim()) {
+      return;
+    }
 
-      try {
-        const response = await fetch(`/api/temp-chats/${code}/files`, {
-          method: 'POST',
+    try {
+      const response = await fetch(
+        `/api/temp-chats/${code}/messages/${editing.id}`,
+        {
+          method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ messageId: message.id }),
-        });
-        const body = await readJsonResponse(response);
+          body: JSON.stringify({ content: editing.content }),
+        },
+      );
+      const body = await readJsonResponse(response);
+      const message = isJsonObject(body) ? body.message : undefined;
 
-        if (
-          !response.ok ||
-          !isJsonObject(body) ||
-          typeof body.url !== 'string'
-        ) {
-          throw new Error(getJsonError(body) ?? strings.linkFailed);
-        }
-
-        url = body.url;
-      } catch (caughtError) {
-        setError(
-          caughtError instanceof Error
-            ? caughtError.message
-            : strings.linkFailed,
-        );
-        return;
+      if (!response.ok || !isChatMessage(message)) {
+        throw new Error(getJsonError(body) ?? strings.sendFailed);
       }
-    }
 
-    if (!url) {
+      setMessages((current) =>
+        current.map((item) => (item.id === message.id ? message : item)),
+      );
+      setEditing(undefined);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error ? caughtError.message : strings.sendFailed,
+      );
+    }
+  }
+
+  async function deleteMessage(messageId: string) {
+    const token = getStoredToken();
+
+    if (!token) {
       return;
     }
 
-    const anchor = document.createElement('a');
+    try {
+      const response = await fetch(
+        `/api/temp-chats/${code}/messages/${messageId}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
-    anchor.href = url;
-    anchor.rel = 'noopener';
-    anchor.target = '_blank';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
+      if (!response.ok) {
+        const body = await readJsonResponse(response);
+
+        throw new Error(getJsonError(body) ?? strings.deleteFailed);
+      }
+
+      setMessages((current) =>
+        current.filter((message) => message.id !== messageId),
+      );
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : strings.deleteFailed,
+      );
+    }
+  }
+
+  async function downloadAttachment(
+    messageId: string,
+    attachment: ChatAttachment,
+  ) {
+    const source = attachment.downloadUrl ?? attachment.url;
+
+    if (!source) {
+      setError(strings.linkFailed);
+      return;
+    }
+
+    try {
+      const response = await fetch(source);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+
+      anchor.href = objectUrl;
+      anchor.download = attachment.name;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error ? caughtError.message : strings.linkFailed,
+      );
+    }
   }
 
   async function copyChatLink() {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      linkCopied.show(strings.copied);
+      linkCopiedShow(strings.copied);
     } catch {
-      linkCopied.show(strings.shareFailed);
+      linkCopiedShow(strings.shareFailed);
     }
   }
 
@@ -725,6 +1014,12 @@ export function TempChatRoom({ code }: { code: string }) {
     }
 
     void copyChatLink();
+  }
+
+  function copyMessageText(content: string) {
+    void navigator.clipboard.writeText(content).catch(() => {
+      setError(strings.copyText);
+    });
   }
 
   async function deleteChat(close: () => void) {
@@ -763,6 +1058,33 @@ export function TempChatRoom({ code }: { code: string }) {
         new Date(meta.expiresAt).toLocaleString(localeTag),
       )
     : strings.gateDescription;
+  const chatImages = messages.flatMap((message) =>
+    message.attachments
+      .filter((attachment) => attachment.isImage)
+      .map((attachment) => ({
+        url:
+          attachment.url ??
+          attachment.previewUrl ??
+          attachment.downloadUrl ??
+          '',
+        name: attachment.name,
+      })),
+  );
+
+  function openImageViewer(attachment: ChatAttachment) {
+    const clickedUrl =
+      attachment.url ?? attachment.previewUrl ?? attachment.downloadUrl ?? '';
+    const index = Math.max(
+      0,
+      chatImages.findIndex((image) => image.url === clickedUrl),
+    );
+
+    setViewer({
+      urls: chatImages.map((image) => image.url),
+      names: chatImages.map((image) => image.name),
+      index,
+    });
+  }
 
   return (
     <ToolPageFrame
@@ -864,57 +1186,61 @@ export function TempChatRoom({ code }: { code: string }) {
 
           <div
             ref={listRef}
-            className="flex h-96 flex-col gap-3 overflow-y-auto rounded-2xl border bg-surface-secondary/45 p-4"
+            className="flex h-96 flex-col gap-4 overflow-y-auto rounded-2xl border bg-surface-secondary/45 p-4"
           >
             {messages.length === 0 ? (
               <Typography.Paragraph className="text-sm text-muted">
                 {strings.empty}
               </Typography.Paragraph>
             ) : (
-              <ul className="flex flex-col gap-3">
+              <ul className="flex flex-col gap-4">
                 {messages.map((message) => {
                   const isOwn = message.memberId === memberId;
-                  const tone = getTempChatMemberTone(message.memberId);
+                  const rowLabels = {
+                    you: strings.you,
+                    edited: strings.edited,
+                    copyText: strings.copyText,
+                    editMessage: strings.editMessage,
+                    deleteMessage: strings.deleteMessage,
+                    messageActions: strings.messageActions,
+                    cancel: strings.cancel,
+                    save: strings.save,
+                    download: strings.download,
+                  };
 
                   return (
-                    <li key={message.id} className="flex flex-col gap-0.5">
-                      <span className={`text-xs font-semibold ${tone.name}`}>
-                        {isOwn ? strings.you : message.authorName}
-                        <span className="font-normal text-muted">
-                          {' · '}
-                          {new Date(message.createdAt).toLocaleTimeString(
-                            localeTag,
-                            { hour: '2-digit', minute: '2-digit' },
-                          )}
-                        </span>
-                      </span>
-
-                      <div
-                        className={`flex max-w-[85%] flex-col gap-1.5 self-start rounded-2xl rounded-tl-sm px-3.5 py-2.5 ${tone.bubble}`}
-                      >
-                        {message.content ? (
-                          <Typography.Paragraph
-                            size="sm"
-                            className="whitespace-pre-wrap wrap-break-word"
-                          >
-                            {message.content}
-                          </Typography.Paragraph>
-                        ) : null}
-
-                        {message.file ? (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="tertiary"
-                            onPress={() => void downloadFile(message)}
-                          >
-                            <Download className="size-4" />
-                            {message.file.name} (
-                            {formatTempChatFileSize(message.file.size, locale)})
-                          </Button>
-                        ) : null}
-                      </div>
-                    </li>
+                    <ChatMessageRow
+                      key={message.id}
+                      message={message}
+                      isOwn={isOwn}
+                      localeTag={localeTag}
+                      labels={rowLabels}
+                      isEditing={editing?.id === message.id}
+                      editContent={
+                        editing?.id === message.id ? editing.content : ''
+                      }
+                      onEditContent={(value) =>
+                        setEditing((current) =>
+                          current?.id === message.id
+                            ? { id: current.id, content: value }
+                            : current,
+                        )
+                      }
+                      onSaveEdit={() => void saveEdit()}
+                      onCancelEdit={() => setEditing(undefined)}
+                      onCopyText={copyMessageText}
+                      onEdit={() =>
+                        setEditing({
+                          id: message.id,
+                          content: message.content ?? '',
+                        })
+                      }
+                      onDelete={() => void deleteMessage(message.id)}
+                      onDownload={(attachment) =>
+                        void downloadAttachment(message.id, attachment)
+                      }
+                      onOpenImage={openImageViewer}
+                    />
                   );
                 })}
               </ul>
@@ -943,26 +1269,33 @@ export function TempChatRoom({ code }: { code: string }) {
               void send();
             }}
           >
-            {file ? (
-              <div className="flex items-center justify-between gap-2 rounded-xl border bg-surface-secondary px-3 py-2 text-sm">
-                <span className="flex min-w-0 items-center gap-2">
-                  <FileText className="size-4 shrink-0 text-muted" />
-                  <span className="truncate">{file.name}</span>
-                  <span className="shrink-0 text-muted">
-                    {formatTempChatFileSize(file.size, locale)}
-                  </span>
-                </span>
-                <Button
-                  type="button"
-                  isIconOnly
-                  size="sm"
-                  variant="tertiary"
-                  aria-label={strings.cancel}
-                  onPress={clearFile}
-                >
-                  <X className="size-4" />
-                </Button>
-              </div>
+            {files.length > 0 ? (
+              <ul className="flex flex-col gap-2">
+                {files.map((file, fileIndex) => (
+                  <li
+                    key={`${file.name}-${fileIndex}`}
+                    className="flex items-center justify-between gap-2 rounded-xl border bg-surface-secondary px-3 py-2 text-sm"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <FileText className="size-4 shrink-0 text-muted" />
+                      <span className="truncate">{file.name}</span>
+                      <span className="shrink-0 text-muted">
+                        {formatTempChatFileSize(file.size, locale)}
+                      </span>
+                    </span>
+                    <Button
+                      type="button"
+                      isIconOnly
+                      size="sm"
+                      variant="tertiary"
+                      aria-label={strings.cancel}
+                      onPress={() => removeFile(fileIndex)}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
             ) : null}
 
             <TextField
@@ -993,8 +1326,9 @@ export function TempChatRoom({ code }: { code: string }) {
               <input
                 ref={fileInputRef}
                 type="file"
+                multiple
                 className="sr-only"
-                onChange={selectFile}
+                onChange={selectFiles}
               />
               <Button
                 type="button"
@@ -1017,14 +1351,45 @@ export function TempChatRoom({ code }: { code: string }) {
               </span>
             </div>
 
-            {isUploading ? (
+            {uploadProgress ? (
               <Typography.Paragraph size="sm" className="text-muted">
-                {strings.uploading}
+                {strings.uploadingFiles
+                  .replace('{done}', String(uploadProgress.done))
+                  .replace('{total}', String(uploadProgress.total))}
               </Typography.Paragraph>
             ) : null}
           </Form>
         </div>
       ) : null}
+
+      <Modal>
+        <Modal.Backdrop
+          isOpen={viewer !== undefined}
+          onOpenChange={(open) => {
+            if (!open) {
+              setViewer(undefined);
+            }
+          }}
+        >
+          <Modal.Container size="full">
+            <Modal.Dialog className="h-full">
+              <Modal.CloseTrigger />
+              <Modal.Header>
+                <Modal.Heading>{strings.mediaTitle}</Modal.Heading>
+              </Modal.Header>
+              <Modal.Body className="h-[calc(100dvh-9rem)]">
+                {viewer ? (
+                  <MediaGallery
+                    urls={viewer.urls}
+                    initialIndex={viewer.index}
+                    getAlt={(index) => viewer.names[index] ?? ''}
+                  />
+                ) : null}
+              </Modal.Body>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
 
       <AlertDialog>
         <AlertDialog.Backdrop

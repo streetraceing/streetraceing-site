@@ -56,28 +56,37 @@ export async function GET(request: Request) {
     const expiredChatKeys =
       expiredChatIds.length > 0
         ? await db
-            .select({
-              fileProvider: tempChatMessages.fileProvider,
-              filePath: tempChatMessages.filePath,
-              fileResourceType: tempChatMessages.fileResourceType,
-            })
+            .select({ attachments: tempChatMessages.attachments })
             .from(tempChatMessages)
             .where(inArray(tempChatMessages.chatId, expiredChatIds))
         : [];
-    const cloudinaryEntries = expiredChatKeys.flatMap((row) => {
-      if (
-        row.fileProvider === 'r2' ||
-        !row.filePath ||
-        !isTempChatResourceType(row.fileResourceType)
-      ) {
-        return [];
-      }
+    const cloudinaryEntries = expiredChatKeys.flatMap(
+      ({ attachments: messageAttachments }) =>
+        messageAttachments.flatMap((attachment) => {
+          if (
+            attachment.provider !== 'cloudinary' ||
+            !isTempChatResourceType(attachment.resourceType)
+          ) {
+            return [];
+          }
 
-      return [{ publicId: row.filePath, resourceType: row.fileResourceType }];
-    });
-    const r2Keys = expiredChatKeys
-      .filter((row) => row.fileProvider === 'r2' && Boolean(row.filePath))
-      .map((row) => row.filePath as string);
+          return [
+            {
+              publicId: attachment.path,
+              resourceType: attachment.resourceType,
+            },
+          ];
+        }),
+    );
+    const r2Keys = expiredChatKeys.flatMap(
+      ({ attachments: messageAttachments }) =>
+        messageAttachments
+          .filter(
+            (attachment) =>
+              attachment.provider === 'r2' && Boolean(attachment.path),
+          )
+          .map((attachment) => attachment.path),
+    );
     const chatFileResults = await Promise.all([
       cloudinaryEntries.length > 0
         ? deleteCloudinaryPublicIds(cloudinaryEntries)

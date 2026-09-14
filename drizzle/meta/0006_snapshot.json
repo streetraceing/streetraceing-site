@@ -1,5 +1,5 @@
 {
-  "id": "54ea5d47-d237-41fc-a892-d5187ac1dc24",
+  "id": "a3f44179-2349-43db-99d8-3282c5e20452",
   "prevId": "9db25f1a-1a13-4de7-a933-c2e1d5f984cd",
   "version": "7",
   "dialect": "postgresql",
@@ -356,45 +356,16 @@
           "primaryKey": false,
           "notNull": false
         },
-        "file_provider": {
-          "name": "file_provider",
-          "type": "varchar(16)",
+        "attachments": {
+          "name": "attachments",
+          "type": "jsonb",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "'[]'::jsonb"
         },
-        "file_path": {
-          "name": "file_path",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "file_url": {
-          "name": "file_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "file_resource_type": {
-          "name": "file_resource_type",
-          "type": "varchar(16)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "file_name": {
-          "name": "file_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "file_type": {
-          "name": "file_type",
-          "type": "varchar(128)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "file_size": {
-          "name": "file_size",
-          "type": "integer",
+        "edited_at": {
+          "name": "edited_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },

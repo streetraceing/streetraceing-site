@@ -7,6 +7,7 @@ export const TEMP_CHAT_MAX_AUTHOR_NAME_LENGTH = 40;
 export const TEMP_CHAT_MAX_MESSAGE_LENGTH = 20_000;
 export const TEMP_CHAT_MAX_FILE_NAME_LENGTH = 200;
 export const TEMP_CHAT_MAX_FILE_BYTES = 20 * 1_024 * 1_024;
+export const TEMP_CHAT_MAX_ATTACHMENTS = 10;
 
 export type TempChatStorageDriver = 'cloudinary' | 'r2';
 
@@ -45,6 +46,38 @@ export function isTempChatResourceType(
   );
 }
 
+export type TempChatMessageAttachment = {
+  provider: 'cloudinary' | 'r2';
+  /** Cloudinary public id or R2 object key. */
+  path: string;
+  /** Permanent Cloudinary delivery URL (null for the R2 driver). */
+  url: string | null;
+  resourceType: TempChatResourceType | null;
+  name: string;
+  type: string;
+  size: number;
+};
+
+export function isTempChatMessageAttachment(
+  value: unknown,
+): value is TempChatMessageAttachment {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const attachment = value as Record<string, unknown>;
+
+  return (
+    (attachment.provider === 'cloudinary' || attachment.provider === 'r2') &&
+    typeof attachment.path === 'string' &&
+    (typeof attachment.url === 'string' || attachment.url === null) &&
+    isTempChatResourceType(attachment.resourceType ?? 'raw') &&
+    typeof attachment.name === 'string' &&
+    typeof attachment.type === 'string' &&
+    typeof attachment.size === 'number'
+  );
+}
+
 /** Reads the resource type segment from a Cloudinary delivery URL. */
 export function getTempChatUrlResourceType(
   value: string,
@@ -62,6 +95,82 @@ export function getTempChatUrlResourceType(
   } catch {
     return undefined;
   }
+}
+
+/** Builds initials for a member avatar, up to two characters. */
+export function getTempChatInitials(name: string) {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => [...part][0]?.toUpperCase() ?? '')
+    .join('');
+
+  return initials || '?';
+}
+
+export type TempChatMemberTone = {
+  /** Author name color, theme-adaptive. */
+  name: string;
+  /** Translucent bubble background tinted with the member color. */
+  bubble: string;
+  /** Avatar background, slightly stronger than the bubble tint. */
+  avatar: string;
+};
+
+export const TEMP_CHAT_MEMBER_TONES: readonly TempChatMemberTone[] = [
+  {
+    name: 'text-blue-600 dark:text-blue-300',
+    bubble: 'bg-blue-500/10',
+    avatar: 'bg-blue-500/20',
+  },
+  {
+    name: 'text-emerald-600 dark:text-emerald-300',
+    bubble: 'bg-emerald-500/10',
+    avatar: 'bg-emerald-500/20',
+  },
+  {
+    name: 'text-amber-600 dark:text-amber-300',
+    bubble: 'bg-amber-500/10',
+    avatar: 'bg-amber-500/20',
+  },
+  {
+    name: 'text-rose-600 dark:text-rose-300',
+    bubble: 'bg-rose-500/10',
+    avatar: 'bg-rose-500/20',
+  },
+  {
+    name: 'text-violet-600 dark:text-violet-300',
+    bubble: 'bg-violet-500/10',
+    avatar: 'bg-violet-500/20',
+  },
+  {
+    name: 'text-cyan-600 dark:text-cyan-300',
+    bubble: 'bg-cyan-500/10',
+    avatar: 'bg-cyan-500/20',
+  },
+  {
+    name: 'text-orange-600 dark:text-orange-300',
+    bubble: 'bg-orange-500/10',
+    avatar: 'bg-orange-500/20',
+  },
+  {
+    name: 'text-pink-600 dark:text-pink-300',
+    bubble: 'bg-pink-500/10',
+    avatar: 'bg-pink-500/20',
+  },
+];
+
+/** Stable soft color tone for a chat member: one member keeps one tone for
+ * the whole chat, in both light and dark themes. */
+export function getTempChatMemberTone(memberId: string): TempChatMemberTone {
+  let hash = 0;
+
+  for (let index = 0; index < memberId.length; index += 1) {
+    hash = (hash * 31 + memberId.charCodeAt(index)) % 2_147_483_647;
+  }
+
+  return TEMP_CHAT_MEMBER_TONES[hash % TEMP_CHAT_MEMBER_TONES.length];
 }
 
 export function isTempChatTtlHours(value: unknown): value is TempChatTtlHours {
@@ -166,33 +275,6 @@ export function sanitizeTempChatFileName(value: string) {
   }
 
   return baseName.slice(0, TEMP_CHAT_MAX_FILE_NAME_LENGTH);
-}
-
-export type TempChatMemberTone = {
-  /** Author name color, theme-adaptive. */
-  name: string;
-  /** Translucent bubble background tinted with the member color. */
-  bubble: string;
-};
-
-export const TEMP_CHAT_MEMBER_TONES: readonly TempChatMemberTone[] = [
-  { name: 'text-accent-soft-foreground', bubble: 'bg-accent-soft/60' },
-  { name: 'text-success-soft-foreground', bubble: 'bg-success-soft/60' },
-  { name: 'text-warning-soft-foreground', bubble: 'bg-warning-soft/60' },
-  { name: 'text-danger-soft-foreground', bubble: 'bg-danger-soft/60' },
-  { name: 'text-muted', bubble: 'bg-default-soft/60' },
-];
-
-/** Stable soft color tone for a chat member: one member keeps one tone for
- * the whole chat, in both light and dark themes. */
-export function getTempChatMemberTone(memberId: string): TempChatMemberTone {
-  let hash = 0;
-
-  for (let index = 0; index < memberId.length; index += 1) {
-    hash = (hash * 31 + memberId.charCodeAt(index)) % 2_147_483_647;
-  }
-
-  return TEMP_CHAT_MEMBER_TONES[hash % TEMP_CHAT_MEMBER_TONES.length];
 }
 
 export function formatTempChatFileSize(bytes: number, locale: string) {

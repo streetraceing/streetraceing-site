@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -11,6 +12,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import type { DevUpdateTopic } from '@/utils/stats';
+import type { TempChatMessageAttachment } from '@/utils/temp-chat';
 
 export const shortUrls = pgTable(
   'short_urls',
@@ -119,13 +121,11 @@ export const tempChatMessages = pgTable(
     memberId: varchar('member_id', { length: 32 }).notNull(),
     authorName: varchar('author_name', { length: 40 }).notNull(),
     content: text('content'),
-    fileProvider: varchar('file_provider', { length: 16 }),
-    filePath: varchar('file_path', { length: 255 }),
-    fileUrl: text('file_url'),
-    fileResourceType: varchar('file_resource_type', { length: 16 }),
-    fileName: text('file_name'),
-    fileType: varchar('file_type', { length: 128 }),
-    fileSize: integer('file_size'),
+    attachments: jsonb('attachments')
+      .$type<TempChatMessageAttachment[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    editedAt: timestamp('edited_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
