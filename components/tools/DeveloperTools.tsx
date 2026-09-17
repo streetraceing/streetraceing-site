@@ -2,6 +2,12 @@
 
 import { useLocale } from '@/app/providers';
 import { Button } from '@/components/ui/Button';
+import { formatLosslessJson } from '@/utils/lossless-json';
+import {
+  REGEX_LIMITS,
+  validateRegexRequest,
+  type RegexResult,
+} from '@/utils/regex-evaluator';
 import {
   createLineDiff,
   jsonToTypeScript,
@@ -24,7 +30,7 @@ import {
   Regex,
   Sparkles,
 } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 
 import { ErrorAlert } from './ErrorAlert';
 import { ToolOutput } from './ToolOutput';
@@ -40,57 +46,74 @@ export function RegexTesterTool() {
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string>();
 
+  const [isPending, setIsPending] = useState(false);
+  const active = useRef<{ worker: Worker; timer: number } | undefined>(
+    undefined,
+  );
+
+  useEffect(
+    () => () => {
+      const job = active.current;
+      active.current = undefined;
+      if (job) {
+        job.worker.terminate();
+        window.clearTimeout(job.timer);
+      }
+    },
+    [],
+  );
+
+  function cancel() {
+    const job = active.current;
+    active.current = undefined;
+    if (job) {
+      job.worker.terminate();
+      window.clearTimeout(job.timer);
+    }
+    setIsPending(false);
+    setOutput('');
+    setError(undefined);
+  }
+
   function testRegex(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
+    cancel();
+    const request = { pattern, flags, source };
+    const invalid = validateRegexRequest(request);
+    if (invalid) {
+      setError(strings[invalid]);
+      return;
+    }
     try {
-      const normalizedFlags = [...new Set(flags.trim())].join('');
-
-      if (!/^[dgimsuvy]*$/.test(normalizedFlags)) {
-        throw new Error(strings.invalidFlags);
-      }
-
-      const expression = new RegExp(
-        pattern,
-        normalizedFlags.includes('g') ? normalizedFlags : `${normalizedFlags}g`,
-      );
-      const matches: string[] = [];
-      let match: RegExpExecArray | null;
-
-      while (
-        (match = expression.exec(source)) !== null &&
-        matches.length < 200
-      ) {
-        const groups = match
-          .slice(1)
-          .map((value, index) =>
-            value === undefined ? undefined : `  $${index + 1}: ${value}`,
-          )
-          .filter(Boolean);
-        const namedGroups = Object.entries(match.groups ?? {}).map(
-          ([name, value]) => `  ${name}: ${value ?? ''}`,
-        );
-
-        matches.push(
-          [
-            `#${matches.length + 1} [${match.index}..${match.index + match[0].length}] ${match[0]}`,
-            ...groups,
-            ...namedGroups,
-          ].join('\n'),
-        );
-
-        if (match[0] === '') {
-          expression.lastIndex += 1;
+      const worker = new Worker(new URL('./regex.worker.ts', import.meta.url));
+      const timer = window.setTimeout(() => {
+        if (active.current?.worker !== worker) return;
+        cancel();
+        setError(strings.timeout);
+      }, REGEX_LIMITS.timeout);
+      active.current = { worker, timer };
+      setIsPending(true);
+      worker.onmessage = (message: MessageEvent<RegexResult>) => {
+        if (active.current?.worker !== worker) return;
+        const result = message.data;
+        cancel();
+        if (!result.ok) {
+          setError(strings[result.error]);
+        } else {
+          setOutput(result.count ? result.output : strings.noMatches);
+          if (result.limited) setError(strings.outputLimit);
         }
-      }
-
-      setOutput(matches.length > 0 ? matches.join('\n\n') : strings.noMatches);
-      setError(undefined);
-    } catch (caughtError) {
-      setOutput('');
-      setError(
-        caughtError instanceof Error ? caughtError.message : strings.invalid,
-      );
+      };
+      worker.onerror = (event) => {
+        event.preventDefault();
+        if (active.current?.worker !== worker) return;
+        cancel();
+        setError(strings.workerFailed);
+      };
+      worker.postMessage(request);
+    } catch {
+      cancel();
+      setError(strings.workerFailed);
     }
   }
 
@@ -102,12 +125,23 @@ export function RegexTesterTool() {
             fullWidth
             name="pattern"
             value={pattern}
-            onChange={setPattern}
+            onChange={(value) => {
+              cancel();
+              setPattern(value);
+            }}
           >
             <Label>{strings.pattern}</Label>
             <Input variant="secondary" spellCheck={false} />
           </TextField>
-          <TextField fullWidth name="flags" value={flags} onChange={setFlags}>
+          <TextField
+            fullWidth
+            name="flags"
+            value={flags}
+            onChange={(value) => {
+              cancel();
+              setFlags(value);
+            }}
+          >
             <Label>{strings.flags}</Label>
             <Input variant="secondary" spellCheck={false} />
           </TextField>
@@ -117,17 +151,27 @@ export function RegexTesterTool() {
           fullWidth
           name="regex-source"
           value={source}
-          onChange={setSource}
+          onChange={(value) => {
+            cancel();
+            setSource(value);
+          }}
         >
           <Label>{strings.text}</Label>
           <TextArea rows={10} variant="secondary" spellCheck={false} />
           <Description>{strings.description}</Description>
         </TextField>
 
-        <Button type="submit" className="self-start">
-          <Regex />
-          {strings.test}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit">
+            <Regex />
+            {strings.test}
+          </Button>
+          {isPending ? (
+            <Button type="button" variant="secondary" onPress={cancel}>
+              {strings.cancel}
+            </Button>
+          ) : null}
+        </div>
       </Form>
 
       {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
@@ -257,14 +301,20 @@ export function JsonToTypeScriptTool() {
     event.preventDefault();
 
     try {
+      formatLosslessJson(source, 0);
       setOutput(jsonToTypeScript(JSON.parse(source), rootName || 'Root'));
       setError(undefined);
     } catch (caughtError) {
       setOutput('');
       setError(
-        caughtError instanceof Error ? caughtError.message : strings.invalid,
+        caughtError instanceof RangeError ? strings.limit : strings.invalid,
       );
     }
+  }
+
+  function resetResult() {
+    setOutput('');
+    setError(undefined);
   }
 
   return (
@@ -274,7 +324,10 @@ export function JsonToTypeScriptTool() {
           fullWidth
           name="root-name"
           value={rootName}
-          onChange={setRootName}
+          onChange={(value) => {
+            setRootName(value);
+            resetResult();
+          }}
         >
           <Label>{strings.rootName}</Label>
           <Input variant="secondary" spellCheck={false} />
@@ -283,7 +336,10 @@ export function JsonToTypeScriptTool() {
           fullWidth
           name="json-type-source"
           value={source}
-          onChange={setSource}
+          onChange={(value) => {
+            setSource(value);
+            resetResult();
+          }}
         >
           <Label>{strings.label}</Label>
           <TextArea rows={12} variant="secondary" spellCheck={false} />
@@ -299,8 +355,7 @@ export function JsonToTypeScriptTool() {
             variant="tertiary"
             onPress={() => {
               setSource(jsonExample);
-              setOutput('');
-              setError(undefined);
+              resetResult();
             }}
           >
             <Sparkles />
@@ -332,28 +387,41 @@ export function TextDiffTool() {
   );
   const [output, setOutput] = useState('');
 
+  const [error, setError] = useState<string>();
+
   function compare(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const lines = createLineDiff(beforeValue, afterValue);
-    const rendered = lines
-      .map((line) => {
-        const prefix =
-          line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' ';
-        return `${prefix} ${line.value}`;
-      })
-      .join('\n');
-    const added = lines.filter((line) => line.type === 'added').length;
-    const removed = lines.filter((line) => line.type === 'removed').length;
+    try {
+      const lines = createLineDiff(beforeValue, afterValue);
+      const rendered = lines
+        .map((line) => {
+          const prefix =
+            line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' ';
+          return `${prefix} ${line.value}`;
+        })
+        .join('\n');
+      const added = lines.filter((line) => line.type === 'added').length;
+      const removed = lines.filter((line) => line.type === 'removed').length;
 
-    setOutput(
-      [
-        strings.summary
-          .replace('{added}', String(added))
-          .replace('{removed}', String(removed)),
-        '',
-        rendered,
-      ].join('\n'),
-    );
+      setOutput(
+        [
+          strings.summary
+            .replace('{added}', String(added))
+            .replace('{removed}', String(removed)),
+          '',
+          rendered,
+        ].join('\n'),
+      );
+      setError(undefined);
+    } catch {
+      setOutput('');
+      setError(strings.limit);
+    }
+  }
+
+  function resetResult() {
+    setOutput('');
+    setError(undefined);
   }
 
   return (
@@ -364,7 +432,10 @@ export function TextDiffTool() {
             fullWidth
             name="before"
             value={beforeValue}
-            onChange={setBeforeValue}
+            onChange={(value) => {
+              setBeforeValue(value);
+              resetResult();
+            }}
           >
             <Label>{strings.before}</Label>
             <TextArea rows={14} variant="secondary" spellCheck={false} />
@@ -373,7 +444,10 @@ export function TextDiffTool() {
             fullWidth
             name="after"
             value={afterValue}
-            onChange={setAfterValue}
+            onChange={(value) => {
+              setAfterValue(value);
+              resetResult();
+            }}
           >
             <Label>{strings.after}</Label>
             <TextArea rows={14} variant="secondary" spellCheck={false} />
@@ -388,6 +462,7 @@ export function TextDiffTool() {
         </Button>
       </Form>
 
+      {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
       {output ? (
         <ToolOutput content={output} label={strings.output} format="diff" />
       ) : null}

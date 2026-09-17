@@ -30,26 +30,59 @@ export function getRequestLocale(request: Request): Locale {
 export function getLocaleFromAcceptLanguage(
   acceptLanguage: string | null,
 ): Locale {
-  const preferredLocale = acceptLanguage
-    ?.split(',')
-    .map((item) => item.split(';')[0]?.trim().toLowerCase())
-    .find(
-      (locale) =>
-        locale === 'ru' ||
-        locale?.startsWith('ru-') ||
-        locale === 'en' ||
-        locale?.startsWith('en-'),
-    );
+  const preferences = (acceptLanguage ?? '')
+    .split(',')
+    .flatMap((item, index) => {
+      const [range, ...parameters] = item.trim().toLowerCase().split(';');
+      const language = range.trim();
+      const locale = locales.find(
+        (value) => language === value || language.startsWith(`${value}-`),
+      );
 
-  if (preferredLocale === 'ru' || preferredLocale?.startsWith('ru-')) {
-    return 'ru';
-  }
+      if (language !== '*' && !locale) {
+        return [];
+      }
 
-  if (preferredLocale === 'en' || preferredLocale?.startsWith('en-')) {
-    return 'en';
-  }
+      const qualityParameters = parameters.filter((value) =>
+        /^q(?:\s*=|$)/.test(value.trim()),
+      );
+      const qualityMatch = qualityParameters[0]
+        ?.trim()
+        .match(/^q\s*=\s*(0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/);
 
-  return defaultLocale;
+      if (
+        qualityParameters.length > 1 ||
+        (qualityParameters.length === 1 && !qualityMatch)
+      ) {
+        return [];
+      }
+
+      return [{ locale, quality: Number(qualityMatch?.[1] ?? 1), index }];
+    })
+    .sort((a, b) => b.quality - a.quality || a.index - b.index);
+
+  const candidates = locales.map((locale) => {
+    // Explicit language preferences, including q=0, take priority over '*'.
+    const preference =
+      preferences.find((item) => item.locale === locale) ??
+      preferences.find((item) => item.locale === undefined);
+    return { locale, preference };
+  });
+  const preferred = candidates
+    .flatMap(({ locale, preference }) =>
+      preference && preference.quality > 0
+        ? [{ locale, quality: preference.quality, index: preference.index }]
+        : [],
+    )
+    .sort((a, b) => b.quality - a.quality || a.index - b.index)[0];
+
+  // There is no acceptable supported locale if both are rejected; retain the
+  // site's default rather than making locale negotiation fail the request.
+  return (
+    preferred?.locale ??
+    candidates.find((item) => !item.preference)?.locale ??
+    defaultLocale
+  );
 }
 
 export function getText(value: LocalizedText, locale: Locale) {
@@ -82,6 +115,10 @@ export const translations = {
       logoAlt: 'Логотип streetraceing',
       openMenu: 'Открыть меню',
       closeMenu: 'Закрыть меню',
+      skipToContent: 'Перейти к содержимому',
+      logoutPending: 'Выход…',
+      logoutFailed: 'Не удалось выйти',
+      dismissError: 'Закрыть сообщение об ошибке',
     },
     home: {
       intro: 'Ээ даже хз что сюда писать и размещать но похъ',
@@ -319,9 +356,11 @@ export const translations = {
       joinRateLimited: 'Слишком много попыток. Попробуй позже.',
       expiresNote: 'Чат и файлы удалятся {time}.',
       empty: 'Пока сообщений нет - напиши первое.',
+      messageWindowNotice:
+        'Показаны последние 200 сообщений. Более старые остаются в чате, но не отображаются.',
       placeholder: 'Сообщение (до 20 000 символов)…',
       send: 'Отправить',
-      sendHint: 'Ctrl + Enter — отправить',
+      sendHint: 'Ctrl + Enter: отправить',
       sending: 'Отправляю…',
       attach: 'Прикрепить файл',
       uploading: 'Загружаю файл…',
@@ -363,7 +402,7 @@ export const translations = {
         'Направления, в которых сейчас больше всего практики, и публичная активность в открытых репозиториях.',
       skillsChartTitle: 'Фокус разработки',
       skillsChartDescription:
-        'Относительное распределение практики по основным направлениям.',
+        'Приблизительная авторская оценка распределения практики: доли заданы вручную, а не рассчитаны по активности.',
       githubHistoryTitle: 'Публичная история коммитов',
       githubHistoryDescription: 'Последние коммиты в открытых репозиториях.',
       githubViewProfile: 'Открыть GitHub',
@@ -420,6 +459,7 @@ export const translations = {
       previous: 'Назад',
       next: 'Далее',
       showFull: 'Показать полностью',
+      showLess: 'Свернуть заметку',
       images: 'Фотографии',
       newsImagesDescription:
         'До 20 фотографий. Оригинал загружается напрямую в Cloudinary, а на сайте показывается квадратное превью 1080 × 1080.',
@@ -447,8 +487,11 @@ export const translations = {
         required: 'Вставь текст или Base64-строку.',
         label: 'Текст или Base64',
         placeholder: 'Например: Привет, мир!',
-        description: 'Кодирование UTF-8 выполняется локально в браузере.',
-        urlSafe: 'URL-safe алфавит (base64url без +, / и =)',
+        description:
+          'UTF-8 обрабатывается локально, BOM сохраняется. Пробелы запрещены: обычный Base64 требует корректного =, base64url обходится без =. Пустая строка допустима.',
+        limit:
+          'Лимит: 1 000 000 символов текста при кодировании или 4 000 000 символов Base64 при декодировании.',
+        urlSafe: 'Base64url для кодирования и декодирования (без +, / и =)',
         encode: 'В Base64',
         decode: 'Из Base64',
         example: 'Пример',
@@ -458,6 +501,8 @@ export const translations = {
       json: {
         invalid: 'Не удалось прочитать JSON: {message}',
         invalidGeneric: 'Не удалось прочитать JSON.',
+        limit:
+          'Лимит JSON: 1 000 000 символов на входе, 100 уровней вложенности и 4 000 000 символов результата.',
         required: 'Вставь JSON, который нужно проверить.',
         label: 'JSON',
         placeholder: 'Вставь JSON сюда…',
@@ -471,7 +516,8 @@ export const translations = {
       text: {
         label: 'Текст',
         placeholder: 'Вставь или напиши текст…',
-        description: 'Результат появится ниже, исходный текст не изменится.',
+        description:
+          'Исходный текст не изменится. Уникальные строки сравниваются точно: пробелы и одна пустая строка сохраняются; разделители строк приводятся к LF.',
         characters: 'Символов: {count}',
         words: 'Слов: {count}',
         lines: 'Строк: {count}',
@@ -504,7 +550,9 @@ export const translations = {
         excludeAmbiguous: 'Исключить похожие символы: 0, O, o, 1, I, l и |',
         generate: 'Создать пароль',
         errorTitle: 'Не удалось создать пароль',
-        entropy: 'Оценочная энтропия',
+        entropy: 'Теоретическая оценка энтропии',
+        entropyHint:
+          'Длина × log₂ размера набора. Обязательные группы меняют распределение; это не гарантия стойкости.',
         bits: '{count} бит',
         pool: 'Символов в наборе',
         output: 'Новый пароль',
@@ -535,8 +583,10 @@ export const translations = {
         textLabel: 'Текст для хеширования',
         placeholder: 'Вставь текст или выбери файл ниже…',
         description:
-          'Если выбран файл, хеш вычисляется для файла вместо текста.',
+          'Файл (до 20 МиБ) хешируется вместо текста. Пустой текст допустим. Данные не сохраняются и не покидают браузер.',
         fileSelected: 'Выбран файл: {name}',
+        fileTooLarge: 'Размер файла не должен превышать 20 МиБ.',
+        bytes: '{count} байт',
         chooseFile: 'Выбрать файл',
         useText: 'Использовать текст',
         required: 'Добавь текст или выбери файл.',
@@ -549,9 +599,17 @@ export const translations = {
         pattern: 'Регулярное выражение',
         flags: 'Флаги',
         text: 'Текст для проверки',
-        description: 'Показывается не больше 200 совпадений за один запуск.',
+        description:
+          'В отдельном worker: до 1 секунды, 2 000 символов выражения, 50 000 символов текста, 200 совпадений и 100 000 символов результата. Без g или y находится только первое совпадение; индексы считаются в UTF-16.',
         test: 'Проверить',
-        invalidFlags: 'Допустимы только флаги d, g, i, m, s, u, v и y.',
+        cancel: 'Отменить',
+        timeout: 'Проверка остановлена: превышен лимит в 1 секунду.',
+        inputLimit: 'Лимит: 2 000 символов выражения и 50 000 символов текста.',
+        outputLimit:
+          'Достигнут лимит 200 совпадений или 100 000 символов; показан частичный результат.',
+        workerFailed: 'Не удалось запустить worker для проверки выражения.',
+        invalidFlags:
+          'Допустимы d, g, i, m, s, u, v и y без повторов. Нельзя сочетать u и v.',
         noMatches: 'Совпадений не найдено.',
         invalid: 'Не удалось создать регулярное выражение.',
         errorTitle: 'Ошибка RegExp',
@@ -581,7 +639,9 @@ export const translations = {
         rootName: 'Имя корневого типа',
         label: 'Пример JSON',
         description:
-          'Вложенные объекты становятся интерфейсами, массивы и примитивы получают подходящие типы.',
+          'Объекты получают отдельные интерфейсы с уникальными именами; неоднородные массивы используют объединения типов. Пустой массив имеет тип unknown[].',
+        limit:
+          'Слишком большой пример: до 1 000 000 символов, 100 уровней и 10 000 значений; результат до 1 000 000 символов.',
         convert: 'Создать типы',
         example: 'Вернуть пример',
         invalid: 'Не удалось прочитать JSON.',
@@ -592,16 +652,25 @@ export const translations = {
         before: 'Исходная версия',
         after: 'Новая версия',
         description:
-          'Сравнение выполняется построчно. Для защиты вкладки учитываются первые 500 строк каждой версии.',
+          'Сравнение выполняется построчно; каждая версия должна содержать не более 500 строк.',
+        limit:
+          'Сократи каждую версию до 500 строк. Частичное сравнение не выполняется.',
+        errorTitle: 'Не удалось сравнить текст',
         compare: 'Сравнить',
         summary: 'Добавлено строк: {added}; удалено строк: {removed}',
         output: 'Построчная разница',
       },
       timestamp: {
         label: 'Timestamp или дата',
-        placeholder: '1710000000, 1710000000000 или 2026-08-01T12:00:00Z',
+        placeholder: '0 или 1970-01-01T00:00:00Z, выбери формат выше',
+        mode: 'Формат ввода',
+        modes: {
+          seconds: 'Unix-секунды',
+          milliseconds: 'Unix-миллисекунды',
+          iso: 'Дата ISO 8601',
+        },
         description:
-          'Числа автоматически распознаются как Unix-секунды или миллисекунды.',
+          'Единицы выбираются явно. ISO: YYYY-MM-DD (UTC) или дата и время с секундами и Z/±HH:MM; до 3 знаков миллисекунд. Локальное время использует часовой пояс браузера; доли миллисекунды отбрасываются.',
         convert: 'Преобразовать',
         now: 'Подставить сейчас',
         invalid: 'Не удалось распознать дату или timestamp.',
@@ -700,6 +769,8 @@ export const translations = {
         encode: 'Закодировать',
         decode: 'Декодировать',
         example: 'Пример',
+        invalidEncode:
+          'Не удалось закодировать строку: некорректная последовательность Unicode.',
         invalidDecode:
           'Не удалось декодировать строку: проверь %-последовательности.',
         errorTitle: 'Не получилось обработать значение',
@@ -720,11 +791,155 @@ export const translations = {
         algorithm: 'Алгоритм',
         messageLabel: 'Сообщение',
         secretLabel: 'Секретный ключ',
-        required: 'Добавь сообщение и секретный ключ.',
+        required:
+          'Добавь непустой секретный ключ. Сообщение может быть пустым.',
+        messageBytes: 'Сообщение: {count} байт',
         failed: 'Браузер не смог вычислить HMAC.',
         sign: 'Вычислить HMAC',
         errorTitle: 'Не удалось вычислить HMAC',
         output: 'HMAC-подпись',
+      },
+      csv: {
+        label: 'Таблица CSV, TSV или JSON',
+        description:
+          'Первая строка считается заголовками. Кавычки, экранированные кавычки, переносы строк внутри полей и ведущие нули сохраняются без изменений.',
+        delimiter: 'Разделитель',
+        delimiters: {
+          ',': 'Запятая',
+          '\t': 'Табуляция',
+          ';': 'Точка с запятой',
+        },
+        protectFormulas: 'Экранировать формулы для таблиц при выгрузке в CSV',
+        toJson: 'В JSON',
+        toCsv: 'В CSV',
+        errorTitle: 'Не удалось преобразовать данные',
+        output: 'Результат',
+        lineSuffix: '(строка {line})',
+        errors: {
+          'input-limit': 'Слишком большой объём данных.',
+          'output-limit': 'Результат получился слишком большим.',
+          'row-limit': 'Слишком много строк.',
+          'column-limit': 'Слишком много столбцов.',
+          'invalid-delimiter': 'Такой разделитель не поддерживается.',
+          'malformed-quote': 'Кавычка стоит внутри незакавыченного поля.',
+          'unterminated-quote': 'Кавычка в поле не закрыта.',
+          'missing-header': 'Нужна первая строка с заголовками.',
+          'blank-header': 'В заголовке есть пустое имя столбца.',
+          'duplicate-header': 'Имена столбцов повторяются.',
+          'field-count': 'В строке другое число полей, чем в заголовке.',
+          'invalid-json': 'Это не корректный JSON.',
+          'invalid-record': 'Нужен массив объектов с простыми значениями.',
+          'nested-value':
+            'Вложенные объекты и массивы в CSV не помещаются. Оставь простые значения.',
+          'invalid-value': 'В JSON есть число, которое нельзя записать точно.',
+        },
+      },
+      jsonPointer: {
+        label: 'JSON',
+        description:
+          'Символ ~ кодируется как ~0, а слеш как ~1. Индексы массива начинаются с нуля.',
+        pointerLabel: 'Путь',
+        pointerDescription:
+          'Пустая строка означает весь документ, /items/0/name достаёт поле из первого элемента.',
+        resolve: 'Найти значение',
+        undefinedValue: 'Поле существует, но значение не задано.',
+        invalidJson: 'Не удалось разобрать JSON.',
+        errorTitle: 'Не удалось пройти по пути',
+        output: 'Найденное значение',
+        errors: {
+          syntax: 'Путь записан не по правилам RFC 6901.',
+          missing: 'По этому пути ничего нет.',
+          limit: 'Путь слишком длинный или слишком глубокий.',
+        },
+      },
+      unicode: {
+        label: 'Текст',
+        description:
+          'Полезно, когда строка выглядит одинаково, но сравнивается по-разному: невидимые пробелы, разные формы нормализации и подозрительные символы.',
+        errorTitle: 'Не удалось разобрать текст',
+        limit: 'Слишком много символов: разбирается не больше 2000.',
+        summary: 'Итоги',
+        characters: 'Символы',
+        charactersDescription:
+          'Невидимые символы подписаны названиями, чтобы их было видно.',
+        empty: 'Пустая строка: разбирать нечего.',
+        codePoints: 'Кодовых точек',
+        utf16Units: 'Единиц UTF-16',
+        utf8Bytes: 'Байт UTF-8',
+        nfc: 'NFC',
+        nfd: 'NFD',
+        nfkc: 'NFKC',
+        nfkd: 'NFKD',
+        columnCharacter: 'Символ',
+        columnCodePoint: 'Кодовая точка',
+        columnUtf8: 'UTF-8',
+        columnName: 'Название',
+      },
+      semver: {
+        label: 'Версии по одной в строке',
+        description:
+          'Поддерживается SemVer 2.0.0: метаданные после + не влияют на порядок, а префиксы вроде alpha и rc идут перед релизом.',
+        descending: 'Сначала новые версии',
+        sort: 'Отсортировать',
+        compare: 'Сравнить',
+        first: 'Первая версия',
+        second: 'Вторая версия',
+        equal: 'Версии равны по правилам SemVer.',
+        firstGreater: 'Первая версия выше второй.',
+        firstLower: 'Первая версия ниже второй.',
+        empty: 'Список пуст: добавь хотя бы одну версию.',
+        errorTitle: 'Не удалось сравнить версии',
+        output: 'Отсортированный список',
+        errors: {
+          invalid: 'Версия не соответствует SemVer 2.0.0.',
+          limit: 'Слишком много версий или слишком длинная строка.',
+        },
+      },
+      permissions: {
+        label: 'Режим доступа',
+        description:
+          'Подойдёт восьмеричная запись из трёх или четырёх цифр либо символьная, например rwxr-xr-x.',
+        invalid: 'Не удалось разобрать режим доступа.',
+        errorTitle: 'Некорректный режим',
+        output: 'Результат',
+        octal: 'Восьмеричный вид',
+        symbolic: 'Символьный вид',
+        bitsTitle: 'Биты доступа',
+        bitsDescription:
+          'Отметь нужные права, чтобы получить готовую команду chmod.',
+        owner: 'Владелец',
+        group: 'Группа',
+        other: 'Остальные',
+        read: 'Чтение (r)',
+        write: 'Запись (w)',
+        execute: 'Выполнение (x)',
+        setuid: 'setuid',
+        setgid: 'setgid',
+        sticky: 'sticky',
+      },
+      subnet: {
+        label: 'Адрес с префиксом',
+        description:
+          'Запись вида 192.168.1.130/26. Адрес может быть любым из подсети, не только адресом сети.',
+        invalid: 'Проверь адрес IPv4 и префикс от 0 до 32.',
+        errorTitle: 'Некорректная подсеть',
+        output: 'Параметры подсети',
+        address: 'Адрес',
+        prefix: 'Префикс',
+        mask: 'Маска',
+        wildcard: 'Обратная маска',
+        network: 'Адрес сети',
+        broadcast: 'Широковещательный адрес',
+        firstHost: 'Первый хост',
+        lastHost: 'Последний хост',
+        totalAddresses: 'Всего адресов',
+        usableHosts: 'Адресов для хостов',
+        note: 'Расчёт локальный: адреса не проверяются в сети, запросы никуда не отправляются.',
+        kinds: {
+          subnet: 'Обычная подсеть',
+          'point-to-point': 'Связь точка-точка',
+          host: 'Один хост',
+        },
       },
     },
     notFound: 'Страница не найдена',
@@ -810,6 +1025,10 @@ export const translations = {
       logoAlt: 'streetraceing logo',
       openMenu: 'Open menu',
       closeMenu: 'Close menu',
+      skipToContent: 'Skip to content',
+      logoutPending: 'Signing out…',
+      logoutFailed: 'Could not sign out',
+      dismissError: 'Dismiss error',
     },
     home: {
       intro: 'Honestly, I am not even sure what to put here yet, but whatever.',
@@ -1044,9 +1263,11 @@ export const translations = {
       joinRateLimited: 'Too many attempts. Try again later.',
       expiresNote: 'The chat and its files will be deleted {time}.',
       empty: 'No messages yet - write the first one.',
+      messageWindowNotice:
+        'Showing the latest 200 messages. Older ones stay in the chat but are not displayed.',
       placeholder: 'Message (up to 20,000 characters)…',
       send: 'Send',
-      sendHint: 'Ctrl + Enter — send',
+      sendHint: 'Ctrl + Enter: send',
       sending: 'Sending…',
       attach: 'Attach a file',
       uploading: 'Uploading the file…',
@@ -1088,7 +1309,7 @@ export const translations = {
         'The areas I am practicing most right now and public activity across open repositories.',
       skillsChartTitle: 'Development focus',
       skillsChartDescription:
-        'A relative distribution of practice across the main areas.',
+        'The author’s rough estimate of practice by area: manually assigned shares, not measured activity.',
       githubHistoryTitle: 'Public commit history',
       githubHistoryDescription: 'Recent commits across public repositories.',
       githubViewProfile: 'Open GitHub',
@@ -1146,6 +1367,7 @@ export const translations = {
       previous: 'Previous',
       next: 'Next',
       showFull: 'Show full post',
+      showLess: 'Collapse post',
       images: 'Photos',
       newsImagesDescription:
         'Up to 20 photos. The original is uploaded directly to Cloudinary, while the site displays a square 1080 × 1080 preview.',
@@ -1173,8 +1395,11 @@ export const translations = {
         required: 'Paste text or a Base64 string.',
         label: 'Text or Base64',
         placeholder: 'For example: Hello, world!',
-        description: 'UTF-8 encoding happens locally in your browser.',
-        urlSafe: 'URL-safe alphabet (base64url without +, /, or =)',
+        description:
+          'UTF-8 stays local; BOM is preserved. No whitespace: standard Base64 requires canonical = padding; base64url is unpadded. Empty strings are valid.',
+        limit:
+          'Limit: 1,000,000 text characters when encoding or 4,000,000 Base64 characters when decoding.',
+        urlSafe: 'Base64url for encoding and decoding (without +, /, or =)',
         encode: 'To Base64',
         decode: 'From Base64',
         example: 'Example',
@@ -1184,6 +1409,8 @@ export const translations = {
       json: {
         invalid: 'Could not read JSON: {message}',
         invalidGeneric: 'Could not read JSON.',
+        limit:
+          'JSON limit: 1,000,000 input characters, 100 nesting levels and 4,000,000 output characters.',
         required: 'Paste JSON to validate.',
         label: 'JSON',
         placeholder: 'Paste JSON here…',
@@ -1198,7 +1425,7 @@ export const translations = {
         label: 'Text',
         placeholder: 'Paste or write text…',
         description:
-          'The result appears below; the original text stays unchanged.',
+          'The source stays unchanged. Unique lines use exact comparison: spaces and one empty line are kept; line separators are normalized to LF.',
         characters: 'Characters: {count}',
         words: 'Words: {count}',
         lines: 'Lines: {count}',
@@ -1231,7 +1458,9 @@ export const translations = {
         excludeAmbiguous: 'Exclude similar characters: 0, O, o, 1, I, l, and |',
         generate: 'Create password',
         errorTitle: 'Could not create a password',
-        entropy: 'Estimated entropy',
+        entropy: 'Theoretical entropy estimate',
+        entropyHint:
+          'Length × log₂ of pool size. Required groups change the distribution; this is not a security guarantee.',
         bits: '{count} bits',
         pool: 'Characters in pool',
         output: 'New password',
@@ -1262,8 +1491,10 @@ export const translations = {
         textLabel: 'Text to hash',
         placeholder: 'Paste text or choose a file below…',
         description:
-          'When a file is selected, the file is hashed instead of the text.',
+          'A selected file (up to 20 MiB) is hashed instead of the text. Empty text is valid. Data is not stored or sent outside the browser.',
         fileSelected: 'Selected file: {name}',
+        fileTooLarge: 'The file must not exceed 20 MiB.',
+        bytes: '{count} bytes',
         chooseFile: 'Choose file',
         useText: 'Use text',
         required: 'Add text or choose a file.',
@@ -1276,9 +1507,18 @@ export const translations = {
         pattern: 'Regular expression',
         flags: 'Flags',
         text: 'Test text',
-        description: 'Up to 200 matches are shown per run.',
+        description:
+          'Runs in a worker: up to 1 second, 2,000 pattern characters, 50,000 text characters, 200 matches and 100,000 output characters. Without g/y, only the first match is shown; indices use UTF-16.',
         test: 'Test expression',
-        invalidFlags: 'Only d, g, i, m, s, u, v, and y flags are allowed.',
+        cancel: 'Cancel',
+        timeout: 'Stopped: the 1-second time limit was exceeded.',
+        inputLimit:
+          'Limit: 2,000 pattern characters and 50,000 text characters.',
+        outputLimit:
+          'Reached 200 matches or 100,000 output characters; the result is partial.',
+        workerFailed: 'Could not start the regex worker.',
+        invalidFlags:
+          'Use d, g, i, m, s, u, v and y without duplicates. Do not combine u and v.',
         noMatches: 'No matches found.',
         invalid: 'Could not create the regular expression.',
         errorTitle: 'RegExp error',
@@ -1308,7 +1548,9 @@ export const translations = {
         rootName: 'Root type name',
         label: 'JSON example',
         description:
-          'Nested objects become interfaces, while arrays and primitives receive matching types.',
+          'Objects receive distinct, uniquely named interfaces; heterogeneous arrays use unions. Empty arrays use unknown[].',
+        limit:
+          'Sample too large: up to 1,000,000 characters, 100 levels and 10,000 values; output up to 1,000,000 characters.',
         convert: 'Create types',
         example: 'Restore example',
         invalid: 'Could not read the JSON.',
@@ -1319,16 +1561,25 @@ export const translations = {
         before: 'Original version',
         after: 'New version',
         description:
-          'Comparison is line-based. To protect the tab, only the first 500 lines of each version are used.',
+          'Comparison is line-based; each version must contain no more than 500 lines.',
+        limit:
+          'Reduce each version to 500 lines. No partial comparison is performed.',
+        errorTitle: 'Could not compare text',
         compare: 'Compare',
         summary: 'Added lines: {added}; removed lines: {removed}',
         output: 'Line diff',
       },
       timestamp: {
         label: 'Timestamp or date',
-        placeholder: '1710000000, 1710000000000, or 2026-08-01T12:00:00Z',
+        placeholder: '0 or 1970-01-01T00:00:00Z, choose the format above',
+        mode: 'Input format',
+        modes: {
+          seconds: 'Unix seconds',
+          milliseconds: 'Unix milliseconds',
+          iso: 'ISO 8601 date',
+        },
         description:
-          'Numbers are automatically detected as Unix seconds or milliseconds.',
+          'Choose units explicitly. ISO: YYYY-MM-DD (UTC) or date-time with seconds and Z/±HH:MM; up to 3 fractional digits. Local time uses the browser time zone; sub-millisecond fractions are discarded.',
         convert: 'Convert',
         now: 'Use current time',
         invalid: 'Could not recognize the date or timestamp.',
@@ -1429,6 +1680,7 @@ export const translations = {
         encode: 'Encode',
         decode: 'Decode',
         example: 'Example',
+        invalidEncode: 'Could not encode the value: invalid Unicode sequence.',
         invalidDecode: 'Could not decode the value: check the % sequences.',
         errorTitle: 'Could not process the value',
         output: 'Result',
@@ -1448,11 +1700,156 @@ export const translations = {
         algorithm: 'Algorithm',
         messageLabel: 'Message',
         secretLabel: 'Secret key',
-        required: 'Add both a message and a secret key.',
+        required: 'Add a nonempty secret key. The message may be empty.',
+        messageBytes: 'Message: {count} bytes',
         failed: 'The browser could not calculate the HMAC.',
         sign: 'Calculate HMAC',
         errorTitle: 'Could not calculate the HMAC',
         output: 'HMAC signature',
+      },
+      csv: {
+        label: 'CSV, TSV, or JSON table',
+        description:
+          'The first row is treated as headers. Quotes, escaped quotes, line breaks inside fields, and leading zeros are preserved as written.',
+        delimiter: 'Delimiter',
+        delimiters: {
+          ',': 'Comma',
+          '\t': 'Tab',
+          ';': 'Semicolon',
+        },
+        protectFormulas: 'Escape formulas for spreadsheets when exporting CSV',
+        toJson: 'To JSON',
+        toCsv: 'To CSV',
+        errorTitle: 'Could not convert the data',
+        output: 'Result',
+        lineSuffix: '(line {line})',
+        errors: {
+          'input-limit': 'The input is too large.',
+          'output-limit': 'The result is too large.',
+          'row-limit': 'Too many rows.',
+          'column-limit': 'Too many columns.',
+          'invalid-delimiter': 'That delimiter is not supported.',
+          'malformed-quote': 'A quote appears inside an unquoted field.',
+          'unterminated-quote': 'A quoted field is never closed.',
+          'missing-header': 'A first row with headers is required.',
+          'blank-header': 'A header name is empty.',
+          'duplicate-header': 'Header names repeat.',
+          'field-count': 'A row has a different field count than the header.',
+          'invalid-json': 'That is not valid JSON.',
+          'invalid-record':
+            'An array of objects with plain values is required.',
+          'nested-value':
+            'Nested objects and arrays do not fit in CSV. Keep plain values.',
+          'invalid-value':
+            'The JSON contains a number that cannot be written exactly.',
+        },
+      },
+      jsonPointer: {
+        label: 'JSON',
+        description:
+          'The tilde character is written as ~0 and the slash as ~1. Array indexes start at zero.',
+        pointerLabel: 'Path',
+        pointerDescription:
+          'An empty string means the whole document, and /items/0/name reads a field from the first element.',
+        resolve: 'Find the value',
+        undefinedValue: 'The field exists but has no value.',
+        invalidJson: 'Could not parse the JSON.',
+        errorTitle: 'Could not follow the path',
+        output: 'Matched value',
+        errors: {
+          syntax: 'The path does not follow RFC 6901.',
+          missing: 'There is nothing at this path.',
+          limit: 'The path is too long or too deeply nested.',
+        },
+      },
+      unicode: {
+        label: 'Text',
+        description:
+          'Useful when two strings look the same but compare differently: invisible spaces, different normalization forms, and suspicious characters.',
+        errorTitle: 'Could not inspect the text',
+        limit: 'Too many characters: up to 2000 are inspected.',
+        summary: 'Totals',
+        characters: 'Characters',
+        charactersDescription:
+          'Invisible characters are labeled with their names so they are visible.',
+        empty: 'The string is empty, so there is nothing to inspect.',
+        codePoints: 'Code points',
+        utf16Units: 'UTF-16 units',
+        utf8Bytes: 'UTF-8 bytes',
+        nfc: 'NFC',
+        nfd: 'NFD',
+        nfkc: 'NFKC',
+        nfkd: 'NFKD',
+        columnCharacter: 'Character',
+        columnCodePoint: 'Code point',
+        columnUtf8: 'UTF-8',
+        columnName: 'Name',
+      },
+      semver: {
+        label: 'Versions, one per line',
+        description:
+          'SemVer 2.0.0 is supported: metadata after + does not affect order, and prereleases such as alpha and rc come before the release.',
+        descending: 'Newest versions first',
+        sort: 'Sort',
+        compare: 'Compare',
+        first: 'First version',
+        second: 'Second version',
+        equal: 'The versions are equal under SemVer.',
+        firstGreater: 'The first version is higher.',
+        firstLower: 'The first version is lower.',
+        empty: 'The list is empty: add at least one version.',
+        errorTitle: 'Could not compare the versions',
+        output: 'Sorted list',
+        errors: {
+          invalid: 'The version does not follow SemVer 2.0.0.',
+          limit: 'Too many versions or a line that is too long.',
+        },
+      },
+      permissions: {
+        label: 'Access mode',
+        description:
+          'Accepts three or four octal digits, or symbolic notation such as rwxr-xr-x.',
+        invalid: 'Could not parse the access mode.',
+        errorTitle: 'Invalid mode',
+        output: 'Result',
+        octal: 'Octal',
+        symbolic: 'Symbolic',
+        bitsTitle: 'Access bits',
+        bitsDescription:
+          'Toggle the permissions you need to get a ready chmod command.',
+        owner: 'Owner',
+        group: 'Group',
+        other: 'Other',
+        read: 'Read (r)',
+        write: 'Write (w)',
+        execute: 'Execute (x)',
+        setuid: 'setuid',
+        setgid: 'setgid',
+        sticky: 'sticky',
+      },
+      subnet: {
+        label: 'Address with a prefix',
+        description:
+          'A value like 192.168.1.130/26. The address may be any address in the subnet, not only the network address.',
+        invalid: 'Check the IPv4 address and a prefix from 0 to 32.',
+        errorTitle: 'Invalid subnet',
+        output: 'Subnet details',
+        address: 'Address',
+        prefix: 'Prefix',
+        mask: 'Mask',
+        wildcard: 'Wildcard mask',
+        network: 'Network address',
+        broadcast: 'Broadcast address',
+        firstHost: 'First host',
+        lastHost: 'Last host',
+        totalAddresses: 'Total addresses',
+        usableHosts: 'Host addresses',
+        note: 'Everything is calculated locally: no addresses are checked on the network and no requests are sent.',
+        kinds: {
+          subnet: 'Regular subnet',
+          'point-to-point': 'Point-to-point link',
+          host: 'Single host',
+        },
       },
     },
     notFound: 'Page not found',

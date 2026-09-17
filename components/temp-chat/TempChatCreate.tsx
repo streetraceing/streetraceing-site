@@ -7,15 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { getJsonError, isJsonObject, readJsonResponse } from '@/utils/json';
 import { getLocaleTag, getText } from '@/utils/i18n';
 import { getToolBySlug } from '@/utils/tool-catalog';
-import {
-  isTempChatHistoryEntry,
-  isTempChatTtlHours,
-  mergeTempChatHistoryEntry,
-  pruneExpiredTempChatHistory,
-  TEMP_CHAT_HISTORY_STORAGE_KEY,
-  TEMP_CHAT_TTL_HOURS,
-  type TempChatHistoryEntry,
-} from '@/utils/temp-chat';
+import { isTempChatTtlHours, TEMP_CHAT_TTL_HOURS } from '@/utils/temp-chat';
 import {
   Description,
   Form,
@@ -31,57 +23,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { type FormEvent, useState, useSyncExternalStore } from 'react';
 
-const subscribeToNothing = () => () => {};
-
-let historySnapshotCache:
-  | {
-      raw: string;
-      snapshot: TempChatHistoryEntry[];
-    }
-  | undefined;
-
-function readHistoryRaw() {
-  try {
-    return window.localStorage.getItem(TEMP_CHAT_HISTORY_STORAGE_KEY) ?? '';
-  } catch {
-    return '';
-  }
-}
-
-/** Parses the stored history. The result is cached per raw value because
- * useSyncExternalStore requires a stable snapshot between renders. */
-function getHistorySnapshot(): TempChatHistoryEntry[] {
-  const raw = readHistoryRaw();
-
-  if (historySnapshotCache?.raw === raw) {
-    return historySnapshotCache.snapshot;
-  }
-
-  const parsed: unknown = raw ? JSON.parse(raw) : [];
-  const snapshot = Array.isArray(parsed)
-    ? pruneExpiredTempChatHistory(parsed.filter(isTempChatHistoryEntry))
-    : [];
-
-  historySnapshotCache = { raw, snapshot };
-  return snapshot;
-}
-
-function getServerHistorySnapshot(): TempChatHistoryEntry[] {
-  return [];
-}
-
-function writeHistory(entries: TempChatHistoryEntry[]) {
-  try {
-    window.localStorage.setItem(
-      TEMP_CHAT_HISTORY_STORAGE_KEY,
-      JSON.stringify(entries),
-    );
-    // Keep the snapshot cache in sync with the new storage value.
-    historySnapshotCache = { raw: readHistoryRaw(), snapshot: entries };
-  } catch {
-    // History is a convenience feature; failures are safe to ignore.
-  }
-}
+import {
+  subscribeToTempChatStorage,
+  tempChatSessionStorage,
+} from './session-storage';
 
 export function TempChatCreate() {
   const { copy, locale } = useLocale();
@@ -95,9 +40,9 @@ export function TempChatCreate() {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string>();
   const history = useSyncExternalStore(
-    subscribeToNothing,
-    getHistorySnapshot,
-    getServerHistorySnapshot,
+    subscribeToTempChatStorage,
+    tempChatSessionStorage.getHistorySnapshot,
+    tempChatSessionStorage.getServerHistorySnapshot,
   );
 
   async function create(event: FormEvent<HTMLFormElement>) {
@@ -129,7 +74,7 @@ export function TempChatCreate() {
         throw new Error(getJsonError(body) ?? strings.createFailed);
       }
 
-      const nextHistory = mergeTempChatHistoryEntry(getHistorySnapshot(), {
+      tempChatSessionStorage.recordVisit({
         code,
         title: title.trim(),
         expiresAt,
@@ -137,7 +82,6 @@ export function TempChatCreate() {
         joinedAt: new Date().toISOString(),
       });
 
-      writeHistory(nextHistory);
       router.push(`/tools/chat/${code}`);
     } catch (caughtError) {
       setError(

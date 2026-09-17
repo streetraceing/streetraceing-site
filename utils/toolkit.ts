@@ -1,3 +1,17 @@
+import { decodeBase64Bytes, decodeBase64Text } from './text-codec';
+
+export function parsePasswordLength(value: string): number | undefined {
+  if (!value || /\D/.test(value)) return undefined;
+  const length = Number(value);
+  return Number.isInteger(length) && length >= 8 && length <= 128
+    ? length
+    : undefined;
+}
+
+export function uniqueTextLines(value: string): string {
+  return [...new Set(value.split(/\r?\n/))].join('\n');
+}
+
 export type PasswordOptions = {
   length: number;
   lowercase: boolean;
@@ -113,17 +127,8 @@ export function generateSecurePassword(options: PasswordOptions) {
   };
 }
 
-function decodeBase64Url(value: string) {
-  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
-  const padding = '='.repeat((4 - (normalized.length % 4)) % 4);
-  const binary = atob(`${normalized}${padding}`);
-  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
-
-  return new TextDecoder().decode(bytes);
-}
-
 export function decodeJwt(value: string) {
-  const parts = value.trim().split('.');
+  const parts = value.split('.');
 
   if (parts.length !== 3) {
     throw new Error('JWT must contain three dot-separated parts.');
@@ -135,8 +140,13 @@ export function decodeJwt(value: string) {
     throw new Error('JWT header or payload is empty.');
   }
 
-  const header = JSON.parse(decodeBase64Url(headerPart)) as unknown;
-  const payload = JSON.parse(decodeBase64Url(payloadPart)) as unknown;
+  decodeBase64Bytes(parts[2] ?? '', 'base64url');
+  const header = JSON.parse(
+    decodeBase64Text(headerPart, 'base64url'),
+  ) as unknown;
+  const payload = JSON.parse(
+    decodeBase64Text(payloadPart, 'base64url'),
+  ) as unknown;
 
   return { header, payload };
 }
@@ -159,7 +169,9 @@ function toPascalCase(value: string) {
 }
 
 function toTypeScriptProperty(value: string) {
-  return /^[A-Za-z_$][\w$]*$/.test(value) ? value : JSON.stringify(value);
+  return /^[A-Za-z_$]/.test(value) && !/[^\w$]/.test(value)
+    ? value
+    : JSON.stringify(value);
 }
 
 function mergeTypes(types: string[]) {
@@ -167,70 +179,96 @@ function mergeTypes(types: string[]) {
   return unique.length === 1 ? (unique[0] ?? 'unknown') : unique.join(' | ');
 }
 
-function inferTypeScriptType(
-  value: unknown,
-  name: string,
-  declarations: Map<string, string>,
-): string {
-  if (value === null) {
-    return 'null';
-  }
-
-  if (Array.isArray(value)) {
-    if (value.length === 0) {
-      return 'unknown[]';
-    }
-
-    const itemTypes = value.map((item) =>
-      inferTypeScriptType(item, `${name}Item`, declarations),
-    );
-    const itemType = mergeTypes(itemTypes);
-
-    return itemType.includes(' | ') ? `Array<${itemType}>` : `${itemType}[]`;
-  }
-
-  switch (typeof value) {
-    case 'string':
-      return 'string';
-    case 'number':
-      return 'number';
-    case 'boolean':
-      return 'boolean';
-    case 'object': {
-      const interfaceName = toPascalCase(name);
-      const entries = Object.entries(value as Record<string, unknown>);
-      const lines = entries.map(([key, item]) => {
-        const propertyType = inferTypeScriptType(
-          item,
-          `${interfaceName}${toPascalCase(key)}`,
-          declarations,
-        );
-        return `  ${toTypeScriptProperty(key)}: ${propertyType};`;
-      });
-
-      declarations.set(
-        interfaceName,
-        `export interface ${interfaceName} {\n${lines.join('\n')}\n}`,
-      );
-      return interfaceName;
-    }
-    default:
-      return 'unknown';
-  }
-}
-
 export function jsonToTypeScript(value: unknown, rootName = 'Root') {
-  const declarations = new Map<string, string>();
-  const rootType = inferTypeScriptType(value, rootName, declarations);
-  const rendered = [...declarations.values()].reverse();
+  const declarations: string[] = [];
+  const usedNames = new Set([
+    'Array',
+    'ReadonlyArray',
+    'Object',
+    'String',
+    'Number',
+    'Boolean',
+    'Function',
+    'Date',
+    'RegExp',
+    'Promise',
+    'Record',
+    'Map',
+    'Set',
+  ]);
+  const nextSuffix = new Map<string, number>();
+  let nodes = 0;
+  let outputLength = 0;
 
-  if (rendered.length === 0) {
-    rendered.push(`export type ${toPascalCase(rootName)} = ${rootType};`);
-  } else if (rootType.endsWith('[]') || rootType.includes(' | ')) {
-    rendered.push(`export type ${toPascalCase(rootName)} = ${rootType};`);
+  function allocateName(name: string) {
+    const base = toPascalCase(name).slice(0, 80);
+    let candidate = base;
+    let suffix = nextSuffix.get(base) ?? 2;
+    while (usedNames.has(candidate)) candidate = `${base}${suffix++}`;
+    nextSuffix.set(base, suffix);
+    usedNames.add(candidate);
+    return candidate;
   }
 
-  return rendered.join('\n\n');
+  function declare(text: string) {
+    outputLength += text.length + (declarations.length ? 2 : 0);
+    if (outputLength > 1_000_000)
+      throw new RangeError('Type output limit exceeded.');
+    declarations.push(text);
+  }
+
+  // Reserve the root alias even for arrays, before allocating any child interfaces.
+  const root = allocateName(rootName);
+  function infer(
+    item: unknown,
+    name: string,
+    depth: number,
+    reserved?: string,
+  ): string {
+    nodes += 1;
+    if (depth > 100 || nodes > 10_000)
+      throw new RangeError('Type sample limit exceeded.');
+    if (item === null) return 'null';
+    if (Array.isArray(item)) {
+      if (item.length > 10_000 - nodes)
+        throw new RangeError('Type sample limit exceeded.');
+      if (item.length === 0) return 'unknown[]';
+      const itemType = mergeTypes(
+        item.map((child) => infer(child, `${name}Item`, depth + 1)),
+      );
+      return itemType.includes(' | ') ? `(${itemType})[]` : `${itemType}[]`;
+    }
+    switch (typeof item) {
+      case 'string':
+        return 'string';
+      case 'number':
+        return 'number';
+      case 'boolean':
+        return 'boolean';
+      case 'object': {
+        const interfaceName = reserved ?? allocateName(name);
+        const entries = Object.entries(item as Record<string, unknown>);
+        if (entries.length > 10_000 - nodes)
+          throw new RangeError('Type sample limit exceeded.');
+        const lines = entries.map(([key, child]) => {
+          const type = infer(
+            child,
+            `${interfaceName}${toPascalCase(key)}`,
+            depth + 1,
+          );
+          return `  ${toTypeScriptProperty(key)}: ${type};`;
+        });
+        declare(`export interface ${interfaceName} {\n${lines.join('\n')}\n}`);
+        return interfaceName;
+      }
+      default:
+        return 'unknown';
+    }
+  }
+
+  const rootType = infer(value, root, 0, root);
+  if (rootType !== root) declare(`export type ${root} = ${rootType};`);
+  return declarations.reverse().join('\n\n');
 }
 
 export function createLineDiff(
@@ -238,8 +276,18 @@ export function createLineDiff(
   afterValue: string,
   maximumLines = 500,
 ): TextDiffLine[] {
-  const before = beforeValue.split(/\r?\n/).slice(0, maximumLines);
-  const after = afterValue.split(/\r?\n/).slice(0, maximumLines);
+  if (
+    !Number.isInteger(maximumLines) ||
+    maximumLines < 1 ||
+    maximumLines > 500
+  ) {
+    throw new RangeError('Diff line limit must be between 1 and 500.');
+  }
+  const before = beforeValue.split(/\r?\n/, maximumLines + 1);
+  const after = afterValue.split(/\r?\n/, maximumLines + 1);
+  if (before.length > maximumLines || after.length > maximumLines) {
+    throw new RangeError('Diff line limit exceeded.');
+  }
   const matrix = Array.from(
     { length: before.length + 1 },
     () => new Uint16Array(after.length + 1),

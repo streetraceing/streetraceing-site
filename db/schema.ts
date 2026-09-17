@@ -111,6 +111,44 @@ export const tempChats = pgTable(
   ],
 );
 
+// No foreign keys: storage cleanup must survive message and room deletion.
+export const tempChatUploads = pgTable(
+  'temp_chat_uploads',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    chatId: uuid('chat_id').notNull(),
+    memberId: varchar('member_id', { length: 32 }).notNull(),
+    provider: varchar('provider', { length: 16 })
+      .$type<'cloudinary' | 'r2'>()
+      .notNull(),
+    path: varchar('path', { length: 255 }).notNull(),
+    name: varchar('name', { length: 200 }).notNull(),
+    type: varchar('type', { length: 128 }).notNull(),
+    size: integer('size').notNull(),
+    messageId: uuid('message_id'),
+    status: varchar('status', { length: 16 })
+      .$type<'pending' | 'attached' | 'deleting'>()
+      .notNull()
+      .default('pending'),
+    cleanupAfter: timestamp('cleanup_after', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('temp_chat_uploads_provider_path_unique').on(
+      table.provider,
+      table.path,
+    ),
+    index('temp_chat_uploads_cleanup_idx').on(
+      table.status,
+      table.cleanupAfter,
+      table.id,
+    ),
+    index('temp_chat_uploads_chat_idx').on(table.chatId),
+  ],
+);
+
 export const tempChatMessages = pgTable(
   'temp_chat_messages',
   {

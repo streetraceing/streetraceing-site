@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
+import { decodeBase64Text, encodeBase64Text } from '@/utils/text-codec';
 import {
   Description,
   FieldError,
@@ -17,41 +18,12 @@ import { ErrorAlert } from './ErrorAlert';
 import { ToggleField } from './ToggleField';
 import { ToolOutput } from './ToolOutput';
 
-function encodeBase64(value: string, urlSafe: boolean) {
-  const bytes = new TextEncoder().encode(value);
-  let binary = '';
-
-  bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
-
-  const encoded = btoa(binary);
-
-  if (!urlSafe) {
-    return encoded;
-  }
-
-  return encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-}
-
-function decodeBase64(value: string) {
-  const normalized = value
-    .replace(/\s/g, '')
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-  const padding = '='.repeat((4 - (normalized.length % 4)) % 4);
-  const binary = atob(`${normalized}${padding}`);
-  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
-
-  return new TextDecoder().decode(bytes);
-}
-
 export function Base64Tool() {
   const { copy } = useLocale();
   const strings = copy.tools.base64;
   const [source, setSource] = useState('');
   const [urlSafe, setUrlSafe] = useState(false);
-  const [output, setOutput] = useState('');
+  const [output, setOutput] = useState<string>();
   const [outputFormat, setOutputFormat] = useState<'base64' | 'plain'>(
     'base64',
   );
@@ -61,14 +33,20 @@ export function Base64Tool() {
     try {
       setOutput(
         direction === 'encode'
-          ? encodeBase64(source, urlSafe)
-          : decodeBase64(source),
+          ? encodeBase64Text(source, urlSafe ? 'base64url' : 'base64')
+          : decodeBase64Text(source, urlSafe ? 'base64url' : 'base64'),
       );
       setOutputFormat(direction === 'encode' ? 'base64' : 'plain');
       setError(undefined);
-    } catch {
-      setOutput('');
-      setError(direction === 'decode' ? strings.invalid : strings.encodeFailed);
+    } catch (error) {
+      setOutput(undefined);
+      setError(
+        error instanceof RangeError
+          ? strings.limit
+          : direction === 'decode'
+            ? strings.invalid
+            : strings.encodeFailed,
+      );
     }
   }
 
@@ -81,12 +59,14 @@ export function Base64Tool() {
     <div className="flex flex-col gap-4">
       <Form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <TextField
-          isRequired
           fullWidth
           name="base64"
           value={source}
-          onChange={setSource}
-          validate={(value) => (value ? null : strings.required)}
+          onChange={(value) => {
+            setSource(value);
+            setOutput(undefined);
+            setError(undefined);
+          }}
         >
           <Label>{strings.label}</Label>
           <TextArea
@@ -102,7 +82,11 @@ export function Base64Tool() {
         <ToggleField
           checked={urlSafe}
           label={strings.urlSafe}
-          onChange={setUrlSafe}
+          onChange={(value) => {
+            setUrlSafe(value);
+            setOutput(undefined);
+            setError(undefined);
+          }}
         />
 
         <div className="flex flex-wrap gap-2">
@@ -123,7 +107,7 @@ export function Base64Tool() {
             variant="tertiary"
             onPress={() => {
               setSource('Hello, world!');
-              setOutput('');
+              setOutput(undefined);
               setError(undefined);
             }}
           >
@@ -135,7 +119,7 @@ export function Base64Tool() {
 
       {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
 
-      {output && (
+      {output !== undefined && (
         <ToolOutput
           content={output}
           label={strings.output}

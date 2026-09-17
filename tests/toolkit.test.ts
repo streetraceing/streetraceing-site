@@ -10,6 +10,8 @@ import {
   getColorContrast,
   getColorFormats,
   jsonToTypeScript,
+  parsePasswordLength,
+  uniqueTextLines,
   removeTrackingParameters,
 } from '../utils/toolkit';
 
@@ -53,6 +55,46 @@ test('creates a bounded line diff', () => {
     { type: 'removed', value: 'two' },
     { type: 'added', value: 'three' },
   ]);
+});
+
+test('diff rejects over-limit input instead of returning a partial comparison', () => {
+  const allowed = Array(500).fill('line').join('\n');
+  assert.equal(createLineDiff(allowed, allowed).length, 500);
+  assert.throws(() => createLineDiff(`${allowed}\nextra`, allowed), RangeError);
+  assert.throws(() => createLineDiff(allowed, `${allowed}\nextra`), RangeError);
+  assert.throws(() => createLineDiff('a\nb', '', 1), RangeError);
+  assert.throws(() => createLineDiff('', '', 501), RangeError);
+  assert.throws(() => createLineDiff('', '', Number.NaN), RangeError);
+});
+
+test('password length validates the entire decimal integer input', () => {
+  assert.equal(parsePasswordLength('8'), 8);
+  assert.equal(parsePasswordLength('128'), 128);
+  for (const value of [
+    '',
+    ' ',
+    '8x',
+    '8.5',
+    '8.0',
+    '1e2',
+    '0x20',
+    ' 20 ',
+    '8\n',
+    '8\r',
+    '-8',
+    '7',
+    '129',
+    '9'.repeat(100),
+  ]) {
+    assert.equal(parsePasswordLength(value), undefined, value);
+  }
+});
+
+test('unique lines preserve spaces and one empty line in first-occurrence order', () => {
+  assert.equal(uniqueTextLines(' a \na\n\n a \n\n '), ' a \na\n\n ');
+  assert.equal(uniqueTextLines('a\r\na\r\n\r\n b '), 'a\n\n b ');
+  assert.equal(uniqueTextLines(''), '');
+  assert.equal(uniqueTextLines('\n\n'), '');
 });
 
 test('calculates WCAG contrast thresholds', () => {

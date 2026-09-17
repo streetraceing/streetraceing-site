@@ -26,7 +26,12 @@ export function Page({ className, header, footer, ...props }: PageProps) {
       <div className="relative z-10 flex min-h-dvh flex-col">
         {header}
 
-        <main className={clsx('flex flex-1', className)} {...props} />
+        <main
+          {...props}
+          id="main-content"
+          tabIndex={-1}
+          className={clsx('flex flex-1 scroll-mt-16', className)}
+        />
 
         {footer}
       </div>

@@ -46,6 +46,123 @@ export function isTempChatResourceType(
   );
 }
 
+export const TEMP_CHAT_MESSAGE_WINDOW = 200;
+export const TEMP_CHAT_PENDING_UPLOAD_RETENTION_MS = 24 * 60 * 60 * 1_000;
+
+type TempChatAttachmentMetadata = {
+  path: string;
+  name: string;
+  type: string;
+  size: number;
+};
+
+/** The browser and message endpoint use the same exact-object contract. */
+export type TempChatAttachmentRequest = TempChatAttachmentMetadata &
+  (
+    | {
+        provider: 'cloudinary';
+        url: string;
+        resourceType: TempChatResourceType;
+      }
+    | { provider: 'r2'; url: null; resourceType: null }
+  );
+
+export function parseTempChatAttachmentRequest(
+  value: unknown,
+): TempChatAttachmentRequest | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  const item = value as Record<string, unknown>;
+  if (
+    typeof item.path !== 'string' ||
+    !/^temp-chat\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/.test(item.path) ||
+    item.path.length > 255 ||
+    typeof item.name !== 'string' ||
+    !item.name.trim() ||
+    item.name.length > TEMP_CHAT_MAX_FILE_NAME_LENGTH ||
+    typeof item.type !== 'string' ||
+    !item.type ||
+    item.type.length > 128 ||
+    /[\u0000-\u001f\u007f]/.test(item.type) ||
+    typeof item.size !== 'number' ||
+    !Number.isSafeInteger(item.size) ||
+    item.size < 1 ||
+    item.size > TEMP_CHAT_MAX_FILE_BYTES
+  ) {
+    return undefined;
+  }
+  const metadata = {
+    path: item.path,
+    name: sanitizeTempChatFileName(item.name),
+    type: item.type,
+    size: item.size,
+  };
+  if (
+    item.provider === 'r2' &&
+    item.url === null &&
+    item.resourceType === null
+  ) {
+    return { ...metadata, provider: 'r2', url: null, resourceType: null };
+  }
+  if (
+    item.provider === 'cloudinary' &&
+    isTempChatResourceType(item.resourceType) &&
+    typeof item.url === 'string' &&
+    item.url.length <= 2_048 &&
+    getTempChatUrlResourceType(item.url) === item.resourceType
+  ) {
+    return {
+      ...metadata,
+      provider: 'cloudinary',
+      url: item.url,
+      resourceType: item.resourceType,
+    };
+  }
+  return undefined;
+}
+
+export function isTempChatUploadAttachable(
+  upload: {
+    chatId: string;
+    memberId: string;
+    provider: TempChatStorageDriver;
+    path: string;
+    name: string;
+    type: string;
+    size: number;
+    status: string;
+    cleanupAfter: Date;
+  },
+  request: TempChatAttachmentRequest,
+  chatId: string,
+  memberId: string,
+  now = Date.now(),
+) {
+  return (
+    upload.chatId === chatId &&
+    upload.memberId === memberId &&
+    upload.provider === request.provider &&
+    upload.path === request.path &&
+    upload.status === 'pending' &&
+    upload.cleanupAfter.getTime() > now &&
+    upload.name === request.name &&
+    upload.type === request.type &&
+    upload.size === request.size
+  );
+}
+
+export function getTempChatMessageWindow<
+  T extends { id: string; createdAt: string },
+>(messages: readonly T[]): T[] {
+  return [...new Map(messages.map((message) => [message.id, message])).values()]
+    .sort(
+      (a, b) =>
+        a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id),
+    )
+    .slice(-TEMP_CHAT_MESSAGE_WINDOW);
+}
+
 export type TempChatMessageAttachment = {
   provider: 'cloudinary' | 'r2';
   /** Cloudinary public id or R2 object key. */
@@ -236,7 +353,12 @@ export function getTempChatPublicIdFromUrl(
       path[0] !== expectedCloudName ||
       path[1] !== expectedResourceType ||
       path[2] !== 'upload' ||
-      versionIndex < 0 ||
+      url.username !== '' ||
+      url.password !== '' ||
+      url.port !== '' ||
+      url.search !== '' ||
+      url.hash !== '' ||
+      versionIndex !== 3 ||
       versionIndex >= path.length - 1
     ) {
       return undefined;
@@ -246,10 +368,10 @@ export function getTempChatPublicIdFromUrl(
     let publicId: string;
 
     try {
-      publicId = decodeURIComponent(encodedPublicId).replace(
-        /\.[a-z0-9]+$/i,
-        '',
-      );
+      publicId = decodeURIComponent(encodedPublicId);
+      if (expectedResourceType !== 'raw') {
+        publicId = publicId.replace(/\.[a-z0-9]+$/i, '');
+      }
     } catch {
       return undefined;
     }

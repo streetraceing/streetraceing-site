@@ -4,9 +4,17 @@ import { Alert, Breadcrumbs, Typography } from '@heroui/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useLocale } from '@/app/providers';
+import { useReducedMotion } from '@/components/hooks/useReducedMotion';
 import { MarkdownContent } from '@/components/stats/MarkdownContent';
 import { getJsonError, isJsonObject, readJsonResponse } from '@/utils/json';
 import { createMarkdownHeadingId } from '@/utils/markdown';
+import {
+  getDocumentationFragment,
+  getDocumentationPath,
+  isDocumentationLinkInScope,
+  resolveDocumentationPath,
+  resolveScopedDocumentationUrl,
+} from '@/utils/project-documentation-scope';
 import {
   getProjectDocumentationBreadcrumbs,
   type ProjectDocumentation,
@@ -22,10 +30,6 @@ type DocumentationHistoryEntry = {
 };
 
 type HistoryMode = 'push' | 'replace' | 'none';
-
-function getLocationWithoutHash() {
-  return `${window.location.pathname}${window.location.search}`;
-}
 
 function getHistoryEntry(state: unknown, projectSlug: string) {
   if (!isJsonObject(state)) {
@@ -68,6 +72,7 @@ function isSameHistoryEntry(
 function writeHistoryEntry(
   mode: Exclude<HistoryMode, 'none'>,
   entry: DocumentationHistoryEntry,
+  rootSourceUrl: string,
 ) {
   const currentState =
     window.history.state && typeof window.history.state === 'object'
@@ -76,7 +81,14 @@ function writeHistoryEntry(
   const renderedHash = entry.fragment
     ? `#${createMarkdownHeadingId(HEADING_ID_PREFIX, entry.fragment)}`
     : '';
-  const nextUrl = `${getLocationWithoutHash()}${renderedHash}`;
+  const url = new URL(window.location.href);
+  const documentPath = getDocumentationPath(rootSourceUrl, entry.sourceUrl);
+  if (entry.sourceUrl === rootSourceUrl || !documentPath) {
+    url.searchParams.delete('doc');
+  } else {
+    url.searchParams.set('doc', documentPath);
+  }
+  const nextUrl = `${url.pathname}${url.search}${renderedHash}`;
 
   if (
     mode === 'push' &&
@@ -114,6 +126,7 @@ export function ProjectDocumentationViewer({
   initialDocumentation: ProjectDocumentation;
 }) {
   const { copy } = useLocale();
+  const reducedMotion = useReducedMotion();
   const strings = copy.project;
   const viewerRef = useRef<HTMLDivElement>(null);
   const activeRequestRef = useRef<AbortController | null>(null);
@@ -155,11 +168,14 @@ export function ProjectDocumentationViewer({
         const target = document.getElementById(targetId);
 
         if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          target.scrollIntoView({
+            behavior: reducedMotion ? 'instant' : 'smooth',
+            block: 'start',
+          });
         }
       } else {
         viewerRef.current?.scrollIntoView({
-          behavior: 'smooth',
+          behavior: reducedMotion ? 'instant' : 'smooth',
           block: 'start',
         });
       }
@@ -168,14 +184,26 @@ export function ProjectDocumentationViewer({
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [documentation.sourceUrl, pendingFragment]);
+  }, [documentation.sourceUrl, pendingFragment, reducedMotion]);
 
   const openDocumentation = useCallback(
     async (targetValue: string, historyMode: HistoryMode = 'push') => {
       let targetUrl: URL;
 
       try {
-        targetUrl = new URL(targetValue, documentationRef.current.sourceUrl);
+        const resolved = new URL(
+          targetValue,
+          documentationRef.current.sourceUrl,
+        );
+        const scoped = resolveScopedDocumentationUrl(
+          initialDocumentation.sourceUrl,
+          resolved.toString(),
+        );
+        if (!scoped) {
+          setLoadError(strings.documentationLoadFailed);
+          return;
+        }
+        targetUrl = new URL(scoped);
       } catch {
         setLoadError(strings.documentationLoadFailed);
         return;
@@ -194,7 +222,11 @@ export function ProjectDocumentationViewer({
         setPendingFragment(fragment);
 
         if (historyMode !== 'none') {
-          writeHistoryEntry(historyMode, historyEntry);
+          writeHistoryEntry(
+            historyMode,
+            historyEntry,
+            initialDocumentation.sourceUrl,
+          );
         }
 
         return;
@@ -211,7 +243,11 @@ export function ProjectDocumentationViewer({
         setPendingFragment(fragment);
 
         if (historyMode !== 'none') {
-          writeHistoryEntry(historyMode, historyEntry);
+          writeHistoryEntry(
+            historyMode,
+            historyEntry,
+            initialDocumentation.sourceUrl,
+          );
         }
 
         return;
@@ -229,6 +265,9 @@ export function ProjectDocumentationViewer({
           { cache: 'no-store', signal: controller.signal },
         );
         const body = await readJsonResponse(response);
+        if (controller.signal.aborted) {
+          return;
+        }
         const nextDocumentation = isJsonObject(body)
           ? body.documentation
           : undefined;
@@ -257,14 +296,21 @@ export function ProjectDocumentationViewer({
         setPendingFragment(fragment);
 
         if (historyMode !== 'none') {
-          writeHistoryEntry(historyMode, {
-            projectSlug,
-            sourceUrl: loadedDocumentation.sourceUrl,
-            fragment,
-          });
+          writeHistoryEntry(
+            historyMode,
+            {
+              projectSlug,
+              sourceUrl: loadedDocumentation.sourceUrl,
+              fragment,
+            },
+            initialDocumentation.sourceUrl,
+          );
         }
       } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
+        if (
+          controller.signal.aborted ||
+          (error instanceof Error && error.name === 'AbortError')
+        ) {
           return;
         }
 
@@ -280,20 +326,55 @@ export function ProjectDocumentationViewer({
         }
       }
     },
-    [projectSlug, strings.documentationLoadFailed],
+    [
+      initialDocumentation.sourceUrl,
+      projectSlug,
+      strings.documentationLoadFailed,
+    ],
   );
 
   useEffect(() => {
     let isActive = true;
-    const currentEntry = getHistoryEntry(window.history.state, projectSlug);
+    function getLocationEntry(state: unknown): DocumentationHistoryEntry {
+      const storedEntry = getHistoryEntry(state, projectSlug);
+      const documentPath = new URLSearchParams(window.location.search).get(
+        'doc',
+      );
+      const requestedSource =
+        documentPath === null
+          ? storedEntry?.sourceUrl
+          : resolveDocumentationPath(
+              initialDocumentation.sourceUrl,
+              documentPath,
+            );
+      const sourceUrl = requestedSource
+        ? resolveScopedDocumentationUrl(
+            initialDocumentation.sourceUrl,
+            requestedSource,
+          )
+        : undefined;
 
-    if (!currentEntry) {
-      writeHistoryEntry('replace', {
+      return {
         projectSlug,
-        sourceUrl: initialDocumentation.sourceUrl,
-        fragment: '',
-      });
-    } else if (
+        sourceUrl: sourceUrl ?? initialDocumentation.sourceUrl,
+        fragment: getDocumentationFragment(
+          window.location.hash,
+          HEADING_ID_PREFIX,
+        ),
+      };
+    }
+
+    const currentEntry = getLocationEntry(window.history.state);
+    // Add viewer state without rewriting the incoming query or fragment.
+    window.history.replaceState(
+      {
+        ...(isJsonObject(window.history.state) ? window.history.state : {}),
+        [DOCUMENTATION_HISTORY_KEY]: currentEntry,
+      },
+      '',
+    );
+
+    if (
       currentEntry.sourceUrl !== documentationRef.current.sourceUrl ||
       currentEntry.fragment
     ) {
@@ -310,12 +391,7 @@ export function ProjectDocumentationViewer({
     }
 
     function handlePopState(event: PopStateEvent) {
-      const entry = getHistoryEntry(event.state, projectSlug);
-
-      if (!entry) {
-        return;
-      }
-
+      const entry = getLocationEntry(event.state);
       void openDocumentation(`${entry.sourceUrl}${entry.fragment}`, 'none');
     }
 
@@ -356,6 +432,20 @@ export function ProjectDocumentationViewer({
                     key={key}
                     href={targetUrl}
                     onClick={(event) => {
+                      if (
+                        event.defaultPrevented ||
+                        event.button !== 0 ||
+                        event.altKey ||
+                        event.ctrlKey ||
+                        event.metaKey ||
+                        event.shiftKey ||
+                        !isDocumentationLinkInScope(
+                          initialDocumentation.sourceUrl,
+                          targetUrl,
+                        )
+                      ) {
+                        return;
+                      }
                       event.preventDefault();
                       void openDocumentation(targetUrl);
                     }}
@@ -388,8 +478,9 @@ export function ProjectDocumentationViewer({
       <MarkdownContent
         content={documentation.content}
         baseUrl={documentation.sourceUrl}
+        documentationRootUrl={initialDocumentation.sourceUrl}
         headingIdPrefix={HEADING_ID_PREFIX}
-        onDocumentNavigate={(url) => void openDocumentation(url)}
+        onDocumentNavigate={openDocumentation}
       />
     </div>
   );

@@ -67,6 +67,26 @@ const toolComponents: Record<GenericToolComponent, ComponentType> = {
   'slug-generator': dynamic(() =>
     import('./SlugGeneratorTool').then((module) => module.SlugGeneratorTool),
   ),
+  'csv-converter': dynamic(() =>
+    import('./DataConversionTools').then((module) => module.CsvConverterTool),
+  ),
+  'json-pointer': dynamic(() =>
+    import('./DataConversionTools').then((module) => module.JsonPointerTool),
+  ),
+  'unicode-inspector': dynamic(() =>
+    import('./DataConversionTools').then(
+      (module) => module.UnicodeInspectorTool,
+    ),
+  ),
+  'semver-sorter': dynamic(() =>
+    import('./SystemTools').then((module) => module.SemverSorterTool),
+  ),
+  'unix-permissions': dynamic(() =>
+    import('./SystemTools').then((module) => module.UnixPermissionsTool),
+  ),
+  'subnet-calculator': dynamic(() =>
+    import('./SystemTools').then((module) => module.SubnetCalculatorTool),
+  ),
 };
 
 export function ToolPageContent({ slug }: { slug: string }) {

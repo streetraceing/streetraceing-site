@@ -7,6 +7,8 @@ import {
   getCloudinaryPublicIdFromUrl,
   getCloudinarySquareImageUrl,
   getMediaPublicIdPrefix,
+  getMediaAssetIdentity,
+  getRemovedMediaUrls,
   isAllowedMediaType,
   isCloudinaryMediaUrl,
   isMediaUploadScope,
@@ -14,6 +16,7 @@ import {
   MAX_MEDIA_IMAGES,
   MAX_PROJECT_IMAGES,
   normalizeMediaUrls,
+  parseMediaUrls,
 } from '../utils/media';
 
 const firstCloudinaryUrl =
@@ -78,6 +81,82 @@ test('media upload scopes restrict project paths and Cloudinary ownership', () =
     getCloudinaryPublicIdFromUrl(firstCloudinaryUrl, 'another-cloud'),
     undefined,
   );
+});
+
+test('mutation arrays are required, bounded and never silently filtered', () => {
+  for (const value of [
+    undefined,
+    null,
+    'invalid',
+    {},
+    [firstCloudinaryUrl, 42],
+    [firstCloudinaryUrl, 'https://example.com/image.jpg'],
+  ]) {
+    assert.equal(
+      parseMediaUrls(value, MAX_MEDIA_IMAGES, 'student-cloud'),
+      undefined,
+    );
+  }
+  assert.equal(
+    parseMediaUrls(
+      Array.from({ length: 21 }, () => firstCloudinaryUrl),
+      MAX_MEDIA_IMAGES,
+      'student-cloud',
+    ),
+    undefined,
+  );
+  assert.deepEqual(parseMediaUrls([], MAX_MEDIA_IMAGES, 'student-cloud'), []);
+  assert.equal(
+    parseMediaUrls([firstCloudinaryUrl], MAX_MEDIA_IMAGES),
+    undefined,
+  );
+  assert.equal(
+    parseMediaUrls([firstCloudinaryUrl], MAX_MEDIA_IMAGES, 'other-cloud'),
+    undefined,
+  );
+});
+
+test('mutations canonicalize transformed originals and compare asset identities', () => {
+  const square = getCloudinarySquareImageUrl(firstCloudinaryUrl, 160);
+  const version = firstCloudinaryUrl.replace('v1760000000', 'v1760000002');
+  const format = firstCloudinaryUrl.replace('.jpg', '.webp');
+  const encoded = firstCloudinaryUrl.replace('/first.jpg', '/%66irst.jpg');
+  assert.deepEqual(
+    parseMediaUrls([square, version, format, encoded], 20, ' student-cloud '),
+    [firstCloudinaryUrl],
+  );
+  assert.equal(getMediaAssetIdentity(square), getMediaAssetIdentity(version));
+  assert.deepEqual(
+    getRemovedMediaUrls(
+      [firstCloudinaryUrl, secondCloudinaryUrl],
+      [square, version, format],
+      'student-cloud',
+    ),
+    [secondCloudinaryUrl],
+  );
+  assert.notEqual(
+    getMediaAssetIdentity(firstCloudinaryUrl),
+    getMediaAssetIdentity(
+      firstCloudinaryUrl.replace('student-cloud', 'other-cloud'),
+    ),
+  );
+});
+
+test('mutation URLs reject credentials, ports, query strings and ambiguous asset paths', () => {
+  for (const value of [
+    firstCloudinaryUrl.replace('https://', 'https://user:password@'),
+    firstCloudinaryUrl.replace('.com/', '.com:444/'),
+    `${firstCloudinaryUrl}?download=1`,
+    `${firstCloudinaryUrl}#fragment`,
+    firstCloudinaryUrl.replace('/first.jpg', '/a%2Fb.jpg'),
+    firstCloudinaryUrl.replace('/first.jpg', '/a%5Cb.jpg'),
+    firstCloudinaryUrl.replace('/first.jpg', '/a%00b.jpg'),
+    firstCloudinaryUrl.replace('/first.jpg', '/a%ZZ.jpg'),
+    firstCloudinaryUrl.replace('/first.jpg', '//first.jpg'),
+    firstCloudinaryUrl.replace('/first.jpg', `/${'a'.repeat(256)}.jpg`),
+  ]) {
+    assert.equal(parseMediaUrls([value], 20, 'student-cloud'), undefined);
+  }
 });
 
 test('gallery transformations keep the original public ID', () => {

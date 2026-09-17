@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonRipple } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
 import { bytesToHex } from '@/utils/toolkit';
 import {
@@ -14,7 +14,7 @@ import {
   TextField,
 } from '@heroui/react';
 import { KeySquare } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 
 import { ErrorAlert } from './ErrorAlert';
 import { ToolOutput } from './ToolOutput';
@@ -28,41 +28,63 @@ export function HmacGeneratorTool() {
   const [message, setMessage] = useState('');
   const [secret, setSecret] = useState('');
   const [algorithm, setAlgorithm] = useState<HmacAlgorithm>('SHA-256');
-  const [output, setOutput] = useState('');
+  const [result, setResult] = useState<{
+    digest: string;
+    algorithm: HmacAlgorithm;
+    messageBytes: number;
+  }>();
+  const revision = useRef(0);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string>();
 
+  useEffect(
+    () => () => {
+      revision.current += 1;
+    },
+    [],
+  );
+
+  function invalidate() {
+    revision.current += 1;
+    setResult(undefined);
+    setError(undefined);
+    setIsPending(false);
+  }
+
   async function sign(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!message || !secret) {
+    invalidate();
+    const current = revision.current;
+    const selectedAlgorithm = algorithm;
+    if (!secret) {
       setError(strings.required);
       return;
     }
-
     setIsPending(true);
-    setError(undefined);
 
     try {
       const encoder = new TextEncoder();
+      const data = encoder.encode(message);
       const key = await crypto.subtle.importKey(
         'raw',
         encoder.encode(secret),
-        { name: 'HMAC', hash: algorithm },
+        { name: 'HMAC', hash: selectedAlgorithm },
         false,
         ['sign'],
       );
-      const signature = await crypto.subtle.sign(
-        'HMAC',
-        key,
-        encoder.encode(message),
-      );
-      setOutput(bytesToHex(signature));
+      if (revision.current !== current) return;
+      const signature = await crypto.subtle.sign('HMAC', key, data);
+      if (revision.current === current) {
+        setResult({
+          digest: bytesToHex(signature),
+          algorithm: selectedAlgorithm,
+          messageBytes: data.byteLength,
+        });
+      }
     } catch {
-      setOutput('');
-      setError(strings.failed);
+      if (revision.current === current) setError(strings.failed);
     } finally {
-      setIsPending(false);
+      if (revision.current === current) setIsPending(false);
     }
   }
 
@@ -77,12 +99,14 @@ export function HmacGeneratorTool() {
           variant="secondary"
           onChange={(value) => {
             if (hmacAlgorithms.includes(value as HmacAlgorithm)) {
+              invalidate();
               setAlgorithm(value as HmacAlgorithm);
             }
           }}
         >
           <Label>{strings.algorithm}</Label>
           <Select.Trigger>
+            <ButtonRipple />
             <Select.Value />
             <Select.Indicator />
           </Select.Trigger>
@@ -102,7 +126,10 @@ export function HmacGeneratorTool() {
           fullWidth
           name="hmac-message"
           value={message}
-          onChange={setMessage}
+          onChange={(value) => {
+            invalidate();
+            setMessage(value);
+          }}
         >
           <Label>{strings.messageLabel}</Label>
           <TextArea rows={5} variant="secondary" spellCheck={false} />
@@ -112,7 +139,10 @@ export function HmacGeneratorTool() {
           fullWidth
           name="hmac-secret"
           value={secret}
-          onChange={setSecret}
+          onChange={(value) => {
+            invalidate();
+            setSecret(value);
+          }}
         >
           <Label>{strings.secretLabel}</Label>
           <Input
@@ -132,8 +162,12 @@ export function HmacGeneratorTool() {
 
       {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
 
-      {output ? (
-        <ToolOutput content={output} label={strings.output} format="hash" />
+      {result ? (
+        <ToolOutput
+          content={result.digest}
+          label={`${result.algorithm} ${strings.output}, ${strings.messageBytes.replace('{count}', String(result.messageBytes))}`}
+          format="hash"
+        />
       ) : null}
     </div>
   );

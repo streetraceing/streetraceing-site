@@ -1,9 +1,14 @@
 'use client';
 
 import { useLocale } from '@/app/providers';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonRipple } from '@/components/ui/Button';
 import { getLocaleTag } from '@/utils/i18n';
-import { bytesToHex, decodeJwt, generateSecurePassword } from '@/utils/toolkit';
+import {
+  bytesToHex,
+  decodeJwt,
+  generateSecurePassword,
+  parsePasswordLength,
+} from '@/utils/toolkit';
 import {
   Alert,
   Card,
@@ -27,6 +32,7 @@ import {
 import {
   type ChangeEvent,
   type FormEvent,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -54,14 +60,16 @@ export function PasswordGeneratorTool() {
   }>();
   const [error, setError] = useState<string>();
 
-  function generate() {
-    const parsedLength = Number.parseInt(length, 10);
+  function resetResult() {
+    setResult(undefined);
+    setError(undefined);
+  }
 
-    if (
-      !Number.isInteger(parsedLength) ||
-      parsedLength < 8 ||
-      parsedLength > 128
-    ) {
+  function generate() {
+    const parsedLength = parsePasswordLength(length);
+
+    if (parsedLength === undefined) {
+      setResult(undefined);
       setError(strings.invalidLength);
       return;
     }
@@ -93,7 +101,15 @@ export function PasswordGeneratorTool() {
           generate();
         }}
       >
-        <TextField fullWidth name="length" value={length} onChange={setLength}>
+        <TextField
+          fullWidth
+          name="length"
+          value={length}
+          onChange={(value) => {
+            setLength(value);
+            resetResult();
+          }}
+        >
           <Label>{strings.length}</Label>
           <Input
             type="number"
@@ -112,28 +128,43 @@ export function PasswordGeneratorTool() {
           <ToggleField
             checked={lowercase}
             label={strings.lowercase}
-            onChange={setLowercase}
+            onChange={(value) => {
+              setLowercase(value);
+              resetResult();
+            }}
           />
           <ToggleField
             checked={uppercase}
             label={strings.uppercase}
-            onChange={setUppercase}
+            onChange={(value) => {
+              setUppercase(value);
+              resetResult();
+            }}
           />
           <ToggleField
             checked={numbers}
             label={strings.numbers}
-            onChange={setNumbers}
+            onChange={(value) => {
+              setNumbers(value);
+              resetResult();
+            }}
           />
           <ToggleField
             checked={symbols}
             label={strings.symbols}
-            onChange={setSymbols}
+            onChange={(value) => {
+              setSymbols(value);
+              resetResult();
+            }}
           />
           <div className="sm:col-span-2">
             <ToggleField
               checked={excludeAmbiguous}
               label={strings.excludeAmbiguous}
-              onChange={setExcludeAmbiguous}
+              onChange={(value) => {
+                setExcludeAmbiguous(value);
+                resetResult();
+              }}
             />
           </div>
         </fieldset>
@@ -170,6 +201,9 @@ export function PasswordGeneratorTool() {
               </Card.Content>
             </Card>
           </div>
+          <Typography.Paragraph size="sm" className="text-muted">
+            {strings.entropyHint}
+          </Typography.Paragraph>
           <ToolOutput
             content={result.password}
             label={strings.output}
@@ -258,7 +292,16 @@ export function JwtInspectorTool() {
       </Alert>
 
       <Form className="flex flex-col gap-4" onSubmit={inspect}>
-        <TextField fullWidth name="jwt" value={source} onChange={setSource}>
+        <TextField
+          fullWidth
+          name="jwt"
+          value={source}
+          onChange={(value) => {
+            setSource(value);
+            setOutput('');
+            setError(undefined);
+          }}
+        >
           <Label>{strings.label}</Label>
           <TextArea
             rows={8}
@@ -289,7 +332,13 @@ export function HashGeneratorTool() {
   const [algorithm, setAlgorithm] = useState<HashAlgorithm>('SHA-256');
   const [source, setSource] = useState('');
   const [file, setFile] = useState<File>();
-  const [output, setOutput] = useState('');
+  const [result, setResult] = useState<{
+    digest: string;
+    algorithm: HashAlgorithm;
+    fileName?: string;
+    bytes: number;
+  }>();
+  const revision = useRef(0);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string>();
   const sourceDescription = useMemo(
@@ -300,34 +349,58 @@ export function HashGeneratorTool() {
     [file, strings.description, strings.fileSelected],
   );
 
-  function selectFile(event: ChangeEvent<HTMLInputElement>) {
-    setFile(event.currentTarget.files?.[0]);
-    setOutput('');
+  useEffect(
+    () => () => {
+      revision.current += 1;
+    },
+    [],
+  );
+
+  function invalidate() {
+    revision.current += 1;
+    setResult(undefined);
     setError(undefined);
+    setIsPending(false);
+  }
+
+  function selectFile(event: ChangeEvent<HTMLInputElement>) {
+    invalidate();
+    const selected = event.currentTarget.files?.[0];
+    setFile(selected);
+    if (selected && selected.size > 20 * 1024 * 1024)
+      setError(strings.fileTooLarge);
   }
 
   async function generate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!file && !source) {
-      setError(strings.required);
+    invalidate();
+    const current = revision.current;
+    const selectedAlgorithm = algorithm;
+    const selectedFile = file;
+    if (selectedFile && selectedFile.size > 20 * 1024 * 1024) {
+      setError(strings.fileTooLarge);
       return;
     }
-
     setIsPending(true);
-    setError(undefined);
 
     try {
-      const data = file
-        ? await file.arrayBuffer()
+      const data = selectedFile
+        ? await selectedFile.arrayBuffer()
         : new TextEncoder().encode(source);
-      const digest = await crypto.subtle.digest(algorithm, data);
-      setOutput(bytesToHex(digest));
+      if (revision.current !== current) return;
+      const digest = await crypto.subtle.digest(selectedAlgorithm, data);
+      if (revision.current === current) {
+        setResult({
+          digest: bytesToHex(digest),
+          algorithm: selectedAlgorithm,
+          fileName: selectedFile?.name,
+          bytes: data.byteLength,
+        });
+      }
     } catch {
-      setOutput('');
-      setError(strings.failed);
+      if (revision.current === current) setError(strings.failed);
     } finally {
-      setIsPending(false);
+      if (revision.current === current) setIsPending(false);
     }
   }
 
@@ -346,12 +419,14 @@ export function HashGeneratorTool() {
               value === 'SHA-384' ||
               value === 'SHA-512'
             ) {
+              invalidate();
               setAlgorithm(value);
             }
           }}
         >
           <Label>{strings.algorithm}</Label>
           <Select.Trigger>
+            <ButtonRipple />
             <Select.Value />
             <Select.Indicator />
           </Select.Trigger>
@@ -371,7 +446,10 @@ export function HashGeneratorTool() {
           fullWidth
           name="hash-source"
           value={source}
-          onChange={setSource}
+          onChange={(value) => {
+            invalidate();
+            setSource(value);
+          }}
         >
           <Label>{strings.textLabel}</Label>
           <TextArea
@@ -386,6 +464,7 @@ export function HashGeneratorTool() {
         <div className="flex flex-wrap items-center gap-2">
           <input
             ref={fileInputRef}
+            aria-label={strings.chooseFile}
             type="file"
             className="sr-only"
             onChange={selectFile}
@@ -403,6 +482,7 @@ export function HashGeneratorTool() {
               type="button"
               variant="tertiary"
               onPress={() => {
+                invalidate();
                 setFile(undefined);
                 if (fileInputRef.current) {
                   fileInputRef.current.value = '';
@@ -420,10 +500,10 @@ export function HashGeneratorTool() {
       </Form>
 
       {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
-      {output ? (
+      {result ? (
         <ToolOutput
-          content={output}
-          label={`${algorithm} ${strings.output}`}
+          content={result.digest}
+          label={`${result.algorithm} ${strings.output}, ${result.fileName !== undefined ? strings.fileSelected.replace('{name}', result.fileName) : strings.textLabel} (${strings.bytes.replace('{count}', String(result.bytes))})`}
           format="hash"
         />
       ) : null}

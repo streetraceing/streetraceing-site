@@ -14,9 +14,14 @@ import { getProjectHref } from '@/utils/project-catalog';
 type ProjectActionsProps = {
   project: ProjectConfig;
   className?: string;
+  showProjectPageLink?: boolean;
 };
 
-export function ProjectActions({ project, className }: ProjectActionsProps) {
+export function ProjectActions({
+  project,
+  className,
+  showProjectPageLink = true,
+}: ProjectActionsProps) {
   const { copy, locale } = useLocale();
 
   return (
@@ -26,14 +31,16 @@ export function ProjectActions({ project, className }: ProjectActionsProps) {
         className,
       )}
     >
-      <Link
-        href={getProjectHref(project)}
-        className="button button--secondary button--md w-full sm:w-auto"
-      >
-        <ButtonRipple />
-        <FolderOpen className="size-4" />
-        {copy.project.projectPage}
-      </Link>
+      {showProjectPageLink ? (
+        <Link
+          href={getProjectHref(project)}
+          className="button button--secondary button--md w-full sm:w-auto"
+        >
+          <ButtonRipple />
+          <FolderOpen className="size-4" />
+          {copy.project.projectPage}
+        </Link>
+      ) : null}
 
       {project.links.map((link) => {
         const href = normalizeInternalAnchorHref(link.url);

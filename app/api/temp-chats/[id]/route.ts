@@ -1,15 +1,13 @@
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { tempChatMessages, tempChats } from '@/db/schema';
-import { deleteCloudinaryPublicIds } from '@/lib/cloudinary-media';
+import { tempChats } from '@/db/schema';
 import { noStoreJson, requireDatabase } from '@/lib/api-response';
-import { deleteR2Objects } from '@/lib/r2';
+import { lockActiveTempChat } from '@/lib/temp-chat-uploads';
 import {
   getActiveTempChatByCode,
   getTempChatOwnerToken,
   isTempChatOwnerTokenEqual,
-  isTempChatResourceType,
   TEMP_CHAT_CODE_PATTERN,
 } from '@/lib/temp-chat';
 import { getRequestLocale, translations } from '@/utils/i18n';
@@ -84,61 +82,19 @@ export async function DELETE(request: Request, context: RouteContext) {
     return noStoreJson({ error: strings.roomNotFound }, { status: 404 });
   }
 
-  const attachments = await db
-    .select({ attachments: tempChatMessages.attachments })
-    .from(tempChatMessages)
-    .where(eq(tempChatMessages.chatId, chat.id));
-
-  const cloudinaryEntries = attachments.flatMap(
-    ({ attachments: messageAttachments }) =>
-      messageAttachments.flatMap((attachment) => {
-        if (
-          attachment.provider !== 'cloudinary' ||
-          !isTempChatResourceType(attachment.resourceType)
-        ) {
-          return [];
-        }
-
-        return [
-          {
-            publicId: attachment.path,
-            resourceType: attachment.resourceType,
-          },
-        ];
-      }),
-  );
-  const r2Keys = attachments.flatMap(({ attachments: messageAttachments }) =>
-    messageAttachments
-      .filter(
-        (attachment) =>
-          attachment.provider === 'r2' && Boolean(attachment.path),
-      )
-      .map((attachment) => attachment.path),
-  );
-
-  const emptyCloudinaryResult = {
-    requested: 0,
-    deleted: 0,
-    notFound: 0,
-    failed: 0,
-    completedPublicIds: [] as string[],
-  };
-  const emptyR2Result = { requested: 0, deleted: 0, failed: 0 };
-
-  const [cloudinaryResult, r2Result] = await Promise.all([
-    cloudinaryEntries.length > 0
-      ? deleteCloudinaryPublicIds(cloudinaryEntries)
-      : Promise.resolve(emptyCloudinaryResult),
-    r2Keys.length > 0
-      ? deleteR2Objects(r2Keys)
-      : Promise.resolve(emptyR2Result),
-  ]);
-
-  if (cloudinaryResult.failed + r2Result.failed > 0) {
-    return noStoreJson({ error: strings.deleteFailed }, { status: 502 });
+  // Revoke access immediately, preserving legacy messages until the bounded
+  // cron drain has copied every attachment into durable cleanup inventory.
+  try {
+    await db.transaction(async (tx) => {
+      await lockActiveTempChat(tx, chat.id);
+      await tx
+        .update(tempChats)
+        .set({ expiresAt: new Date() })
+        .where(eq(tempChats.id, chat.id));
+    });
+  } catch {
+    return noStoreJson({ error: strings.deleteFailed }, { status: 500 });
   }
-
-  await db.delete(tempChats).where(eq(tempChats.id, chat.id));
 
   return noStoreJson({ deleted: true });
 }

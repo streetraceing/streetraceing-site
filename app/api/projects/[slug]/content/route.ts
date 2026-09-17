@@ -9,13 +9,18 @@ import {
   requireAdminApi,
   requireDatabase,
 } from '@/lib/api-response';
-import { deleteCloudinaryMedia } from '@/lib/cloudinary-media';
 import {
   confirmPendingMediaUploads,
   discardPendingMediaUploads,
+  registerRemovedMediaUploads,
 } from '@/lib/pending-media-uploads';
 import { getRequestLocale, translations } from '@/utils/i18n';
-import { MAX_PROJECT_IMAGES, normalizeMediaUrls } from '@/utils/media';
+import {
+  getMediaAssetIdentity,
+  getRemovedMediaUrls,
+  MAX_PROJECT_IMAGES,
+  parseMediaUrls,
+} from '@/utils/media';
 import { getProjectBySlug, getProjectHref } from '@/utils/project-catalog';
 
 export const runtime = 'nodejs';
@@ -57,16 +62,28 @@ export async function PUT(request: Request, context: RouteContext) {
     return bodyResult.response;
   }
 
-  const imageUrls = normalizeMediaUrls(
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const imageUrls = parseMediaUrls(
     bodyResult.value.imageUrls,
     MAX_PROJECT_IMAGES,
-    process.env.CLOUDINARY_CLOUD_NAME,
+    cloudName,
   );
-  const uploadedImageUrls = normalizeMediaUrls(
-    bodyResult.value.uploadedImageUrls,
+  const uploaded = parseMediaUrls(
+    bodyResult.value.uploadedImageUrls === undefined
+      ? []
+      : bodyResult.value.uploadedImageUrls,
     MAX_PROJECT_IMAGES,
-    process.env.CLOUDINARY_CLOUD_NAME,
-  ).filter((url) => imageUrls.includes(url));
+    cloudName,
+  );
+  if (!imageUrls || !uploaded) {
+    return noStoreJson({ error: strings.invalid }, { status: 400 });
+  }
+  const imageIdentities = new Set(
+    imageUrls.map((url) => getMediaAssetIdentity(url, cloudName)),
+  );
+  const uploadedImageUrls = uploaded.filter((url) =>
+    imageIdentities.has(getMediaAssetIdentity(url, cloudName)),
+  );
 
   const databaseGuard = requireDatabase(strings.databaseMissing);
   if (databaseGuard) {
@@ -75,40 +92,37 @@ export async function PUT(request: Request, context: RouteContext) {
   }
 
   try {
-    const [previousContent] = await db
-      .select({ imageUrls: projectContents.imageUrls })
-      .from(projectContents)
-      .where(eq(projectContents.projectSlug, slug))
-      .limit(1);
+    const storedContent = await db.transaction(async (tx) => {
+      // Materialize the row first so concurrent first saves serialize as well.
+      await tx
+        .insert(projectContents)
+        .values({ projectSlug: slug })
+        .onConflictDoNothing();
+      const [previousContent] = await tx
+        .select({ imageUrls: projectContents.imageUrls })
+        .from(projectContents)
+        .where(eq(projectContents.projectSlug, slug))
+        .for('update');
 
-    const [storedContent] = await db
-      .insert(projectContents)
-      .values({
-        projectSlug: slug,
-        imageUrls,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: projectContents.projectSlug,
-        set: {
-          imageUrls,
-          updatedAt: new Date(),
-        },
-      })
-      .returning({
-        imageUrls: projectContents.imageUrls,
-        updatedAt: projectContents.updatedAt,
-      });
+      await registerRemovedMediaUploads(
+        getRemovedMediaUrls(previousContent.imageUrls, imageUrls, cloudName),
+        tx,
+      );
+      const [stored] = await tx
+        .update(projectContents)
+        .set({ imageUrls, updatedAt: new Date() })
+        .where(eq(projectContents.projectSlug, slug))
+        .returning({
+          imageUrls: projectContents.imageUrls,
+          updatedAt: projectContents.updatedAt,
+        });
+      return stored;
+    });
 
     if (!storedContent) {
       await discardPendingMediaUploads(uploadedImageUrls);
       return noStoreJson({ error: strings.saveFailed }, { status: 500 });
     }
-
-    const removedUrls = (previousContent?.imageUrls ?? []).filter(
-      (url) => !imageUrls.includes(url),
-    );
-    await deleteCloudinaryMedia(removedUrls);
 
     try {
       await confirmPendingMediaUploads(uploadedImageUrls);

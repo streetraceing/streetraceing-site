@@ -12,9 +12,10 @@ import {
   Spinner,
   Typography,
 } from '@heroui/react';
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import { fromMarkdown } from 'mdast-util-from-markdown';
 import dynamic from 'next/dynamic';
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { useAuthorSession, useLocale } from '@/app/providers';
 import { MediaGallery } from '@/components/media/MediaGallery';
@@ -22,6 +23,7 @@ import { HOME_LAYOUT_SETTLED_EVENT } from '@/utils/client-events';
 import { formatDateTime } from '@/utils/date';
 import { getLocaleTag } from '@/utils/i18n';
 import { readJsonResponse } from '@/utils/json';
+import { remarkSafeHtml, remarkTextDecorations } from '@/utils/markdown';
 import {
   DEV_UPDATES_PAGE_SIZE,
   devUpdateTopics,
@@ -59,6 +61,53 @@ function isLongDevUpdate(content: string) {
   return content.length > 1_200 || content.split(/\r?\n/).length > 16;
 }
 
+function getDevUpdateExcerpt(content: string) {
+  type ExcerptNode = {
+    type: string;
+    value?: string;
+    alt?: string | null;
+    children?: ExcerptNode[];
+  };
+
+  const tree: ExcerptNode = fromMarkdown(content);
+  remarkSafeHtml()(tree);
+  remarkTextDecorations()(tree);
+
+  function collectText(node: ExcerptNode): string {
+    if (
+      node.type === 'text' ||
+      node.type === 'code' ||
+      node.type === 'inlineCode'
+    ) {
+      return node.value ?? '';
+    }
+
+    if (node.type === 'image' || node.type === 'imageReference') {
+      return node.alt ?? '';
+    }
+
+    if (node.type === 'break') {
+      return ' ';
+    }
+
+    const separator = [
+      'root',
+      'list',
+      'listItem',
+      'blockquote',
+      'safeHtmlElement',
+    ].includes(node.type)
+      ? ' '
+      : '';
+    return (node.children ?? []).map(collectText).join(separator);
+  }
+
+  const characters = Array.from(collectText(tree).replace(/\s+/g, ' ').trim());
+  return characters.length > 360
+    ? `${characters.slice(0, 360).join('').trimEnd()}…`
+    : characters.join('');
+}
+
 type DevUpdateCardProps = {
   update: DevUpdate;
   isAuthor: boolean;
@@ -70,6 +119,11 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const isLong = isLongDevUpdate(update.content);
   const isCollapsed = isLong && !isExpanded;
+  const contentId = useId();
+  const excerpt = useMemo(
+    () => (isLong ? getDevUpdateExcerpt(update.content) : ''),
+    [isLong, update.content],
+  );
 
   return (
     <Card variant="default" className="dark:bg-default/20">
@@ -100,28 +154,33 @@ function DevUpdateCard({ update, isAuthor, onChanged }: DevUpdateCardProps) {
           />
         ) : null}
 
-        <div
-          className={
-            isCollapsed ? 'relative max-h-80 w-full overflow-hidden' : 'w-full'
-          }
-        >
-          <MarkdownContent content={update.content} />
-          {isCollapsed && (
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-surface-tertiary to-transparent"
-            />
+        <div id={contentId} className="min-w-0 w-full">
+          {isCollapsed ? (
+            <Typography.Paragraph
+              size="sm"
+              className="wrap-break-word leading-6"
+            >
+              {excerpt}
+            </Typography.Paragraph>
+          ) : (
+            <MarkdownContent content={update.content} />
           )}
         </div>
 
-        {isCollapsed && (
+        {isLong && (
           <Button
             size="sm"
             variant="tertiary"
-            onPress={() => setIsExpanded(true)}
+            aria-expanded={isExpanded}
+            aria-controls={contentId}
+            onPress={() => setIsExpanded((expanded) => !expanded)}
           >
-            <ChevronDown />
-            {copy.stats.showFull}
+            {isExpanded ? (
+              <ChevronUp aria-hidden="true" />
+            ) : (
+              <ChevronDown aria-hidden="true" />
+            )}
+            {isExpanded ? copy.stats.showLess : copy.stats.showFull}
           </Button>
         )}
       </Card.Content>
@@ -506,31 +565,47 @@ export function NewsSection({
       ) : null}
 
       {pagination && pagination.totalPages > 1 && (
-        <Pagination size="sm">
-          <Pagination.Summary>
+        <Pagination
+          size="sm"
+          aria-label={strings.updatesTitle}
+          className="w-full flex-wrap"
+        >
+          <Pagination.Summary className="hidden sm:block">
             {strings.page
               .replace('{page}', String(pagination.page))
               .replace('{total}', String(pagination.totalPages))}
           </Pagination.Summary>
-          <Pagination.Content>
+          <Pagination.Content className="w-full justify-between sm:w-auto sm:justify-start">
             <Pagination.Item>
               <Pagination.Previous
+                aria-label={strings.previous}
                 isDisabled={pagination.page === 1}
                 onPress={() => selectPage(pagination.page - 1)}
               >
                 <ButtonRipple disabled={pagination.page === 1} />
                 <Pagination.PreviousIcon />
-                <span>{strings.previous}</span>
+                <span className="hidden sm:inline">{strings.previous}</span>
               </Pagination.Previous>
+            </Pagination.Item>
+            <Pagination.Item className="min-w-0 sm:hidden">
+              <span
+                role="status"
+                className="text-sm tabular-nums"
+                aria-label={strings.page
+                  .replace('{page}', String(pagination.page))
+                  .replace('{total}', String(pagination.totalPages))}
+              >
+                {pagination.page} / {pagination.totalPages}
+              </span>
             </Pagination.Item>
             {visiblePages.map((visiblePage, index) => (
               <Fragment key={visiblePage}>
                 {index > 0 && visiblePage - visiblePages[index - 1] > 1 && (
-                  <Pagination.Item>
+                  <Pagination.Item className="hidden sm:flex">
                     <Pagination.Ellipsis />
                   </Pagination.Item>
                 )}
-                <Pagination.Item>
+                <Pagination.Item className="hidden sm:flex">
                   <Pagination.Link
                     isActive={pagination.page === visiblePage}
                     onPress={() => selectPage(visiblePage)}
@@ -543,13 +618,14 @@ export function NewsSection({
             ))}
             <Pagination.Item>
               <Pagination.Next
+                aria-label={strings.next}
                 isDisabled={pagination.page === pagination.totalPages}
                 onPress={() => selectPage(pagination.page + 1)}
               >
                 <ButtonRipple
                   disabled={pagination.page === pagination.totalPages}
                 />
-                <span>{strings.next}</span>
+                <span className="hidden sm:inline">{strings.next}</span>
                 <Pagination.NextIcon />
               </Pagination.Next>
             </Pagination.Item>

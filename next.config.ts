@@ -1,5 +1,10 @@
 import type { NextConfig } from 'next';
 
+import { getR2Origin } from './lib/r2';
+
+const r2Origin = getR2Origin();
+const r2Source = r2Origin ? ` ${r2Origin}` : '';
+
 const scriptSource =
   process.env.NODE_ENV === 'development'
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
@@ -13,9 +18,10 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   scriptSource,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://res.cloudinary.com https://raw.githubusercontent.com",
+  `img-src 'self' data: blob: https://res.cloudinary.com https://raw.githubusercontent.com${r2Source}`,
   "font-src 'self' data:",
-  "connect-src 'self' https://vitals.vercel-insights.com https://api.cloudinary.com https://res.cloudinary.com",
+  `connect-src 'self' https://vitals.vercel-insights.com https://api.cloudinary.com https://res.cloudinary.com${r2Source}`,
+  "worker-src 'self'",
   'frame-src https://open.spotify.com',
   "media-src 'self' blob:",
 ].join('; ');

@@ -8,9 +8,11 @@ import {
   Code2,
   ExternalLink,
   FileCode2,
+  FileLock,
   FileText,
   Fingerprint,
   FolderOpen,
+  GitBranch,
   GitCompareArrows,
   Hammer,
   Home,
@@ -19,6 +21,7 @@ import {
   Link,
   LucideIcon,
   MessagesSquare,
+  Network,
   Package,
   Link2,
   PackageSearch,
@@ -28,7 +31,10 @@ import {
   Regex,
   ShieldCheck,
   Sparkles,
+  SpellCheck2,
+  Table2,
   Type,
+  Waypoints,
 } from 'lucide-react';
 import { IconType } from 'react-icons';
 import { FaGithub, FaSpotify, FaTelegram, FaVk } from 'react-icons/fa6';
@@ -114,7 +120,13 @@ export type GenericToolComponent =
   | 'color-converter'
   | 'cron-builder'
   | 'base-converter'
-  | 'slug-generator';
+  | 'slug-generator'
+  | 'csv-converter'
+  | 'json-pointer'
+  | 'unicode-inspector'
+  | 'semver-sorter'
+  | 'unix-permissions'
+  | 'subnet-calculator';
 
 export type ToolConfig = {
   slug: string;
@@ -790,6 +802,104 @@ export const mainPageConfig: MainPageConfig = {
         text('Cron', 'Cron'),
         text('Автоматизация', 'Automation'),
         text('Разработка', 'Dev'),
+      ],
+    },
+    {
+      slug: 'csv-converter',
+      category: 'data',
+      component: 'csv-converter',
+      name: text('CSV и JSON', 'CSV and JSON'),
+      description: text(
+        'Переводит таблицы CSV, TSV и JSON туда и обратно, сохраняя кавычки, переносы строк и ведущие нули.',
+        'Converts CSV, TSV, and JSON tables in both directions while keeping quotes, line breaks, and leading zeros.',
+      ),
+      icon: Table2,
+      status: 'available',
+      tags: [text('CSV', 'CSV'), text('JSON', 'JSON'), text('Данные', 'Data')],
+    },
+    {
+      slug: 'json-pointer',
+      category: 'data',
+      component: 'json-pointer',
+      name: text('JSON Pointer', 'JSON Pointer'),
+      description: text(
+        'Достаёт значение по пути RFC 6901 и отличает отсутствующее поле от null.',
+        'Reads a value by an RFC 6901 path and tells a missing field apart from null.',
+      ),
+      icon: Waypoints,
+      status: 'available',
+      tags: [
+        text('JSON', 'JSON'),
+        text('RFC 6901', 'RFC 6901'),
+        text('Данные', 'Data'),
+      ],
+    },
+    {
+      slug: 'unicode-inspector',
+      category: 'text',
+      component: 'unicode-inspector',
+      name: text('Инспектор Unicode', 'Unicode Inspector'),
+      description: text(
+        'Показывает невидимые символы, кодовые точки, байты UTF-8 и формы нормализации NFC, NFD, NFKC и NFKD.',
+        'Shows invisible characters, code points, UTF-8 bytes, and NFC, NFD, NFKC, and NFKD normalization forms.',
+      ),
+      icon: SpellCheck2,
+      status: 'available',
+      tags: [
+        text('Unicode', 'Unicode'),
+        text('UTF-8', 'UTF-8'),
+        text('Текст', 'Text'),
+      ],
+    },
+    {
+      slug: 'semver-sorter',
+      category: 'developer',
+      component: 'semver-sorter',
+      name: text('Сортировка версий', 'SemVer Sorter'),
+      description: text(
+        'Сравнивает и сортирует версии по SemVer 2.0.0, учитывая префиксы и игнорируя метаданные сборки.',
+        'Compares and sorts versions by SemVer 2.0.0, honoring prereleases and ignoring build metadata.',
+      ),
+      icon: GitBranch,
+      status: 'available',
+      tags: [
+        text('SemVer', 'SemVer'),
+        text('Релизы', 'Releases'),
+        text('Разработка', 'Dev'),
+      ],
+    },
+    {
+      slug: 'unix-permissions',
+      category: 'developer',
+      component: 'unix-permissions',
+      name: text('Права Unix', 'Unix Permissions'),
+      description: text(
+        'Переводит восьмеричный режим в символьный и обратно, включая setuid, setgid и sticky bit.',
+        'Converts octal modes to symbolic form and back, including setuid, setgid, and the sticky bit.',
+      ),
+      icon: FileLock,
+      status: 'available',
+      tags: [
+        text('chmod', 'chmod'),
+        text('Linux', 'Linux'),
+        text('Разработка', 'Dev'),
+      ],
+    },
+    {
+      slug: 'subnet-calculator',
+      category: 'developer',
+      component: 'subnet-calculator',
+      name: text('Подсети IPv4', 'IPv4 Subnets'),
+      description: text(
+        'Считает маску, адрес сети, широковещательный адрес и диапазон хостов по записи вида 192.168.1.130/26.',
+        'Calculates the mask, network and broadcast addresses, and host range from a value like 192.168.1.130/26.',
+      ),
+      icon: Network,
+      status: 'available',
+      tags: [
+        text('CIDR', 'CIDR'),
+        text('IPv4', 'IPv4'),
+        text('Сети', 'Networks'),
       ],
     },
   ],

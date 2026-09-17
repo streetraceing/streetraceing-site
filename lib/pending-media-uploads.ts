@@ -27,10 +27,14 @@ function getPublicIds(urls: string[]) {
   ];
 }
 
-async function readReferencedPublicIds() {
+async function readReferencedPublicIds(
+  executor: Pick<typeof db, 'select'> = db,
+) {
   const [updates, projects] = await Promise.all([
-    db.select({ imageUrls: devUpdates.imageUrls }).from(devUpdates),
-    db.select({ imageUrls: projectContents.imageUrls }).from(projectContents),
+    executor.select({ imageUrls: devUpdates.imageUrls }).from(devUpdates),
+    executor
+      .select({ imageUrls: projectContents.imageUrls })
+      .from(projectContents),
   ]);
 
   return new Set(
@@ -43,12 +47,15 @@ async function readReferencedPublicIds() {
   );
 }
 
-async function removePendingRows(publicIds: string[]) {
+async function removePendingRows(
+  publicIds: string[],
+  executor: Pick<typeof db, 'delete'> = db,
+) {
   if (publicIds.length === 0) {
     return;
   }
 
-  await db
+  await executor
     .delete(pendingMediaUploads)
     .where(inArray(pendingMediaUploads.publicId, publicIds));
 }
@@ -101,12 +108,50 @@ export async function registerPendingMediaUpload(publicId: string) {
   await db.insert(pendingMediaUploads).values({ publicId });
 }
 
+/** Use the owning mutation's transaction so inventory and reference removal commit together. */
+export async function registerRemovedMediaUploads(
+  urls: string[],
+  executor: Pick<typeof db, 'insert'> = db,
+) {
+  const publicIds = getPublicIds(urls).sort();
+  if (publicIds.length === 0) {
+    return;
+  }
+
+  const createdAt = new Date();
+  await executor
+    .insert(pendingMediaUploads)
+    .values(publicIds.map((publicId) => ({ publicId, createdAt })))
+    .onConflictDoUpdate({
+      target: pendingMediaUploads.publicId,
+      set: { createdAt },
+    });
+}
+
 export async function confirmPendingMediaUploads(urls: string[]) {
   if (!process.env.DATABASE_URL) {
     return;
   }
 
-  await removePendingRows(getPublicIds(urls));
+  const publicIds = getPublicIds(urls);
+  if (publicIds.length === 0) {
+    return;
+  }
+
+  await db.transaction(async (tx) => {
+    // A delayed confirmation must not remove inventory re-queued by a newer save.
+    const pending = await tx
+      .select({ publicId: pendingMediaUploads.publicId })
+      .from(pendingMediaUploads)
+      .where(inArray(pendingMediaUploads.publicId, publicIds))
+      .orderBy(pendingMediaUploads.publicId)
+      .for('update');
+    const referenced = await readReferencedPublicIds(tx);
+    await removePendingRows(
+      pending.map((row) => row.publicId).filter((id) => referenced.has(id)),
+      tx,
+    );
+  });
 }
 
 export async function discardPendingMediaUploads(

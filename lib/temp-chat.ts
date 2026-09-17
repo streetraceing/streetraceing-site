@@ -13,6 +13,8 @@ export * from '@/utils/temp-chat';
 import {
   isTempChatAuthorNameValid,
   isTempChatStorageDriver,
+  normalizeTempChatAuthorName,
+  TEMP_CHAT_MAX_AUTHOR_NAME_LENGTH,
   TEMP_CHAT_MEMBER_ID_PATTERN,
   TEMP_CHAT_OWNER_COOKIE,
   TEMP_CHAT_OWNER_TOKEN_PATTERN,
@@ -94,23 +96,67 @@ export async function verifyTempChatPassword(
   );
 }
 
+const MEMBER_TOKEN_CONTEXT = 'streetraceing:temp-chat-member:v1\0';
+const MAX_MEMBER_TOKEN_LENGTH = 1_024;
+const MAX_MEMBER_TOKEN_AGE_SECONDS = 7 * 24 * 60 * 60;
+const CHAT_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 type TempChatMemberPayload = {
+  purpose: 'temp-chat-member';
+  version: 1;
   chatId: string;
   memberId: string;
   name: string;
+  iat: number;
   exp: number;
 };
 
 function getTempChatSecret() {
   const secret = process.env.AUTH_SECRET?.trim() ?? '';
 
-  return secret.length >= MIN_TEMP_CHAT_SECRET_LENGTH ? secret : undefined;
+  return secret.length >= MIN_TEMP_CHAT_SECRET_LENGTH && secret.length <= 4_096
+    ? secret
+    : undefined;
 }
 
 function signMemberPayload(encodedPayload: string, secret: string) {
   return createHmac('sha256', secret)
+    .update(MEMBER_TOKEN_CONTEXT)
     .update(encodedPayload)
     .digest('base64url');
+}
+
+function isMemberPayload(value: unknown): value is TempChatMemberPayload {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const payload = value as Record<string, unknown>;
+  const now = Math.floor(Date.now() / 1_000);
+  return (
+    Object.keys(payload).length === 7 &&
+    payload.purpose === 'temp-chat-member' &&
+    payload.version === 1 &&
+    typeof payload.chatId === 'string' &&
+    CHAT_ID_PATTERN.test(payload.chatId) &&
+    typeof payload.memberId === 'string' &&
+    TEMP_CHAT_MEMBER_ID_PATTERN.test(payload.memberId) &&
+    typeof payload.name === 'string' &&
+    payload.name.length <= TEMP_CHAT_MAX_AUTHOR_NAME_LENGTH &&
+    !/\p{Cc}/u.test(payload.name) &&
+    normalizeTempChatAuthorName(payload.name) === payload.name &&
+    isTempChatAuthorNameValid(payload.name) &&
+    typeof payload.iat === 'number' &&
+    Number.isSafeInteger(payload.iat) &&
+    payload.iat >= 0 &&
+    payload.iat <= now &&
+    typeof payload.exp === 'number' &&
+    Number.isSafeInteger(payload.exp) &&
+    payload.exp > now &&
+    payload.exp > payload.iat &&
+    payload.exp - payload.iat <= MAX_MEMBER_TOKEN_AGE_SECONDS
+  );
 }
 
 /** Issues an HMAC-signed membership token that stays valid until the chat
@@ -129,11 +175,18 @@ export function createTempChatMemberToken(
   }
 
   const payload: TempChatMemberPayload = {
+    purpose: 'temp-chat-member',
+    version: 1,
     chatId,
     memberId,
     name,
+    iat: Math.floor(Date.now() / 1_000),
     exp: Math.floor(expiresAt.getTime() / 1_000),
   };
+  if (!isMemberPayload(payload)) {
+    return undefined;
+  }
+
   const encodedPayload = Buffer.from(JSON.stringify(payload)).toString(
     'base64url',
   );
@@ -152,13 +205,25 @@ export function verifyTempChatMemberToken(
 ): TempChatMember | undefined {
   const secret = getTempChatSecret();
 
-  if (!token || !secret) {
+  if (
+    typeof token !== 'string' ||
+    token.length > MAX_MEMBER_TOKEN_LENGTH ||
+    !secret ||
+    typeof chatId !== 'string' ||
+    !CHAT_ID_PATTERN.test(chatId)
+  ) {
     return undefined;
   }
 
   const [encodedPayload, signature, ...rest] = token.split('.');
 
-  if (!encodedPayload || !signature || rest.length > 0) {
+  if (
+    !encodedPayload ||
+    !/^[A-Za-z0-9_-]+$/.test(encodedPayload) ||
+    !signature ||
+    !/^[A-Za-z0-9_-]{43}$/.test(signature) ||
+    rest.length > 0
+  ) {
     return undefined;
   }
 
@@ -174,17 +239,13 @@ export function verifyTempChatMemberToken(
   }
 
   try {
-    const payload = JSON.parse(
-      Buffer.from(encodedPayload, 'base64url').toString('utf8'),
-    ) as TempChatMemberPayload;
+    const decoded = Buffer.from(encodedPayload, 'base64url');
+    if (decoded.toString('base64url') !== encodedPayload) {
+      return undefined;
+    }
 
-    if (
-      payload.chatId !== chatId ||
-      typeof payload.exp !== 'number' ||
-      payload.exp * 1_000 <= Date.now() ||
-      !TEMP_CHAT_MEMBER_ID_PATTERN.test(payload.memberId) ||
-      !isTempChatAuthorNameValid(payload.name)
-    ) {
+    const payload: unknown = JSON.parse(decoded.toString('utf8'));
+    if (!isMemberPayload(payload) || payload.chatId !== chatId) {
       return undefined;
     }
 

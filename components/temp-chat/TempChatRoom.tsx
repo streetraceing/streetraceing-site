@@ -13,15 +13,13 @@ import {
   getTempChatInitials,
   getTempChatMemberTone,
   isTempChatAuthorNameValid,
-  isTempChatHistoryEntry,
   isTempChatResourceType,
-  mergeTempChatHistoryEntry,
+  getTempChatMessageWindow,
   normalizeTempChatAuthorName,
-  pruneExpiredTempChatHistory,
-  TEMP_CHAT_HISTORY_STORAGE_KEY,
+  TEMP_CHAT_MESSAGE_WINDOW,
   TEMP_CHAT_MAX_ATTACHMENTS,
   TEMP_CHAT_MAX_MESSAGE_LENGTH,
-  type TempChatMessageAttachment,
+  type TempChatAttachmentRequest,
 } from '@/utils/temp-chat';
 import {
   AlertDialog,
@@ -87,21 +85,18 @@ type ChatMessage = {
   attachments: ChatAttachment[];
 };
 
-type StoredMember = {
-  token: string;
-  memberId: string;
-  name: string;
-};
+import {
+  subscribeToTempChatStorage,
+  tempChatSessionStorage,
+  type StoredTempChatMember,
+} from './session-storage';
+
+type LoadOutcome =
+  'success' | 'unauthorized' | 'missing' | 'failed' | 'superseded';
 
 type RoomState = 'loading' | 'gate' | 'room' | 'missing';
 
 const POLL_INTERVAL_MS = 4_000;
-
-function tokenStorageKey(code: string) {
-  return `temp-chat-token:${code}`;
-}
-
-const MEMBER_NAME_STORAGE_KEY = 'temp-chat-name';
 
 function isChatMessage(value: unknown): value is ChatMessage {
   return (
@@ -112,27 +107,6 @@ function isChatMessage(value: unknown): value is ChatMessage {
     typeof value.createdAt === 'string' &&
     Array.isArray(value.attachments)
   );
-}
-
-function readStoredMember(code: string): StoredMember | undefined {
-  try {
-    const raw = window.localStorage.getItem(tokenStorageKey(code));
-
-    if (!raw) {
-      return undefined;
-    }
-
-    const parsed: unknown = JSON.parse(raw);
-
-    return isJsonObject(parsed) &&
-      typeof parsed.token === 'string' &&
-      typeof parsed.memberId === 'string' &&
-      typeof parsed.name === 'string'
-      ? { token: parsed.token, memberId: parsed.memberId, name: parsed.name }
-      : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 function deriveDefaultDeviceName() {
@@ -228,7 +202,7 @@ function ChatMessageRow({
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-center justify-between gap-2">
           <span className={`text-xs font-semibold ${tone.name}`}>
-            {isOwn ? 'Вы' : message.authorName}
+            {isOwn ? labels.you : message.authorName}
             <span className="font-normal text-muted">
               {' · '}
               {timeLabel}
@@ -282,6 +256,7 @@ function ChatMessageRow({
         {isEditing ? (
           <div className="flex flex-col gap-2 rounded-2xl bg-surface-tertiary px-3.5 py-2.5">
             <TextArea
+              aria-label={labels.editMessage}
               rows={3}
               variant="secondary"
               value={editContent}
@@ -380,104 +355,103 @@ export function TempChatRoom({ code }: { code: string }) {
     index: number;
   }>();
   const linkCopied = useTransientValue<string>();
+  const copyFeedback = useTransientValue<string>();
   const listRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const lastCreatedAtRef = useRef<string | undefined>(undefined);
+  const tokenRef = useRef<string | undefined>(undefined);
+  const sendInFlightRef = useRef(false);
+  const requestRevisionRef = useRef(0);
+  const sessionRevisionRef = useRef(0);
+  const readControllerRef = useRef<AbortController | undefined>(undefined);
+  const [hasOlderMessages, setHasOlderMessages] = useState(false);
 
-  const getStoredToken = useCallback(() => {
-    const stored = readStoredMember(code);
-    return stored?.token;
-  }, [code]);
+  const getStoredToken = useCallback(() => tokenRef.current, []);
+  const invalidateRead = useCallback(() => {
+    requestRevisionRef.current += 1;
+    readControllerRef.current?.abort();
+  }, []);
+  const clearSession = useCallback(
+    (status: 401 | 404) => {
+      tokenRef.current = undefined;
+      sessionRevisionRef.current += 1;
+      invalidateRead();
+      setMemberId(undefined);
+      setMessages([]);
+      setHasOlderMessages(false);
+      setEditing(undefined);
+      setViewer(undefined);
+      if (status === 404) tempChatSessionStorage.removeRoom(code);
+      else tempChatSessionStorage.clearMember(code);
+      setState(status === 404 ? 'missing' : 'gate');
+      setError(status === 404 ? strings.expired : strings.sessionExpired);
+    },
+    [code, invalidateRead, setViewer, strings.expired, strings.sessionExpired],
+  );
 
   const recordVisit = useCallback(
     (chatMeta: ChatMeta) => {
-      try {
-        const raw = window.localStorage.getItem(TEMP_CHAT_HISTORY_STORAGE_KEY);
-        const parsed: unknown = raw ? JSON.parse(raw) : [];
-
-        if (!Array.isArray(parsed)) {
-          return;
-        }
-
-        const merged = pruneExpiredTempChatHistory(
-          mergeTempChatHistoryEntry(parsed.filter(isTempChatHistoryEntry), {
-            code,
-            title: chatMeta.title,
-            expiresAt: chatMeta.expiresAt,
-            isOwner: chatMeta.isOwner,
-            joinedAt: new Date().toISOString(),
-          }),
-        );
-
-        window.localStorage.setItem(
-          TEMP_CHAT_HISTORY_STORAGE_KEY,
-          JSON.stringify(merged),
-        );
-      } catch {
-        // History is a convenience feature; failures are safe to ignore.
-      }
+      tempChatSessionStorage.recordVisit({
+        code,
+        title: chatMeta.title,
+        expiresAt: chatMeta.expiresAt,
+        isOwner: chatMeta.isOwner,
+        joinedAt: new Date().toISOString(),
+      });
     },
     [code],
   );
 
   const linkCopiedShow = linkCopied.show;
 
-  const applyMessages = useCallback((incoming: ChatMessage[]) => {
-    if (incoming.length === 0) {
-      return;
-    }
-
-    setMessages((current) => {
-      const seen = new Set(current.map((message) => message.id));
-      const merged = [
-        ...current,
-        ...incoming.filter((message) => !seen.has(message.id)),
-      ]
-        .map(
-          (message) =>
-            incoming.find((item) => item.id === message.id) ?? message,
-        )
-        .sort((first, second) =>
-          first.createdAt.localeCompare(second.createdAt),
-        );
-      const lastMessage = merged[merged.length - 1];
-
-      if (lastMessage) {
-        lastCreatedAtRef.current = lastMessage.createdAt;
-      }
-
-      return merged;
-    });
-  }, []);
-
   const loadMessages = useCallback(
-    async (token: string, after?: string) => {
-      const query = after ? `?after=${encodeURIComponent(after)}` : '';
-      const response = await fetch(`/api/temp-chats/${code}/messages${query}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store',
-      });
-      const body = await readJsonResponse(response);
-
-      if (response.status === 401) {
-        window.localStorage.removeItem(tokenStorageKey(code));
-        setState('gate');
-        setError(strings.sessionExpired);
-        return;
+    async (token: string): Promise<LoadOutcome> => {
+      invalidateRead();
+      const revision = requestRevisionRef.current;
+      const controller = new AbortController();
+      readControllerRef.current = controller;
+      try {
+        const response = await fetch(`/api/temp-chats/${code}/messages`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        const body = await readJsonResponse(response);
+        if (
+          controller.signal.aborted ||
+          revision !== requestRevisionRef.current ||
+          token !== tokenRef.current
+        ) {
+          return 'superseded';
+        }
+        if (response.status === 401 || response.status === 404) {
+          clearSession(response.status);
+          return response.status === 401 ? 'unauthorized' : 'missing';
+        }
+        if (
+          !response.ok ||
+          !isJsonObject(body) ||
+          !Array.isArray(body.messages) ||
+          !body.messages.every(isChatMessage) ||
+          typeof body.hasOlderMessages !== 'boolean'
+        ) {
+          setError(getJsonError(body) ?? strings.loadFailed);
+          return 'failed';
+        }
+        // Keep the server's timestamp/id ordering; timestamp precision may exceed JS Date.
+        setMessages(body.messages.slice(-TEMP_CHAT_MESSAGE_WINDOW));
+        setHasOlderMessages(body.hasOlderMessages);
+        return 'success';
+      } catch {
+        if (
+          controller.signal.aborted ||
+          revision !== requestRevisionRef.current
+        )
+          return 'superseded';
+        setError(strings.loadFailed);
+        return 'failed';
       }
-
-      if (
-        !response.ok ||
-        !isJsonObject(body) ||
-        !Array.isArray(body.messages)
-      ) {
-        setError(getJsonError(body) ?? strings.loadFailed);
-        return;
-      }
-
-      applyMessages(body.messages.filter(isChatMessage));
     },
-    [applyMessages, code, strings.loadFailed, strings.sessionExpired],
+    [clearSession, code, invalidateRead, strings.loadFailed],
   );
 
   useEffect(() => {
@@ -494,12 +468,14 @@ export function TempChatRoom({ code }: { code: string }) {
           return;
         }
 
-        if (metaResponse.status === 404 || !isJsonObject(metaBody)) {
-          setState('missing');
+        if (metaResponse.status === 401 || metaResponse.status === 404) {
+          clearSession(metaResponse.status);
           return;
         }
 
         if (
+          !metaResponse.ok ||
+          !isJsonObject(metaBody) ||
           typeof metaBody.title !== 'string' ||
           typeof metaBody.expiresAt !== 'string'
         ) {
@@ -518,19 +494,18 @@ export function TempChatRoom({ code }: { code: string }) {
         setMeta(chatMeta);
         recordVisit(chatMeta);
 
-        const stored = readStoredMember(code);
+        const stored = tempChatSessionStorage.readMember(code);
 
         if (stored) {
+          tokenRef.current = stored.token;
           setMemberId(stored.memberId);
-          await loadMessages(stored.token);
-          setState('room');
+          const outcome = await loadMessages(stored.token);
+          if (active && outcome === 'success') setState('room');
+          else if (active && outcome === 'failed') setState('gate');
           return;
         }
 
-        setName(
-          window.localStorage.getItem(MEMBER_NAME_STORAGE_KEY) ??
-            deriveDefaultDeviceName(),
-        );
+        setName(tempChatSessionStorage.readName() ?? deriveDefaultDeviceName());
         setState('gate');
       } catch {
         if (active) {
@@ -544,8 +519,31 @@ export function TempChatRoom({ code }: { code: string }) {
 
     return () => {
       active = false;
+      tokenRef.current = undefined;
+      sessionRevisionRef.current += 1;
+      invalidateRead();
     };
-  }, [code, loadMessages, recordVisit, strings.loadFailed]);
+  }, [
+    clearSession,
+    code,
+    invalidateRead,
+    loadMessages,
+    recordVisit,
+    strings.loadFailed,
+  ]);
+
+  useEffect(
+    () =>
+      subscribeToTempChatStorage(() => {
+        if (
+          tokenRef.current &&
+          tempChatSessionStorage.readMember(code)?.token !== tokenRef.current
+        ) {
+          clearSession(401);
+        }
+      }),
+    [clearSession, code],
+  );
 
   useEffect(() => {
     if (state !== 'room') {
@@ -553,9 +551,10 @@ export function TempChatRoom({ code }: { code: string }) {
     }
 
     let cancelled = false;
+    let fetching = false;
 
     async function poll() {
-      if (document.visibilityState !== 'visible' || cancelled) {
+      if (document.visibilityState !== 'visible' || cancelled || fetching) {
         return;
       }
 
@@ -565,12 +564,11 @@ export function TempChatRoom({ code }: { code: string }) {
         return;
       }
 
-      const after = lastCreatedAtRef.current;
-
+      fetching = true;
       try {
-        await loadMessages(token, after);
-      } catch {
-        // Transient network errors are skipped until the next poll.
+        await loadMessages(token);
+      } finally {
+        fetching = false;
       }
     }
 
@@ -627,26 +625,21 @@ export function TempChatRoom({ code }: { code: string }) {
         throw new Error(strings.joinFailed);
       }
 
-      const storedMember: StoredMember = {
+      const storedMember: StoredTempChatMember = {
         token,
         memberId: member.id,
         name: member.name,
       };
 
-      window.localStorage.setItem(
-        tokenStorageKey(code),
-        JSON.stringify(storedMember),
-      );
-      window.localStorage.setItem(
-        MEMBER_NAME_STORAGE_KEY,
-        normalizeTempChatAuthorName(name),
-      );
+      tokenRef.current = undefined;
+      tempChatSessionStorage.saveMember(code, storedMember);
+      tokenRef.current = token;
+      tempChatSessionStorage.saveName(normalizeTempChatAuthorName(name));
       setMemberId(member.id);
       if (meta) {
         recordVisit(meta);
       }
-      await loadMessages(token);
-      setState('room');
+      if ((await loadMessages(token)) === 'success') setState('room');
     } catch (caughtError) {
       setError(
         caughtError instanceof Error ? caughtError.message : strings.joinFailed,
@@ -657,6 +650,12 @@ export function TempChatRoom({ code }: { code: string }) {
   }
 
   function selectFiles(event: ChangeEvent<HTMLInputElement>) {
+    if (sendInFlightRef.current) return;
+    if ((event.currentTarget.files?.length ?? 0) > TEMP_CHAT_MAX_ATTACHMENTS) {
+      setError(strings.attachmentsLimit);
+      event.currentTarget.value = '';
+      return;
+    }
     setFiles(
       Array.from(event.currentTarget.files ?? []).slice(
         0,
@@ -670,6 +669,7 @@ export function TempChatRoom({ code }: { code: string }) {
   }
 
   function removeFile(index: number) {
+    if (sendInFlightRef.current) return;
     setFiles((current) =>
       current.filter((_, fileIndex) => fileIndex !== index),
     );
@@ -678,7 +678,7 @@ export function TempChatRoom({ code }: { code: string }) {
   async function uploadAttachment(
     token: string,
     file: File,
-  ): Promise<TempChatMessageAttachment> {
+  ): Promise<TempChatAttachmentRequest> {
     const authorizeResponse = await fetch(
       `/api/temp-chats/${code}/upload-authorize`,
       {
@@ -695,6 +695,10 @@ export function TempChatRoom({ code }: { code: string }) {
       },
     );
     const authorizeBody = await readJsonResponse(authorizeResponse);
+    if (authorizeResponse.status === 401 || authorizeResponse.status === 404) {
+      clearSession(authorizeResponse.status);
+      throw new Error(strings.sessionExpired);
+    }
 
     if (
       !authorizeResponse.ok ||
@@ -709,7 +713,7 @@ export function TempChatRoom({ code }: { code: string }) {
 
     if (authorizeBody.provider === 'cloudinary') {
       if (
-        typeof authorizeBody.publicId !== 'string' ||
+        typeof authorizeBody.path !== 'string' ||
         typeof authorizeBody.apiKey !== 'string' ||
         typeof authorizeBody.signature !== 'string' ||
         typeof authorizeBody.timestamp !== 'number'
@@ -721,9 +725,10 @@ export function TempChatRoom({ code }: { code: string }) {
 
       uploadBody.set('api_key', authorizeBody.apiKey);
       uploadBody.set('file', file);
-      uploadBody.set('public_id', authorizeBody.publicId);
+      uploadBody.set('public_id', authorizeBody.path);
       uploadBody.set('signature', authorizeBody.signature);
       uploadBody.set('timestamp', String(authorizeBody.timestamp));
+      uploadBody.set('overwrite', 'false');
 
       const uploadResponse = await fetch(authorizeBody.uploadUrl, {
         method: 'POST',
@@ -740,7 +745,7 @@ export function TempChatRoom({ code }: { code: string }) {
         !uploadResponse.ok ||
         !uploadedUrl ||
         !isJsonObject(uploadResult) ||
-        uploadResult.public_id !== authorizeBody.publicId
+        uploadResult.public_id !== authorizeBody.path
       ) {
         throw new Error(strings.uploadFailed);
       }
@@ -753,7 +758,7 @@ export function TempChatRoom({ code }: { code: string }) {
 
       return {
         provider: 'cloudinary',
-        path: authorizeBody.publicId,
+        path: authorizeBody.path,
         url: uploadedUrl,
         resourceType: uploadedResourceType,
         name: authorizeBody.fileName,
@@ -763,7 +768,7 @@ export function TempChatRoom({ code }: { code: string }) {
     }
 
     if (
-      typeof authorizeBody.key !== 'string' ||
+      typeof authorizeBody.path !== 'string' ||
       typeof authorizeBody.contentDisposition !== 'string'
     ) {
       throw new Error(strings.uploadFailed);
@@ -783,7 +788,7 @@ export function TempChatRoom({ code }: { code: string }) {
 
     return {
       provider: 'r2',
-      path: authorizeBody.key,
+      path: authorizeBody.path,
       url: null,
       resourceType: null,
       name: authorizeBody.fileName,
@@ -793,10 +798,12 @@ export function TempChatRoom({ code }: { code: string }) {
   }
 
   async function send() {
+    if (sendInFlightRef.current) return;
     const token = getStoredToken();
+    const sessionRevision = sessionRevisionRef.current;
 
     if (!token) {
-      setState('gate');
+      clearSession(401);
       return;
     }
 
@@ -811,14 +818,15 @@ export function TempChatRoom({ code }: { code: string }) {
       return;
     }
 
+    sendInFlightRef.current = true;
     setIsSending(true);
     setError(undefined);
 
     try {
-      let attachments: TempChatMessageAttachment[] | undefined;
+      let attachments: TempChatAttachmentRequest[] | undefined;
 
       if (files.length > 0) {
-        const uploaded: TempChatMessageAttachment[] = [];
+        const uploaded: TempChatAttachmentRequest[] = [];
 
         for (const [index, file] of files.entries()) {
           setUploadProgress({ done: index, total: files.length });
@@ -849,6 +857,11 @@ export function TempChatRoom({ code }: { code: string }) {
         }),
       });
       const messageBody = await readJsonResponse(messageResponse);
+      if (sessionRevision !== sessionRevisionRef.current) return;
+      if (messageResponse.status === 401 || messageResponse.status === 404) {
+        clearSession(messageResponse.status);
+        return;
+      }
       const message = isJsonObject(messageBody)
         ? messageBody.message
         : undefined;
@@ -857,16 +870,21 @@ export function TempChatRoom({ code }: { code: string }) {
         throw new Error(getJsonError(messageBody) ?? strings.sendFailed);
       }
 
-      applyMessages([message]);
+      invalidateRead();
+      if (messages.length >= TEMP_CHAT_MESSAGE_WINDOW)
+        setHasOlderMessages(true);
+      setMessages((current) => getTempChatMessageWindow([...current, message]));
       setContent('');
       setFiles([]);
       setUploadProgress(undefined);
+      void loadMessages(token);
     } catch (caughtError) {
       setError(
         caughtError instanceof Error ? caughtError.message : strings.sendFailed,
       );
       setUploadProgress(undefined);
     } finally {
+      sendInFlightRef.current = false;
       setIsSending(false);
     }
   }
@@ -879,7 +897,7 @@ export function TempChatRoom({ code }: { code: string }) {
     const token = getStoredToken();
 
     if (!token) {
-      setState('gate');
+      clearSession(401);
       return;
     }
 
@@ -951,10 +969,7 @@ export function TempChatRoom({ code }: { code: string }) {
     }
   }
 
-  async function downloadAttachment(
-    messageId: string,
-    attachment: ChatAttachment,
-  ) {
+  async function downloadAttachment(attachment: ChatAttachment) {
     const source = attachment.downloadUrl ?? attachment.url;
 
     if (!source) {
@@ -991,7 +1006,8 @@ export function TempChatRoom({ code }: { code: string }) {
       await navigator.clipboard.writeText(window.location.href);
       linkCopiedShow(strings.copied);
     } catch {
-      linkCopiedShow(strings.shareFailed);
+      linkCopied.clear();
+      setError(strings.shareFailed);
     }
   }
 
@@ -1016,10 +1032,14 @@ export function TempChatRoom({ code }: { code: string }) {
     void copyChatLink();
   }
 
-  function copyMessageText(content: string) {
-    void navigator.clipboard.writeText(content).catch(() => {
-      setError(strings.copyText);
-    });
+  async function copyMessageText(content: string) {
+    try {
+      await navigator.clipboard.writeText(content);
+      copyFeedback.show(strings.copied);
+    } catch {
+      copyFeedback.clear();
+      setError(strings.shareFailed);
+    }
   }
 
   async function deleteChat(close: () => void) {
@@ -1037,7 +1057,7 @@ export function TempChatRoom({ code }: { code: string }) {
         throw new Error(getJsonError(body) ?? strings.deleteFailed);
       }
 
-      window.localStorage.removeItem(tokenStorageKey(code));
+      clearSession(404);
       close();
       router.push('/tools');
     } catch (caughtError) {
@@ -1156,7 +1176,7 @@ export function TempChatRoom({ code }: { code: string }) {
       {state === 'room' ? (
         <div className="flex flex-col gap-4">
           {error ? (
-            <ErrorAlert title={strings.sendFailed} message={error} />
+            <ErrorAlert title={copy.tinyUrl.errorTitle} message={error} />
           ) : null}
 
           <div className="flex flex-wrap items-center gap-2">
@@ -1184,8 +1204,19 @@ export function TempChatRoom({ code }: { code: string }) {
             </Button>
           </div>
 
+          <p role="status" className="sr-only">
+            {copyFeedback.value ?? linkCopied.value}
+          </p>
+          {hasOlderMessages ? (
+            <p className="text-sm text-muted">{strings.messageWindowNotice}</p>
+          ) : null}
           <div
             ref={listRef}
+            role="log"
+            aria-label={meta?.title ?? strings.gateTitle}
+            aria-live="polite"
+            aria-relevant="additions"
+            aria-atomic="false"
             className="flex h-96 flex-col gap-4 overflow-y-auto rounded-2xl border bg-surface-secondary/45 p-4"
           >
             {messages.length === 0 ? (
@@ -1237,7 +1268,7 @@ export function TempChatRoom({ code }: { code: string }) {
                       }
                       onDelete={() => void deleteMessage(message.id)}
                       onDownload={(attachment) =>
-                        void downloadAttachment(message.id, attachment)
+                        void downloadAttachment(attachment)
                       }
                       onOpenImage={openImageViewer}
                     />
@@ -1289,6 +1320,7 @@ export function TempChatRoom({ code }: { code: string }) {
                       size="sm"
                       variant="tertiary"
                       aria-label={strings.cancel}
+                      isDisabled={isSending}
                       onPress={() => removeFile(fileIndex)}
                     >
                       <X className="size-4" />
@@ -1301,8 +1333,11 @@ export function TempChatRoom({ code }: { code: string }) {
             <TextField
               fullWidth
               name="temp-chat-message"
+              isDisabled={isSending}
               value={content}
-              onChange={setContent}
+              onChange={(value) => {
+                if (!sendInFlightRef.current) setContent(value);
+              }}
             >
               <Label className="sr-only">{strings.placeholder}</Label>
               <TextArea
@@ -1326,6 +1361,8 @@ export function TempChatRoom({ code }: { code: string }) {
               <input
                 ref={fileInputRef}
                 type="file"
+                aria-label={strings.attach}
+                disabled={isSending}
                 multiple
                 className="sr-only"
                 onChange={selectFiles}
@@ -1333,6 +1370,7 @@ export function TempChatRoom({ code }: { code: string }) {
               <Button
                 type="button"
                 variant="secondary"
+                isDisabled={isSending}
                 onPress={() => fileInputRef.current?.click()}
               >
                 <Paperclip className="size-4" />

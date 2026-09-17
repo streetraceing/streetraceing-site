@@ -50,6 +50,13 @@
       "when": 1789398837101,
       "tag": "0006_temp_chats",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789400000000,
+      "tag": "0007_temp_chat_upload_registry",
+      "breakpoints": true
     }
   ]
 }

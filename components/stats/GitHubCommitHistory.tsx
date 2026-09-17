@@ -188,7 +188,9 @@ function GitHubCommitHistoryContent({
                         {formatDateTime(
                           commit.committedAt,
                           getLocaleTag(locale),
-                        )}
+                          'UTC',
+                        )}{' '}
+                        UTC
                       </time>
                     </span>
                   </span>

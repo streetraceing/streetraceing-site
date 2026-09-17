@@ -15,12 +15,17 @@ export function UrlCodecTool() {
   const { copy } = useLocale();
   const strings = copy.tools.urlCodec;
   const [source, setSource] = useState('');
-  const [output, setOutput] = useState('');
+  const [output, setOutput] = useState<string>();
   const [error, setError] = useState<string>();
 
   function encodeValue() {
-    setOutput(encodeURIComponent(source));
-    setError(undefined);
+    try {
+      setOutput(encodeURIComponent(source));
+      setError(undefined);
+    } catch {
+      setOutput(undefined);
+      setError(strings.invalidEncode);
+    }
   }
 
   function decodeValue() {
@@ -28,7 +33,7 @@ export function UrlCodecTool() {
       setOutput(decodeURIComponent(source));
       setError(undefined);
     } catch {
-      setOutput('');
+      setOutput(undefined);
       setError(strings.invalidDecode);
     }
   }
@@ -45,7 +50,11 @@ export function UrlCodecTool() {
           fullWidth
           name="url-codec"
           value={source}
-          onChange={setSource}
+          onChange={(value) => {
+            setSource(value);
+            setOutput(undefined);
+            setError(undefined);
+          }}
         >
           <Label>{strings.label}</Label>
           <TextArea
@@ -71,7 +80,7 @@ export function UrlCodecTool() {
             variant="tertiary"
             onPress={() => {
               setSource(urlExample);
-              setOutput('');
+              setOutput(undefined);
               setError(undefined);
             }}
           >
@@ -83,7 +92,7 @@ export function UrlCodecTool() {
 
       {error ? <ErrorAlert title={strings.errorTitle} message={error} /> : null}
 
-      {output && (
+      {output !== undefined && (
         <ToolOutput content={output} label={strings.output} format="url" />
       )}
     </div>

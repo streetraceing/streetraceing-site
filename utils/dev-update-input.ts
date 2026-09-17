@@ -1,4 +1,8 @@
-import { MAX_DEV_UPDATE_IMAGES, normalizeMediaUrls } from '@/utils/media';
+import {
+  getMediaAssetIdentity,
+  MAX_DEV_UPDATE_IMAGES,
+  parseMediaUrls,
+} from '@/utils/media';
 import { isDevUpdateTopic, type DevUpdateTopic } from '@/utils/stats';
 
 export const MAX_DEV_UPDATE_CONTENT_LENGTH = 8_000;
@@ -28,16 +32,26 @@ export function parseDevUpdateInput(
   const title = typeof body.title === 'string' ? body.title.trim() : '';
   const content = typeof body.content === 'string' ? body.content.trim() : '';
   const topic = typeof body.topic === 'string' ? body.topic : '';
-  const imageUrls = normalizeMediaUrls(
+  const imageUrls = parseMediaUrls(
     body.imageUrls,
     MAX_DEV_UPDATE_IMAGES,
     cloudName,
   );
-  const uploadedImageUrls = normalizeMediaUrls(
-    body.uploadedImageUrls,
+  const uploaded = parseMediaUrls(
+    body.uploadedImageUrls === undefined ? [] : body.uploadedImageUrls,
     MAX_DEV_UPDATE_IMAGES,
     cloudName,
-  ).filter((url) => imageUrls.includes(url));
+  );
+  const imageIdentities = new Set(
+    imageUrls?.map((url) => getMediaAssetIdentity(url, cloudName)),
+  );
+  const uploadedImageUrls = (uploaded ?? []).filter((url) =>
+    imageIdentities.has(getMediaAssetIdentity(url, cloudName)),
+  );
+
+  if (!imageUrls || !uploaded) {
+    return { ok: false, reason: 'invalid', uploadedImageUrls: [] };
+  }
 
   if (
     !content ||

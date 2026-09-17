@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { getText } from '@/utils/i18n';
 import { developmentDirections } from '@/utils/stats';
 import { Card, Chip } from '@heroui/react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 const segmentToneClasses = {
   accent: 'stroke-accent',
@@ -37,6 +37,8 @@ const chartSegments = developmentDirections.map((direction, index) => ({
 
 export function SkillsBarChart() {
   const { copy, locale } = useLocale();
+  const descriptionId = useId();
+  const summaryId = useId();
   const [selectedDirectionId, setSelectedDirectionId] = useState<string>();
   const [previewDirectionId, setPreviewDirectionId] = useState<string>();
   const activeDirectionId = previewDirectionId ?? selectedDirectionId;
@@ -75,16 +77,31 @@ export function SkillsBarChart() {
         <Card.Title id="skills-chart-heading">
           {copy.stats.skillsChartTitle}
         </Card.Title>
-        <Card.Description>{copy.stats.skillsChartDescription}</Card.Description>
+        <Card.Description id={descriptionId}>
+          {copy.stats.skillsChartDescription}
+        </Card.Description>
       </Card.Header>
 
       <Card.Content className="grid gap-6 md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] md:items-center">
-        <div className="relative mx-auto aspect-square w-full max-w-64">
+        <div
+          className="relative mx-auto aspect-square w-full max-w-64"
+          role="img"
+          aria-label={copy.stats.skillsChartTitle}
+          aria-describedby={`${descriptionId} ${summaryId}`}
+        >
+          <p id={summaryId} className="sr-only">
+            {developmentDirections
+              .map(
+                (direction) =>
+                  `${getText(direction.label, locale)}: ${direction.value}%`,
+              )
+              .join('; ')}
+          </p>
           <svg
             viewBox="0 0 128 128"
             className="size-full"
-            role="group"
-            aria-label={copy.stats.skillsChartDescription}
+            aria-hidden="true"
+            focusable="false"
           >
             <circle
               cx="64"
@@ -98,11 +115,9 @@ export function SkillsBarChart() {
             {chartSegments.map(({ direction, startOffset }) => {
               const visibleValue = Math.max(direction.value - 0.8, 0);
               const isActive = activeDirectionId === direction.id;
-              const isSelected = selectedDirectionId === direction.id;
               const isDimmed =
                 activeDirectionId !== undefined &&
                 activeDirectionId !== direction.id;
-              const label = getText(direction.label, locale);
 
               return (
                 <circle
@@ -117,32 +132,13 @@ export function SkillsBarChart() {
                   strokeDasharray={`${visibleValue} ${chartTotal - visibleValue}`}
                   strokeDashoffset={-startOffset}
                   transform="rotate(-90 64 64)"
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`${label}: ${direction.value}%`}
-                  aria-pressed={isSelected}
-                  className={`${segmentToneClasses[direction.color]} cursor-pointer transition-opacity duration-200 focus:outline-none ${
+                  className={`${segmentToneClasses[direction.color]} transition-opacity duration-200 motion-reduce:transition-none ${
                     isDimmed
                       ? 'opacity-25'
                       : isActive
                         ? 'opacity-100'
                         : 'opacity-90'
                   }`}
-                  onClick={() => toggleDirection(direction.id)}
-                  onPointerEnter={(event) =>
-                    showPointerPreview(direction.id, event.pointerType)
-                  }
-                  onPointerLeave={(event) =>
-                    hidePointerPreview(event.pointerType)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key !== 'Enter' && event.key !== ' ') {
-                      return;
-                    }
-
-                    event.preventDefault();
-                    toggleDirection(direction.id);
-                  }}
                 />
               );
             })}
@@ -169,6 +165,9 @@ export function SkillsBarChart() {
                 variant="tertiary"
                 aria-label={`${label}: ${direction.value}%`}
                 aria-pressed={isSelected}
+                aria-describedby={descriptionId}
+                onFocus={() => setPreviewDirectionId(direction.id)}
+                onBlur={() => setPreviewDirectionId(undefined)}
                 className={`h-auto min-w-0 justify-start rounded-xl border px-3 py-2 ${
                   isActive
                     ? 'border-default bg-default'

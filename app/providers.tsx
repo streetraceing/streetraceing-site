@@ -1,5 +1,6 @@
 'use client';
 
+import { I18nProvider } from '@react-aria/i18n';
 import { useRouter } from 'next/navigation';
 import {
   createContext,
@@ -13,6 +14,7 @@ import {
 
 import {
   defaultLocale,
+  getLocaleTag,
   LOCALE_COOKIE,
   translations,
   type Locale,
@@ -95,7 +97,14 @@ function applyTheme(theme: Theme) {
   root.dataset.theme = resolvedTheme;
   root.dataset.themePreference = theme;
   root.style.colorScheme = resolvedTheme;
-  root.style.backgroundColor = resolvedTheme === 'dark' ? '#09090b' : '#ffffff';
+  const themeColor = resolvedTheme === 'dark' ? '#09090b' : '#ffffff';
+  root.style.backgroundColor = themeColor;
+  document
+    .querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+    .forEach((meta) => {
+      meta.content = themeColor;
+      meta.removeAttribute('media');
+    });
 }
 
 async function requestAuthorSession(signal?: AbortSignal) {
@@ -319,9 +328,11 @@ export function Providers({
   return (
     <ThemeContext.Provider value={themeValue}>
       <LocaleContext.Provider value={localeValue}>
-        <AuthorSessionContext.Provider value={authorSessionValue}>
-          {children}
-        </AuthorSessionContext.Provider>
+        <I18nProvider locale={getLocaleTag(locale)}>
+          <AuthorSessionContext.Provider value={authorSessionValue}>
+            {children}
+          </AuthorSessionContext.Provider>
+        </I18nProvider>
       </LocaleContext.Provider>
     </ThemeContext.Provider>
   );

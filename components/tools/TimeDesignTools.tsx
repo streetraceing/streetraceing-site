@@ -1,7 +1,8 @@
 'use client';
 
 import { useLocale } from '@/app/providers';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonRipple } from '@/components/ui/Button';
+import { parseTimestampValue, type TimestampMode } from '@/utils/timestamp';
 import { getLocaleTag } from '@/utils/i18n';
 import {
   buildCronExpression,
@@ -29,35 +30,17 @@ import { ToolOutput } from './ToolOutput';
 type CronFrequency =
   'hourly' | 'daily' | 'weekdays' | 'weekends' | 'weekly' | 'monthly';
 
-function parseTimestampValue(value: string) {
-  const trimmed = value.trim();
-
-  if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) {
-    const numeric = Number(trimmed);
-
-    if (!Number.isFinite(numeric)) {
-      return undefined;
-    }
-
-    return new Date(
-      Math.abs(numeric) >= 100_000_000_000 ? numeric : numeric * 1000,
-    );
-  }
-
-  const parsed = new Date(trimmed);
-  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
-}
-
 export function TimestampConverterTool() {
   const { copy, locale } = useLocale();
   const strings = copy.tools.timestamp;
+  const [mode, setMode] = useState<TimestampMode>('seconds');
   const [source, setSource] = useState('');
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string>();
 
   function convert(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const date = parseTimestampValue(source);
+    const date = parseTimestampValue(source, mode);
 
     if (!date) {
       setOutput('');
@@ -70,7 +53,7 @@ export function TimestampConverterTool() {
       [
         `${strings.iso}: ${date.toISOString()}`,
         `${strings.local}: ${date.toLocaleString(getLocaleTag(locale))}`,
-        `${strings.unixSeconds}: ${Math.trunc(milliseconds / 1000)}`,
+        `${strings.unixSeconds}: ${Math.floor(milliseconds / 1000)}`,
         `${strings.unixMilliseconds}: ${milliseconds}`,
         `${strings.utc}: ${date.toUTCString()}`,
       ].join('\n'),
@@ -80,6 +63,7 @@ export function TimestampConverterTool() {
 
   function useNow() {
     const now = Date.now();
+    setMode('milliseconds');
     setSource(String(now));
     setOutput('');
     setError(undefined);
@@ -88,11 +72,51 @@ export function TimestampConverterTool() {
   return (
     <div className="flex flex-col gap-4">
       <Form className="flex flex-col gap-4" onSubmit={convert}>
+        <Select
+          value={mode}
+          variant="secondary"
+          onChange={(value) => {
+            if (
+              value === 'seconds' ||
+              value === 'milliseconds' ||
+              value === 'iso'
+            ) {
+              setMode(value);
+              setOutput('');
+              setError(undefined);
+            }
+          }}
+        >
+          <Label>{strings.mode}</Label>
+          <Select.Trigger>
+            <ButtonRipple />
+            <Select.Value />
+            <Select.Indicator />
+          </Select.Trigger>
+          <Select.Popover>
+            <ListBox>
+              {(['seconds', 'milliseconds', 'iso'] as const).map((value) => (
+                <ListBox.Item
+                  key={value}
+                  id={value}
+                  textValue={strings.modes[value]}
+                >
+                  {strings.modes[value]}
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              ))}
+            </ListBox>
+          </Select.Popover>
+        </Select>
         <TextField
           fullWidth
           name="timestamp"
           value={source}
-          onChange={setSource}
+          onChange={(value) => {
+            setSource(value);
+            setOutput('');
+            setError(undefined);
+          }}
         >
           <Label>{strings.label}</Label>
           <Input

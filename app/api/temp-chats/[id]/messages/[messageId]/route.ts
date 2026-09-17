@@ -7,12 +7,13 @@ import {
   readJsonObjectBody,
   requireDatabase,
 } from '@/lib/api-response';
-import { deleteCloudinaryPublicIds } from '@/lib/cloudinary-media';
-import { deleteR2Objects } from '@/lib/r2';
+import {
+  enqueueTempChatMessageUploads,
+  lockActiveTempChat,
+} from '@/lib/temp-chat-uploads';
 import {
   getActiveTempChatByCode,
   getTempChatBearerToken,
-  isTempChatResourceType,
   verifyTempChatMemberToken,
   TEMP_CHAT_CODE_PATTERN,
   TEMP_CHAT_MAX_MESSAGE_LENGTH,
@@ -173,39 +174,24 @@ export async function DELETE(request: Request, context: RouteContext) {
     return loaded.error;
   }
 
-  const { message } = loaded;
-  const cloudinaryEntries = message.attachments.flatMap((attachment) => {
-    if (
-      attachment.provider !== 'cloudinary' ||
-      !isTempChatResourceType(attachment.resourceType)
-    ) {
-      return [];
-    }
-
-    return [
-      { publicId: attachment.path, resourceType: attachment.resourceType },
-    ];
-  });
-  const r2Keys = message.attachments
-    .filter(
-      (attachment) => attachment.provider === 'r2' && Boolean(attachment.path),
-    )
-    .map((attachment) => attachment.path);
-
-  const [cloudinaryResult, r2Result] = await Promise.all([
-    cloudinaryEntries.length > 0
-      ? deleteCloudinaryPublicIds(cloudinaryEntries)
-      : Promise.resolve({ failed: 0 }),
-    r2Keys.length > 0
-      ? deleteR2Objects(r2Keys)
-      : Promise.resolve({ failed: 0 }),
-  ]);
-
-  if (cloudinaryResult.failed + r2Result.failed > 0) {
-    return noStoreJson({ error: strings.deleteFailed }, { status: 502 });
+  const { message, chat } = loaded;
+  try {
+    await db.transaction(async (tx) => {
+      await lockActiveTempChat(tx, chat.id);
+      const [current] = await tx
+        .select()
+        .from(tempChatMessages)
+        .where(eq(tempChatMessages.id, message.id))
+        .for('update');
+      if (!current) return;
+      await enqueueTempChatMessageUploads(tx, current);
+      await tx
+        .delete(tempChatMessages)
+        .where(eq(tempChatMessages.id, current.id));
+    });
+  } catch {
+    return noStoreJson({ error: strings.deleteFailed }, { status: 500 });
   }
-
-  await db.delete(tempChatMessages).where(eq(tempChatMessages.id, message.id));
 
   return noStoreJson({ deleted: true });
 }

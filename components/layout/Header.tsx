@@ -3,6 +3,7 @@
 import { Button, ButtonRipple } from '@/components/ui/Button';
 import { useAuthorSession, useLocale } from '@/app/providers';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useReducedMotion } from '@/components/hooks/useReducedMotion';
 import { Container } from '@/components/layout/Container';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { headerConfig, siteConfig } from '@/utils/config';
@@ -44,6 +45,29 @@ function isNavigationLinkActive(pathname: string, href: string) {
     : false;
 }
 
+function isPlainNavigation(event: MouseEvent<HTMLAnchorElement>) {
+  return !(
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey ||
+    (event.currentTarget.target && event.currentTarget.target !== '_self') ||
+    event.currentTarget.hasAttribute('download')
+  );
+}
+
+function focusDestination(target: HTMLElement) {
+  if (!target.hasAttribute('tabindex')) {
+    target.setAttribute('tabindex', '-1');
+    target.addEventListener('blur', () => target.removeAttribute('tabindex'), {
+      once: true,
+    });
+  }
+  target.focus({ preventScroll: true });
+}
+
 function AuthorMenu() {
   const { copy } = useLocale();
   const strings = copy.stats;
@@ -54,6 +78,8 @@ function AuthorMenu() {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string>();
   const [isLoginPending, setIsLoginPending] = useState(false);
+  const [isLogoutPending, setIsLogoutPending] = useState(false);
+  const [logoutError, setLogoutError] = useState<string>();
 
   const isConfigured = session?.configured ?? true;
   const isAuthenticated = session?.authenticated ?? false;
@@ -82,11 +108,23 @@ function AuthorMenu() {
   }
 
   async function logout() {
-    await logoutAuthor();
+    if (isLogoutPending) {
+      return;
+    }
+
+    setIsLogoutPending(true);
+    setLogoutError(undefined);
+    try {
+      setLogoutError(await logoutAuthor());
+    } catch {
+      setLogoutError(strings.errors.logout);
+    } finally {
+      setIsLogoutPending(false);
+    }
   }
 
   return (
-    <div>
+    <div className="relative">
       {isLoading ? (
         <button
           type="button"
@@ -101,11 +139,15 @@ function AuthorMenu() {
       ) : (
         <Dropdown isOpen={isMenuOpen} onOpenChange={setIsMenuOpen}>
           <Dropdown.Trigger
-            aria-label={actionLabel}
+            aria-label={
+              isLogoutPending ? copy.header.logoutPending : actionLabel
+            }
+            aria-busy={isLogoutPending}
+            isPending={isLogoutPending}
             type="button"
             className="button button--icon-only button--sm button--tertiary flex"
           >
-            <ButtonRipple />
+            <ButtonRipple disabled={isLogoutPending} />
             {isAuthenticated ? (
               <ShieldCheck className="size-4" />
             ) : (
@@ -115,7 +157,11 @@ function AuthorMenu() {
           <Dropdown.Popover placement="bottom end">
             <Dropdown.Menu
               onAction={(key) => {
-                if (key !== 'author-action' || !isConfigured) {
+                if (
+                  key !== 'author-action' ||
+                  !isConfigured ||
+                  isLogoutPending
+                ) {
                   return;
                 }
 
@@ -130,7 +176,7 @@ function AuthorMenu() {
             >
               <Dropdown.Item
                 id="author-action"
-                isDisabled={!isConfigured}
+                isDisabled={!isConfigured || isLogoutPending}
                 textValue={actionLabel}
                 variant={isAuthenticated ? 'danger' : 'default'}
               >
@@ -140,6 +186,39 @@ function AuthorMenu() {
           </Dropdown.Popover>
         </Dropdown>
       )}
+
+      <span
+        role="status"
+        className={
+          isLogoutPending
+            ? 'absolute right-0 top-full z-50 mt-2 whitespace-nowrap rounded-lg bg-surface px-3 py-2 text-sm shadow-lg'
+            : 'sr-only'
+        }
+      >
+        {isLogoutPending ? copy.header.logoutPending : ''}
+      </span>
+      {logoutError ? (
+        <Alert
+          role="alert"
+          status="danger"
+          className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] bg-surface shadow-lg"
+        >
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>{copy.header.logoutFailed}</Alert.Title>
+            <Alert.Description>{logoutError}</Alert.Description>
+          </Alert.Content>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="tertiary"
+            aria-label={copy.header.dismissError}
+            onPress={() => setLogoutError(undefined)}
+          >
+            <X className="size-4" />
+          </Button>
+        </Alert>
+      ) : null}
 
       <Modal>
         <Modal.Backdrop
@@ -211,9 +290,13 @@ export function Header() {
   const linkSlots = linkVariants();
   const { copy, locale } = useLocale();
   const pathname = usePathname();
+  const reducedMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const mobileMenuRef = useRef<HTMLElement>(null);
+  // Header instances are replaced across pages; keep the keyboard intent for
+  // the next home navigation without persisting anything in browser storage.
+  const pendingKeyboardDestinationRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     const desktopMediaQuery = window.matchMedia('(min-width: 1180px)');
@@ -255,8 +338,42 @@ export function Header() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [open]);
 
+  useEffect(() => {
+    if (pathname !== '/' || !pendingKeyboardDestinationRef.current) {
+      return;
+    }
+
+    const destination = pendingKeyboardDestinationRef.current;
+    const observer = new MutationObserver(focusPendingDestination);
+    function focusPendingDestination() {
+      if (pendingKeyboardDestinationRef.current !== destination) {
+        observer.disconnect();
+        return;
+      }
+      const target = document.getElementById(destination);
+      if (target) {
+        focusDestination(target);
+        pendingKeyboardDestinationRef.current = undefined;
+        observer.disconnect();
+      }
+    }
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    const frame = window.requestAnimationFrame(focusPendingDestination);
+    return () => {
+      observer.disconnect();
+      window.cancelAnimationFrame(frame);
+    };
+  }, [pathname]);
+
   function handleHomeNavigation(event: MouseEvent<HTMLAnchorElement>) {
+    if (!isPlainNavigation(event)) {
+      return;
+    }
+
     setOpen(false);
+    pendingKeyboardDestinationRef.current =
+      event.detail === 0 && pathname !== '/' ? 'main-content' : undefined;
 
     if (pathname !== '/') {
       return;
@@ -264,22 +381,42 @@ export function Header() {
 
     event.preventDefault();
     window.history.replaceState(window.history.state, '', '/');
-    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    const target = document.getElementById('main-content');
+    if (event.detail === 0 && target) {
+      focusDestination(target);
+    }
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: reducedMotion ? 'instant' : 'smooth',
+    });
   }
 
   function handleSectionNavigation(
     event: MouseEvent<HTMLAnchorElement>,
     href: string,
   ) {
-    setOpen(false);
+    if (!isPlainNavigation(event)) {
+      return;
+    }
 
-    if (pathname !== '/' || !href.startsWith('/#')) {
+    setOpen(false);
+    pendingKeyboardDestinationRef.current = undefined;
+
+    if (!href.startsWith('/#')) {
       return;
     }
 
     const hash = href.slice(href.indexOf('#'));
-    const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+    const destination = decodeURIComponent(hash.slice(1));
+    if (pathname !== '/') {
+      if (event.detail === 0) {
+        pendingKeyboardDestinationRef.current = destination;
+      }
+      return;
+    }
 
+    const target = document.getElementById(destination);
     if (!target) {
       return;
     }
@@ -290,11 +427,40 @@ export function Header() {
       window.history.pushState(window.history.state, '', `/${hash}`);
     }
 
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (event.detail === 0) {
+      focusDestination(target);
+    }
+    target.scrollIntoView({
+      behavior: reducedMotion ? 'instant' : 'smooth',
+      block: 'start',
+    });
+  }
+
+  function handleSkipNavigation(event: MouseEvent<HTMLAnchorElement>) {
+    if (!isPlainNavigation(event)) {
+      return;
+    }
+
+    const target = document.getElementById('main-content');
+    if (!target) {
+      return;
+    }
+
+    event.preventDefault();
+    setOpen(false);
+    focusDestination(target);
+    target.scrollIntoView({ behavior: 'instant', block: 'start' });
   }
 
   return (
     <div className="sticky top-0 z-50 sm:bg-background/75 backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)] bg-background">
+      <NextLink
+        href="#main-content"
+        onClick={handleSkipNavigation}
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-foreground focus:shadow-lg"
+      >
+        {copy.header.skipToContent}
+      </NextLink>
       <header className="relative z-20 border-b">
         <Container className="grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-4 min-[1180px]:grid-cols-[auto_minmax(0,1fr)_auto]">
           <NextLink

@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
 import { getLocaleTag } from '@/utils/i18n';
+import { uniqueTextLines } from '@/utils/toolkit';
 import {
   Chip,
   Description,
@@ -52,9 +53,7 @@ function applyOperation(
     case 'remove-empty-lines':
       return lines.filter((line) => line.trim()).join('\n');
     case 'unique-lines':
-      return [
-        ...new Set(lines.map((line) => line.trim()).filter(Boolean)),
-      ].join('\n');
+      return uniqueTextLines(value);
   }
 }
 
@@ -62,7 +61,7 @@ export function TextToolsTool() {
   const { copy, locale } = useLocale();
   const strings = copy.tools.text;
   const [source, setSource] = useState('');
-  const [output, setOutput] = useState('');
+  const [output, setOutput] = useState<string>();
   const collator = useMemo(
     () => new Intl.Collator(getLocaleTag(locale)),
     [locale],
@@ -88,7 +87,15 @@ export function TextToolsTool() {
         className="flex flex-col gap-4"
         onSubmit={(event) => event.preventDefault()}
       >
-        <TextField fullWidth name="text" value={source} onChange={setSource}>
+        <TextField
+          fullWidth
+          name="text"
+          value={source}
+          onChange={(value) => {
+            setSource(value);
+            setOutput(undefined);
+          }}
+        >
           <Label>{strings.label}</Label>
           <TextArea
             variant="secondary"
@@ -161,7 +168,7 @@ export function TextToolsTool() {
         </div>
       </Form>
 
-      {output && <ToolOutput content={output} format="plain" />}
+      {output !== undefined && <ToolOutput content={output} format="plain" />}
     </div>
   );
 }

@@ -1,38 +1,35 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
-
-import { lte, inArray } from 'drizzle-orm';
+import { lte } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { shortUrls, tempChatMessages, tempChats } from '@/db/schema';
+import { shortUrls } from '@/db/schema';
 import { noStoreJson, requireDatabase } from '@/lib/api-response';
-import { deleteCloudinaryPublicIds } from '@/lib/cloudinary-media';
-import { deleteR2Objects } from '@/lib/r2';
-import { isTempChatResourceType } from '@/lib/temp-chat';
 import { cleanupExpiredPendingMediaUploads } from '@/lib/pending-media-uploads';
+import {
+  cleanupExpiredTempChats,
+  cleanupTempChatUploads,
+} from '@/lib/temp-chat-uploads';
 import { getTinyUrlRetentionThreshold } from '@/lib/tiny-url';
 import { cleanupExpiredRateLimits } from '@/utils/rate-limit';
 
 export const runtime = 'nodejs';
-
 const MIN_CRON_SECRET_LENGTH = 32;
 
 function safeEqual(first: string, second: string) {
-  const firstHash = createHash('sha256').update(first).digest();
-  const secondHash = createHash('sha256').update(second).digest();
-
-  return timingSafeEqual(firstHash, secondHash);
+  return timingSafeEqual(
+    createHash('sha256').update(first).digest(),
+    createHash('sha256').update(second).digest(),
+  );
 }
 
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
-
   if (!cronSecret || cronSecret.length < MIN_CRON_SECRET_LENGTH) {
     return noStoreJson(
       { error: 'CRON_SECRET is not configured.' },
       { status: 503 },
     );
   }
-
   if (
     !safeEqual(
       request.headers.get('authorization') ?? '',
@@ -41,93 +38,36 @@ export async function GET(request: Request) {
   ) {
     return noStoreJson({ error: 'Unauthorized.' }, { status: 401 });
   }
-
-  const databaseGuard = requireDatabase('DATABASE_URL is not configured.');
-  if (databaseGuard) {
-    return databaseGuard;
-  }
-
-  try {
-    const expiredChats = await db
-      .select({ id: tempChats.id })
-      .from(tempChats)
-      .where(lte(tempChats.expiresAt, new Date()));
-    const expiredChatIds = expiredChats.map((chat) => chat.id);
-    const expiredChatKeys =
-      expiredChatIds.length > 0
-        ? await db
-            .select({ attachments: tempChatMessages.attachments })
-            .from(tempChatMessages)
-            .where(inArray(tempChatMessages.chatId, expiredChatIds))
-        : [];
-    const cloudinaryEntries = expiredChatKeys.flatMap(
-      ({ attachments: messageAttachments }) =>
-        messageAttachments.flatMap((attachment) => {
-          if (
-            attachment.provider !== 'cloudinary' ||
-            !isTempChatResourceType(attachment.resourceType)
-          ) {
-            return [];
-          }
-
-          return [
-            {
-              publicId: attachment.path,
-              resourceType: attachment.resourceType,
-            },
-          ];
-        }),
-    );
-    const r2Keys = expiredChatKeys.flatMap(
-      ({ attachments: messageAttachments }) =>
-        messageAttachments
-          .filter(
-            (attachment) =>
-              attachment.provider === 'r2' && Boolean(attachment.path),
-          )
-          .map((attachment) => attachment.path),
-    );
-    const chatFileResults = await Promise.all([
-      cloudinaryEntries.length > 0
-        ? deleteCloudinaryPublicIds(cloudinaryEntries)
-        : Promise.resolve({ failed: 0 }),
-      r2Keys.length > 0
-        ? deleteR2Objects(r2Keys)
-        : Promise.resolve({ failed: 0 }),
-    ]);
-    const chatFilesFailed =
-      chatFileResults[0].failed + chatFileResults[1].failed;
-    const deletedChatRows =
-      expiredChatIds.length > 0
-        ? await db
-            .delete(tempChats)
-            .where(lte(tempChats.expiresAt, new Date()))
-            .returning({ id: tempChats.id })
-        : [];
-
-    const deletedRows = await db
+  const guard = requireDatabase('DATABASE_URL is not configured.');
+  if (guard) return guard;
+  const cutoff = new Date();
+  // Each maintenance branch runs even if another provider/database operation fails.
+  const results = await Promise.allSettled([
+    db
       .delete(shortUrls)
-      .where(lte(shortUrls.createdAt, getTinyUrlRetentionThreshold()))
-      .returning({ id: shortUrls.id });
-    const [pendingMedia, expiredRateLimits] = await Promise.all([
-      cleanupExpiredPendingMediaUploads(),
-      cleanupExpiredRateLimits(),
-    ]);
-
-    return noStoreJson({
-      deleted: deletedRows.length,
-      pendingMedia,
-      expiredRateLimits,
-      tempChats: {
-        deleted: deletedChatRows.length,
-        filesFailed: chatFilesFailed,
-      },
-    });
-  } catch (error) {
-    console.error('Could not complete scheduled maintenance.', error);
-    return noStoreJson(
-      { error: 'Could not complete scheduled maintenance.' },
-      { status: 500 },
-    );
-  }
+      .where(lte(shortUrls.createdAt, getTinyUrlRetentionThreshold(cutoff)))
+      .returning({ id: shortUrls.id })
+      .then((rows) => ({ deleted: rows.length })),
+    cleanupExpiredPendingMediaUploads(),
+    cleanupExpiredRateLimits(),
+    cleanupExpiredTempChats(cutoff),
+    cleanupTempChatUploads(cutoff),
+  ]);
+  const names = [
+    'shortUrls',
+    'pendingMedia',
+    'expiredRateLimits',
+    'tempChats',
+    'tempChatUploads',
+  ];
+  const failed = results.some((result) => result.status === 'rejected');
+  return noStoreJson(
+    Object.fromEntries(
+      results.map((result, index) => [
+        names[index],
+        result.status === 'fulfilled' ? result.value : { failed: true },
+      ]),
+    ),
+    { status: failed ? 500 : 200 },
+  );
 }

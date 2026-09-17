@@ -21,6 +21,7 @@ import {
   TEMP_CHAT_MAX_FILE_BYTES,
   TEMP_CHAT_MAX_FILE_NAME_LENGTH,
 } from '@/lib/temp-chat';
+import { registerTempChatUpload } from '@/lib/temp-chat-uploads';
 import { getRequestLocale, translations } from '@/utils/i18n';
 import { checkDurableRateLimit } from '@/utils/rate-limit';
 
@@ -91,18 +92,19 @@ export async function POST(request: Request, context: RouteContext) {
     return noStoreJson({ error: strings.fileTooLarge }, { status: 400 });
   }
 
-  const fileName = sanitizeTempChatFileName(
-    typeof bodyResult.value.name === 'string' ? bodyResult.value.name : '',
-  );
-
-  if (fileName.length > TEMP_CHAT_MAX_FILE_NAME_LENGTH) {
+  if (
+    typeof bodyResult.value.name !== 'string' ||
+    !bodyResult.value.name.trim() ||
+    bodyResult.value.name.length > TEMP_CHAT_MAX_FILE_NAME_LENGTH ||
+    typeof bodyResult.value.type !== 'string' ||
+    bodyResult.value.type.length > 128 ||
+    /[\u0000-\u001f\u007f]/.test(bodyResult.value.type)
+  ) {
     return noStoreJson({ error: strings.uploadFailed }, { status: 400 });
   }
 
-  const fileType =
-    typeof bodyResult.value.type === 'string' && bodyResult.value.type
-      ? bodyResult.value.type.slice(0, 128)
-      : 'application/octet-stream';
+  const fileName = sanitizeTempChatFileName(bodyResult.value.name);
+  const fileType = bodyResult.value.type || 'application/octet-stream';
   const driver = getTempChatStorageDriver();
   const fileId = createTempChatFileId();
   const filePath = buildTempChatPublicId(chat.id, fileId);
@@ -120,9 +122,18 @@ export async function POST(request: Request, context: RouteContext) {
     const contentDisposition = buildTempChatContentDisposition(fileName);
 
     try {
+      await registerTempChatUpload({
+        chatId: chat.id,
+        memberId: member.memberId,
+        provider: driver,
+        path: filePath,
+        name: fileName,
+        type: fileType,
+        size: fileSize,
+      });
       return noStoreJson({
         provider: 'r2',
-        key: filePath,
+        path: filePath,
         uploadUrl: createR2PresignedPutUrl(filePath, {
           expiresIn: UPLOAD_URL_EXPIRES_IN,
           contentDisposition,
@@ -145,15 +156,29 @@ export async function POST(request: Request, context: RouteContext) {
     return noStoreJson({ error: strings.storageUnavailable }, { status: 503 });
   }
 
+  try {
+    await registerTempChatUpload({
+      chatId: chat.id,
+      memberId: member.memberId,
+      provider: driver,
+      path: filePath,
+      name: fileName,
+      type: fileType,
+      size: fileSize,
+    });
+  } catch {
+    return noStoreJson({ error: strings.uploadFailed }, { status: 500 });
+  }
   const timestamp = Math.floor(Date.now() / 1_000);
 
   return noStoreJson({
     provider: 'cloudinary',
     apiKey: storageConfig.apiKey,
     cloudName: storageConfig.cloudName,
-    publicId: filePath,
+    path: filePath,
+    overwrite: false,
     signature: createCloudinarySignature(
-      { public_id: filePath, timestamp },
+      { public_id: filePath, timestamp, overwrite: false },
       storageConfig.apiSecret,
     ),
     timestamp,

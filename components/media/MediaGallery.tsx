@@ -23,6 +23,7 @@ import {
 import Tilt from 'react-parallax-tilt';
 
 import { useLocale } from '@/app/providers';
+import { useReducedMotion } from '@/components/hooks/useReducedMotion';
 import {
   getCloudinaryDownloadUrl,
   getCloudinaryImageInfoUrl,
@@ -116,6 +117,7 @@ export function MediaGallery({
   initialIndex = 0,
 }: MediaGalleryProps) {
   const { copy, locale } = useLocale();
+  const reducedMotion = useReducedMotion();
   const strings = copy.mediaGallery;
   const [activeIndex, setActiveIndex] = useState(() =>
     normalizeIndex(initialIndex, urls.length),
@@ -460,7 +462,7 @@ export function MediaGallery({
 
     carousel.scrollBy({
       left: direction * Math.max(carousel.clientWidth * 0.75, 160),
-      behavior: 'smooth',
+      behavior: reducedMotion ? 'instant' : 'smooth',
     });
   }
 
@@ -510,7 +512,7 @@ export function MediaGallery({
 
         <div
           ref={carouselRef}
-          className={`flex snap-x snap-mandatory touch-pan-x gap-3 overflow-x-auto overscroll-x-contain py-2 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          className={`flex snap-x snap-mandatory touch-pan-x gap-3 overflow-x-auto overscroll-x-contain py-2 motion-safe:scroll-smooth motion-reduce:scroll-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
             canNavigate ? 'px-10' : 'px-1'
           }`}
           role="list"
@@ -523,16 +525,17 @@ export function MediaGallery({
               role="listitem"
             >
               <Tilt
-                className="w-full"
+                className="w-full motion-reduce:transform-none!"
+                tiltEnable={!reducedMotion}
                 tiltMaxAngleX={8}
                 tiltMaxAngleY={8}
-                scale={1.035}
+                scale={reducedMotion ? 1 : 1.035}
                 perspective={900}
-                transitionSpeed={350}
+                transitionSpeed={reducedMotion ? 0 : 350}
               >
                 <button
                   type="button"
-                  className="group relative block aspect-square w-full overflow-hidden rounded-xl border bg-default-soft text-left shadow-sm"
+                  className="group relative block aspect-square w-full overflow-hidden rounded-xl border bg-default-soft text-left shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
                   aria-label={strings.openImage.replace(
                     '{index}',
                     String(index + 1),
@@ -549,7 +552,7 @@ export function MediaGallery({
                     ].join(', ')}
                     sizes="(min-width: 1024px) 9rem, (min-width: 640px) 8rem, 7rem"
                     alt={getAlt(index)}
-                    className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="size-full object-cover motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-105"
                     loading="lazy"
                     decoding="async"
                   />
@@ -589,9 +592,9 @@ export function MediaGallery({
           onOpenChange={handleViewerOpenChange}
         >
           <Modal.Container size="cover">
-            <Modal.Dialog className="flex max-h-[calc(100dvh-2rem)] flex-col overflow-hidden">
+            <Modal.Dialog className="flex h-[calc(100dvh-2rem)] min-h-0 max-h-[calc(100dvh-2rem)] flex-col overflow-hidden">
               <Modal.CloseTrigger />
-              <Modal.Header className="border-b">
+              <Modal.Header className="shrink-0 border-b">
                 <div className="flex min-w-0 flex-col">
                   <Modal.Heading>{strings.viewerTitle}</Modal.Heading>
                   <span className="text-sm text-muted">
@@ -604,7 +607,7 @@ export function MediaGallery({
 
               <Modal.Body className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
                 <div
-                  className={`relative flex min-h-80 flex-1 items-center justify-center overflow-hidden bg-surface-secondary ${
+                  className={`relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-surface-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${
                     zoom > MIN_ZOOM
                       ? 'cursor-grab touch-none active:cursor-grabbing'
                       : 'cursor-zoom-in touch-pan-y'
@@ -625,14 +628,15 @@ export function MediaGallery({
                   <img
                     src={currentUrl}
                     alt={getAlt(currentIndex)}
-                    className="max-h-full max-w-full select-none object-contain will-change-transform"
+                    className="absolute inset-0 size-full select-none object-contain motion-safe:will-change-transform"
                     draggable={false}
                     decoding="async"
                     style={{
                       transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
-                      transition: isDragging
-                        ? 'none'
-                        : 'transform 160ms ease-out',
+                      transition:
+                        isDragging || reducedMotion
+                          ? 'none'
+                          : 'transform 160ms ease-out',
                     }}
                     onLoad={(event) =>
                       rememberNaturalSize(currentUrl, event.currentTarget)
@@ -666,7 +670,7 @@ export function MediaGallery({
                 </div>
               </Modal.Body>
 
-              <Modal.Footer className="flex-col items-stretch gap-3 border-t sm:flex-row sm:items-center sm:justify-between">
+              <Modal.Footer className="shrink-0 flex-col items-stretch gap-3 border-t sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 flex-col gap-1" aria-live="polite">
                   <span className="text-sm font-medium">
                     {strings.originalQuality}

@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/Button';
 import { useLocale } from '@/app/providers';
+import { formatLosslessJson } from '@/utils/lossless-json';
 import {
   Description,
   FieldError,
@@ -28,14 +29,13 @@ export function JsonViewerTool() {
 
   function transformJson(indent: number) {
     try {
-      const parsed = JSON.parse(source);
-      setOutput(JSON.stringify(parsed, null, indent));
+      setOutput(formatLosslessJson(source, indent));
       setError(undefined);
     } catch (caughtError) {
       setOutput('');
       setError(
-        caughtError instanceof Error
-          ? strings.invalid.replace('{message}', caughtError.message)
+        caughtError instanceof RangeError
+          ? strings.limit
           : strings.invalidGeneric,
       );
     }
@@ -54,7 +54,11 @@ export function JsonViewerTool() {
           fullWidth
           name="json"
           value={source}
-          onChange={setSource}
+          onChange={(value) => {
+            setSource(value);
+            setOutput('');
+            setError(undefined);
+          }}
           validate={(value) => (value.trim() ? null : strings.required)}
         >
           <Label>{strings.label}</Label>

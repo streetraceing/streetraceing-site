@@ -20,6 +20,7 @@ export function LanguageSwitcher({ fullWidth = false }: LanguageSwitcherProps) {
     >
       <Button
         aria-label={copy.language.russian}
+        aria-pressed={locale === 'ru'}
         variant={locale === 'ru' ? 'primary' : 'tertiary'}
         onPress={() => setLocale('ru')}
       >
@@ -32,6 +33,7 @@ export function LanguageSwitcher({ fullWidth = false }: LanguageSwitcherProps) {
       </Button>
       <Button
         aria-label={copy.language.english}
+        aria-pressed={locale === 'en'}
         variant={locale === 'en' ? 'primary' : 'tertiary'}
         onPress={() => setLocale('en')}
       >

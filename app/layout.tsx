@@ -2,8 +2,10 @@ import './globals.css';
 
 import { geistMono, geistSans, petitFormal } from '@/app/fonts';
 import { Providers } from '@/app/providers';
+import { PrivacyAnalytics } from '@/components/PrivacyAnalytics';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { isAdmin, isAuthConfigured } from '@/utils/auth';
+import { mainPageConfig } from '@/utils/config';
 import {
   getLocale,
   getLocaleFromAcceptLanguage,
@@ -11,8 +13,6 @@ import {
 } from '@/utils/i18n';
 import { createRootMetadata, createWebsiteJsonLd } from '@/utils/seo';
 import { getTheme, THEME_COOKIE, THEME_STORAGE_KEY } from '@/utils/theme';
-import { Analytics } from '@vercel/analytics/next';
-import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
 import { cookies, headers } from 'next/headers';
 
@@ -46,8 +46,12 @@ const themeBootstrapScript = `
       root.dataset.theme = resolvedTheme;
       root.dataset.themePreference = preference;
       root.style.colorScheme = resolvedTheme;
-      root.style.backgroundColor =
-        resolvedTheme === 'dark' ? '#09090b' : '#ffffff';
+      const themeColor = resolvedTheme === 'dark' ? '#09090b' : '#ffffff';
+      root.style.backgroundColor = themeColor;
+      document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+        meta.content = themeColor;
+        meta.removeAttribute('media');
+      });
       document.cookie = '${THEME_COOKIE}=' + preference + '; path=/; max-age=31536000; samesite=lax';
     } catch {}
   })();
@@ -78,15 +82,25 @@ const speedInsightsSampleRate = Math.min(
   ),
 );
 
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  colorScheme: 'light dark',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#09090b' },
-  ],
-};
+export async function generateViewport(): Promise<Viewport> {
+  const cookieStore = await cookies();
+  const theme = getTheme(cookieStore.get(THEME_COOKIE)?.value);
+
+  return {
+    width: 'device-width',
+    initialScale: 1,
+    colorScheme: 'light dark',
+    themeColor:
+      theme === 'system'
+        ? [
+            { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+            { media: '(prefers-color-scheme: dark)', color: '#09090b' },
+          ]
+        : theme === 'dark'
+          ? '#09090b'
+          : '#ffffff',
+  };
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
@@ -153,12 +167,22 @@ export default async function RootLayout({
         >
           {children}
         </Providers>
-        {process.env.NODE_ENV === 'production' && isVercelAnalyticsEnabled && (
-          <Analytics />
-        )}
         {process.env.NODE_ENV === 'production' &&
-          speedInsightsSampleRate > 0 && (
-            <SpeedInsights sampleRate={speedInsightsSampleRate} />
+          (isVercelAnalyticsEnabled || speedInsightsSampleRate > 0) && (
+            <PrivacyAnalytics
+              analyticsEnabled={isVercelAnalyticsEnabled}
+              speedInsightsSampleRate={speedInsightsSampleRate}
+              publicPaths={[
+                '/',
+                '/tools',
+                ...mainPageConfig.projects.map(
+                  ({ slug }) => `/project/${slug}`,
+                ),
+                ...mainPageConfig.tools
+                  .filter(({ component }) => Boolean(component))
+                  .map(({ slug }) => `/tool/${slug}`),
+              ]}
+            />
           )}
       </body>
     </html>

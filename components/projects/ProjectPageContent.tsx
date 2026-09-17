@@ -73,7 +73,7 @@ export function ProjectPageContent({
             <ProjectDetails project={project} sectionHeadingLevel={2} />
           </Card.Content>
           <Card.Footer>
-            <ProjectActions project={project} />
+            <ProjectActions project={project} showProjectPageLink={false} />
           </Card.Footer>
         </Card>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useLocale } from '@/app/providers';
+import { useReducedMotion } from '@/components/hooks/useReducedMotion';
 import { Avatar, Modal } from '@heroui/react';
 import Link from 'next/link';
 import { type KeyboardEvent, useState } from 'react';
@@ -9,6 +10,7 @@ import Tilt from 'react-parallax-tilt';
 
 export function ProfileAvatar() {
   const { copy } = useLocale();
+  const reducedMotion = useReducedMotion();
   const [isOpen, setIsOpen] = useState(false);
 
   function openFromKeyboard(event: KeyboardEvent<HTMLAnchorElement>) {
@@ -19,6 +21,13 @@ export function ProfileAvatar() {
     event.preventDefault();
     setIsOpen(true);
   }
+
+  const avatar = (
+    <Avatar className="h-48 w-48 shadow-2xl dark:shadow-muted/25">
+      <Avatar.Image alt="streetraceing" src="/images/streetraceing.jpeg" />
+      <Avatar.Fallback>ST</Avatar.Fallback>
+    </Avatar>
+  );
 
   return (
     <>
@@ -33,21 +42,19 @@ export function ProfileAvatar() {
         }}
         onKeyDown={openFromKeyboard}
       >
-        <Tilt
-          tiltMaxAngleX={10}
-          tiltMaxAngleY={10}
-          tiltReverse
-          scale={1.05}
-          perspective={750}
-        >
-          <Avatar className="h-48 w-48 shadow-2xl dark:shadow-muted/25">
-            <Avatar.Image
-              alt="streetraceing"
-              src="/images/streetraceing.jpeg"
-            />
-            <Avatar.Fallback>ST</Avatar.Fallback>
-          </Avatar>
-        </Tilt>
+        {reducedMotion ? (
+          avatar
+        ) : (
+          <Tilt
+            tiltMaxAngleX={10}
+            tiltMaxAngleY={10}
+            tiltReverse
+            scale={1.05}
+            perspective={750}
+          >
+            {avatar}
+          </Tilt>
+        )}
       </Link>
 
       <Modal>

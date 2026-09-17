@@ -8,16 +8,17 @@ import {
   requireAdminApi,
   requireDatabase,
 } from '@/lib/api-response';
-import { deleteCloudinaryMedia } from '@/lib/cloudinary-media';
 import {
   confirmPendingMediaUploads,
   discardPendingMediaUploads,
+  registerRemovedMediaUploads,
 } from '@/lib/pending-media-uploads';
 import {
   MAX_DEV_UPDATE_REQUEST_BYTES,
   parseDevUpdateInput,
 } from '@/utils/dev-update-input';
 import { getRequestLocale, translations } from '@/utils/i18n';
+import { getRemovedMediaUrls } from '@/utils/media';
 
 export const runtime = 'nodejs';
 
@@ -88,27 +89,36 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   try {
-    const [previousUpdate] = await db
-      .select({ imageUrls: devUpdates.imageUrls })
-      .from(devUpdates)
-      .where(eq(devUpdates.id, id))
-      .limit(1);
+    const update = await db.transaction(async (tx) => {
+      const [previousUpdate] = await tx
+        .select({ imageUrls: devUpdates.imageUrls })
+        .from(devUpdates)
+        .where(eq(devUpdates.id, id))
+        .for('update');
+      if (!previousUpdate) {
+        return undefined;
+      }
 
-    const [update] = await db
-      .update(devUpdates)
-      .set({ title: title || null, content, topic, imageUrls })
-      .where(eq(devUpdates.id, id))
-      .returning();
+      await registerRemovedMediaUploads(
+        getRemovedMediaUrls(
+          previousUpdate.imageUrls,
+          imageUrls,
+          process.env.CLOUDINARY_CLOUD_NAME,
+        ),
+        tx,
+      );
+      const [stored] = await tx
+        .update(devUpdates)
+        .set({ title: title || null, content, topic, imageUrls })
+        .where(eq(devUpdates.id, id))
+        .returning();
+      return stored;
+    });
 
     if (!update) {
       await discardPendingMediaUploads(uploadedImageUrls);
       return noStoreJson({ error: strings.notFound }, { status: 404 });
     }
-
-    const removedUrls = (previousUpdate?.imageUrls ?? []).filter(
-      (url) => !imageUrls.includes(url),
-    );
-    await deleteCloudinaryMedia(removedUrls);
 
     try {
       await confirmPendingMediaUploads(uploadedImageUrls);
@@ -143,16 +153,27 @@ export async function DELETE(request: Request, context: RouteContext) {
   }
 
   try {
-    const [deletedUpdate] = await db
-      .delete(devUpdates)
-      .where(eq(devUpdates.id, id))
-      .returning({ id: devUpdates.id, imageUrls: devUpdates.imageUrls });
+    const deletedUpdate = await db.transaction(async (tx) => {
+      const [previousUpdate] = await tx
+        .select({ imageUrls: devUpdates.imageUrls })
+        .from(devUpdates)
+        .where(eq(devUpdates.id, id))
+        .for('update');
+      if (!previousUpdate) {
+        return undefined;
+      }
+
+      await registerRemovedMediaUploads(previousUpdate.imageUrls, tx);
+      const [deleted] = await tx
+        .delete(devUpdates)
+        .where(eq(devUpdates.id, id))
+        .returning({ id: devUpdates.id });
+      return deleted;
+    });
 
     if (!deletedUpdate) {
       return noStoreJson({ error: strings.notFound }, { status: 404 });
     }
-
-    await deleteCloudinaryMedia(deletedUpdate.imageUrls);
 
     return noStoreJson({ id: deletedUpdate.id });
   } catch {

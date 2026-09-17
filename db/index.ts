@@ -16,9 +16,8 @@ function readPositiveInteger(value: string | undefined, fallback: number) {
   return Number.isSafeInteger(parsed) ? parsed : fallback;
 }
 
-const pool =
-  globalForDatabase.postgresPool ??
-  new Pool({
+function createPool() {
+  const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     max: readPositiveInteger(process.env.DATABASE_POOL_MAX, 5),
     idleTimeoutMillis: readPositiveInteger(
@@ -38,6 +37,14 @@ const pool =
       15_000,
     ),
   });
+
+  pool.on('error', () => {
+    console.error('PostgreSQL pool encountered an idle-client error.');
+  });
+  return pool;
+}
+
+const pool = globalForDatabase.postgresPool ?? createPool();
 
 globalForDatabase.postgresPool = pool;
 

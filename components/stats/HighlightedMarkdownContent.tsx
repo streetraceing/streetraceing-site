@@ -3,14 +3,14 @@
 
 import { Typography } from '@heroui/react';
 import Link from 'next/link';
-import type { MouseEvent } from 'react';
+import { memo, type MouseEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 
 import { isExternalHttpHref, normalizeInternalAnchorHref } from '@/utils/links';
+import { isDocumentationLinkInScope } from '@/utils/project-documentation-scope';
 import {
   createMarkdownHeadingId,
-  isMarkdownDocumentHref,
   remarkGfmTables,
   remarkHeadingIds,
   remarkSafeHtml,
@@ -31,6 +31,7 @@ function getTableTextAlign(align: string | undefined) {
 
 function isPlainPrimaryClick(event: MouseEvent<HTMLAnchorElement>) {
   return (
+    !event.defaultPrevented &&
     event.button === 0 &&
     !event.altKey &&
     !event.ctrlKey &&
@@ -39,14 +40,16 @@ function isPlainPrimaryClick(event: MouseEvent<HTMLAnchorElement>) {
   );
 }
 
-export default function HighlightedMarkdownContent({
+function HighlightedMarkdownContent({
   content,
   baseUrl,
+  documentationRootUrl,
   headingIdPrefix,
   onDocumentNavigate,
 }: {
   content: string;
   baseUrl?: string;
+  documentationRootUrl?: string;
   headingIdPrefix?: string;
   onDocumentNavigate?: (url: string) => void;
 }) {
@@ -110,7 +113,10 @@ export default function HighlightedMarkdownContent({
             if (
               baseUrl &&
               onDocumentNavigate &&
-              isMarkdownDocumentHref(resolvedHref)
+              isDocumentationLinkInScope(
+                documentationRootUrl ?? baseUrl,
+                resolvedHref,
+              )
             ) {
               return (
                 <a
@@ -202,3 +208,5 @@ export default function HighlightedMarkdownContent({
     </Typography.Prose>
   );
 }
+
+export default memo(HighlightedMarkdownContent);
