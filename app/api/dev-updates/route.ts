@@ -17,13 +17,27 @@ import {
 } from '@/utils/dev-update-input';
 import { getRequestLocale, translations } from '@/utils/i18n';
 import { parsePositiveInteger } from '@/utils/numbers';
+import { checkDurableRateLimit, getClientAddress } from '@/utils/rate-limit';
 import { isDevUpdateSort, isDevUpdateTopic } from '@/utils/stats';
 
 export const runtime = 'nodejs';
 
+const FEED_RATE_LIMIT = 60;
+const FEED_RATE_WINDOW_MS = 60 * 1_000;
+
 export async function GET(request: Request) {
   const locale = getRequestLocale(request);
   const strings = translations[locale].api.devNotes;
+
+  const rateLimit = await checkDurableRateLimit({
+    key: `dev-updates:read:${getClientAddress(request)}`,
+    limit: FEED_RATE_LIMIT,
+    windowMs: FEED_RATE_WINDOW_MS,
+  });
+
+  if (!rateLimit.allowed) {
+    return noStoreJson({ error: strings.loadFailed }, { status: 429 });
+  }
 
   const databaseGuard = requireDatabase(strings.databaseMissing);
   if (databaseGuard) {

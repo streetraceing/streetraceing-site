@@ -23,8 +23,8 @@ import { checkDurableRateLimit, getClientAddress } from '@/utils/rate-limit';
 
 export const runtime = 'nodejs';
 
-const EDIT_RATE_LIMIT = 30;
-const EDIT_RATE_WINDOW_MS = 10 * 60 * 1_000;
+const MESSAGE_MUTATION_RATE_LIMIT = 30;
+const MESSAGE_MUTATION_RATE_WINDOW_MS = 10 * 60 * 1_000;
 const MAX_EDIT_BODY_BYTES = 96 * 1_024;
 const MESSAGE_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -101,13 +101,19 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const rateLimit = await checkDurableRateLimit({
-    key: `temp-chat:edit:${getClientAddress(request)}`,
-    limit: EDIT_RATE_LIMIT,
-    windowMs: EDIT_RATE_WINDOW_MS,
+    key: `temp-chat:message-mutate:${getClientAddress(request)}`,
+    limit: MESSAGE_MUTATION_RATE_LIMIT,
+    windowMs: MESSAGE_MUTATION_RATE_WINDOW_MS,
   });
 
   if (!rateLimit.allowed) {
     return noStoreJson({ error: strings.sendFailed }, { status: 429 });
+  }
+
+  const loaded = await loadOwnMessage(request, id, messageId, strings);
+
+  if ('error' in loaded) {
+    return loaded.error;
   }
 
   const bodyResult = await readJsonObjectBody(request, MAX_EDIT_BODY_BYTES, {
@@ -125,12 +131,6 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   if (!content.trim() || content.length > TEMP_CHAT_MAX_MESSAGE_LENGTH) {
     return noStoreJson({ error: strings.invalidMessage }, { status: 400 });
-  }
-
-  const loaded = await loadOwnMessage(request, id, messageId, strings);
-
-  if ('error' in loaded) {
-    return loaded.error;
   }
 
   const { message } = loaded;
@@ -166,6 +166,16 @@ export async function DELETE(request: Request, context: RouteContext) {
   const databaseGuard = requireDatabase(strings.deleteFailed);
   if (databaseGuard) {
     return databaseGuard;
+  }
+
+  const rateLimit = await checkDurableRateLimit({
+    key: `temp-chat:message-mutate:${getClientAddress(request)}`,
+    limit: MESSAGE_MUTATION_RATE_LIMIT,
+    windowMs: MESSAGE_MUTATION_RATE_WINDOW_MS,
+  });
+
+  if (!rateLimit.allowed) {
+    return noStoreJson({ error: strings.deleteFailed }, { status: 429 });
   }
 
   const loaded = await loadOwnMessage(request, id, messageId, strings);

@@ -297,6 +297,8 @@ function getTrustedProxyHeaderName() {
   return headerName && /^[a-z0-9-]+$/.test(headerName) ? headerName : undefined;
 }
 
+let hasWarnedAboutUnavailableClientIp = false;
+
 export function getClientAddress(request: Request) {
   const trustedProxyHeader = getTrustedProxyHeaderName();
   const headerValue = process.env.VERCEL
@@ -305,7 +307,18 @@ export function getClientAddress(request: Request) {
       ? request.headers.get(trustedProxyHeader)
       : undefined;
 
-  return normalizeIpAddress(headerValue ?? undefined) ?? 'unknown';
+  const address = normalizeIpAddress(headerValue ?? undefined);
+
+  // Without a trusted header every client collapses into one "unknown"
+  // bucket, so per-IP limits become global and lock out all visitors.
+  if (!address && !process.env.VERCEL && !hasWarnedAboutUnavailableClientIp) {
+    hasWarnedAboutUnavailableClientIp = true;
+    console.warn(
+      'Client IP is unavailable, so all visitors share one rate limit bucket. Behind a reverse proxy set TRUSTED_PROXY_IP_HEADER to the header your proxy overwrites with the client IP.',
+    );
+  }
+
+  return address ?? 'unknown';
 }
 
 export function getRateLimitHeaders(result: RateLimitResult) {

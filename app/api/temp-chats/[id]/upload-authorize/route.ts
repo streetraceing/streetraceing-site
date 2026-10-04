@@ -23,12 +23,14 @@ import {
 } from '@/lib/temp-chat';
 import { registerTempChatUpload } from '@/lib/temp-chat-uploads';
 import { getRequestLocale, translations } from '@/utils/i18n';
-import { checkDurableRateLimit } from '@/utils/rate-limit';
+import { checkDurableRateLimit, getClientAddress } from '@/utils/rate-limit';
 
 export const runtime = 'nodejs';
 
 const UPLOAD_RATE_LIMIT = 10;
 const UPLOAD_RATE_WINDOW_MS = 15 * 60 * 1_000;
+const UPLOAD_IP_RATE_LIMIT = 60;
+const UPLOAD_IP_WINDOW_MS = 10 * 60 * 1_000;
 const UPLOAD_URL_EXPIRES_IN = 5 * 60;
 const MAX_AUTHORIZE_BODY_BYTES = 2 * 1_024;
 
@@ -44,6 +46,16 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const strings = translations[getRequestLocale(request)].tempChat;
+  const ipRateLimit = await checkDurableRateLimit({
+    key: `temp-chat:upload-ip:${getClientAddress(request)}`,
+    limit: UPLOAD_IP_RATE_LIMIT,
+    windowMs: UPLOAD_IP_WINDOW_MS,
+  });
+
+  if (!ipRateLimit.allowed) {
+    return noStoreJson({ error: strings.uploadFailed }, { status: 429 });
+  }
+
   const databaseGuard = requireDatabase(strings.uploadFailed);
   if (databaseGuard) {
     return databaseGuard;

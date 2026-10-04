@@ -21,6 +21,8 @@ type RouteContext = {
 
 const DELETE_RATE_LIMIT = 10;
 const DELETE_RATE_WINDOW_MS = 10 * 60 * 1_000;
+const ROOM_INFO_RATE_LIMIT = 60;
+const ROOM_INFO_RATE_WINDOW_MS = 60 * 1_000;
 
 export async function GET(request: Request, context: RouteContext) {
   const { id } = await context.params;
@@ -30,6 +32,16 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   const strings = translations[getRequestLocale(request)].tempChat;
+  const ipRateLimit = await checkDurableRateLimit({
+    key: `temp-chat:info:${getClientAddress(request)}`,
+    limit: ROOM_INFO_RATE_LIMIT,
+    windowMs: ROOM_INFO_RATE_WINDOW_MS,
+  });
+
+  if (!ipRateLimit.allowed) {
+    return noStoreJson({ error: strings.loadFailed }, { status: 429 });
+  }
+
   const databaseGuard = requireDatabase(strings.roomNotFound);
   if (databaseGuard) {
     return databaseGuard;
