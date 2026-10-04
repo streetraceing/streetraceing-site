@@ -388,11 +388,11 @@ export function sanitizeTempChatFileName(value: string) {
   const baseName = value
     .split(/[\\/]/)
     .pop()
-    ?.replace(/[\u0000-\u001f<>:"|?*]+/g, ' ')
+    ?.replace(/[\u0000-\u001f<>:"|?*]+/g, '_')
     .replace(/\s+/g, ' ')
     .trim();
 
-  if (!baseName || baseName.replace(/[.\s]/g, '').length === 0) {
+  if (!baseName || baseName.replace(/[.\s_]/g, '').length === 0) {
     return 'file';
   }
 
